@@ -9,6 +9,7 @@ interface CategoryConfig {
   color: string;
   enabled: boolean;
   required?: boolean;
+  rules?: string;
 }
 
 interface Settings {
@@ -27,15 +28,27 @@ interface User {
   labels_created: boolean;
 }
 
+const DEFAULT_RULES: Record<string, string> = {
+  "To Respond": "Direct questions or personal requests that genuinely need my reply. Exclude newsletters, marketing, cold outreach, and automated emails even if they contain questions or personalization.",
+  "FYI": "Informational emails I should be aware of but don't require a response or action.",
+  "Comment": "Notifications about comments on documents, tasks, code reviews, or threads I'm involved in.",
+  "Notification": "Automated system notifications, alerts, status updates, and confirmations from apps and services.",
+  "Meeting Update": "Calendar invites, meeting changes, scheduling requests, RSVPs, and video call links.",
+  "Awaiting Reply": "Email threads where I've already responded and am waiting for the other person.",
+  "Actioned": "Emails I've already handled, completed tasks, or resolved issues.",
+  "Marketing": "Promotional content, newsletters, sales outreach, cold emails, and mass campaigns. Includes emails using personalization tricks to appear personal but are automated.",
+  "Other": "Emails that don't clearly fit any other category.",
+};
+
 const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": { name: "To Respond", color: "#ef4444", enabled: true, required: true },
-  "2": { name: "FYI", color: "#f59e0b", enabled: true },
-  "3": { name: "Comment", color: "#10b981", enabled: true },
-  "4": { name: "Notification", color: "#6366f1", enabled: true },
-  "5": { name: "Meeting Update", color: "#8b5cf6", enabled: true },
-  "6": { name: "Awaiting Reply", color: "#06b6d4", enabled: true },
-  "7": { name: "Actioned", color: "#84cc16", enabled: true },
-  "8": { name: "Marketing", color: "#f97316", enabled: true },
+  "1": { name: "To Respond", color: "#ef4444", enabled: true, required: true, rules: DEFAULT_RULES["To Respond"] },
+  "2": { name: "FYI", color: "#f59e0b", enabled: true, rules: DEFAULT_RULES["FYI"] },
+  "3": { name: "Comment", color: "#10b981", enabled: true, rules: DEFAULT_RULES["Comment"] },
+  "4": { name: "Notification", color: "#6366f1", enabled: true, rules: DEFAULT_RULES["Notification"] },
+  "5": { name: "Meeting Update", color: "#8b5cf6", enabled: true, rules: DEFAULT_RULES["Meeting Update"] },
+  "6": { name: "Awaiting Reply", color: "#06b6d4", enabled: true, rules: DEFAULT_RULES["Awaiting Reply"] },
+  "7": { name: "Actioned", color: "#84cc16", enabled: true, rules: DEFAULT_RULES["Actioned"] },
+  "8": { name: "Marketing", color: "#f97316", enabled: true, rules: DEFAULT_RULES["Marketing"] },
 };
 
 const OTHER_CATEGORY: CategoryConfig = {
@@ -43,6 +56,7 @@ const OTHER_CATEGORY: CategoryConfig = {
   color: "#6b7280",
   enabled: true,
   required: true,
+  rules: DEFAULT_RULES["Other"],
 };
 
 // Check if categories match the defaults (no Other needed)
@@ -568,7 +582,7 @@ export default function Settings() {
               }
             </p>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {Object.entries(settings.categories)
                 .sort(([a], [b]) => parseInt(a) - parseInt(b))
                 .map(([num, config]) => {
@@ -579,60 +593,73 @@ export default function Settings() {
                   return (
                     <div
                       key={num}
-                      className={`flex items-center gap-4 rounded-lg border p-3 ${
+                      className={`rounded-lg border p-3 ${
                         isRequired
                           ? "border-gray-300 bg-gray-50 dark:border-gray-500 dark:bg-gray-750"
                           : "border-gray-200 dark:border-gray-600"
                       }`}
                     >
-                      <span className="w-6 text-center font-mono text-sm text-gray-500">
-                        {num}
-                      </span>
-                      <input
-                        type="color"
-                        value={config.color}
-                        onChange={(e) =>
-                          updateCategory(num, "color", e.target.value)
-                        }
-                        className="h-8 w-8 cursor-pointer rounded border-0"
-                      />
-                      <input
-                        type="text"
-                        value={config.name}
-                        onChange={(e) =>
-                          updateCategory(num, "name", e.target.value)
-                        }
-                        disabled={isRequired}
-                        className={`flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${
-                          isRequired ? "bg-gray-100 dark:bg-gray-600" : ""
-                        }`}
-                      />
-                      {isToRespond && (
-                        <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                          Drafts
+                      <div className="flex items-center gap-4">
+                        <span className="w-6 text-center font-mono text-sm text-gray-500">
+                          {num}
                         </span>
-                      )}
-                      {isOther && (
-                        <span className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-600 dark:text-gray-300">
-                          Catch-all
-                        </span>
-                      )}
-                      {isRequired ? (
-                        <div
-                          className="rounded p-1.5 text-gray-400"
-                          title={isToRespond ? "Required: emails needing response" : "Required: catches emails from deleted categories"}
-                        >
-                          <Lock className="h-4 w-4" />
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => deleteCategory(num)}
-                          className="rounded p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
-                          title="Delete category (sync to remove from Gmail)"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
+                        <input
+                          type="color"
+                          value={config.color}
+                          onChange={(e) =>
+                            updateCategory(num, "color", e.target.value)
+                          }
+                          className="h-8 w-8 cursor-pointer rounded border-0"
+                        />
+                        <input
+                          type="text"
+                          value={config.name}
+                          onChange={(e) =>
+                            updateCategory(num, "name", e.target.value)
+                          }
+                          disabled={isRequired}
+                          className={`flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${
+                            isRequired ? "bg-gray-100 dark:bg-gray-600" : ""
+                          }`}
+                        />
+                        {isToRespond && (
+                          <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                            Drafts
+                          </span>
+                        )}
+                        {isOther && (
+                          <span className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-600 dark:text-gray-300">
+                            Catch-all
+                          </span>
+                        )}
+                        {isRequired ? (
+                          <div
+                            className="rounded p-1.5 text-gray-400"
+                            title={isToRespond ? "Required: emails needing response" : "Required: catches emails from deleted categories"}
+                          >
+                            <Lock className="h-4 w-4" />
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => deleteCategory(num)}
+                            className="rounded p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
+                            title="Delete category (sync to remove from Gmail)"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                      <div className="mt-2 pl-10">
+                        <input
+                          type="text"
+                          value={config.rules || ""}
+                          onChange={(e) =>
+                            updateCategory(num, "rules", e.target.value)
+                          }
+                          placeholder="Classification hint: describe what emails belong here..."
+                          className="w-full rounded-md border border-gray-200 px-3 py-1.5 text-xs text-gray-600 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:placeholder-gray-500"
+                        />
+                      </div>
                     </div>
                   );
                 })}

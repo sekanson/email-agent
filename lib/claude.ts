@@ -9,17 +9,30 @@ export interface CategoryConfig {
   color: string;
   enabled: boolean;
   required?: boolean; // true for "To Respond" and "Other"
+  rules?: string; // Classification hints for the AI
 }
 
+export const DEFAULT_RULES: Record<string, string> = {
+  "To Respond": "Direct questions or personal requests that genuinely need my reply. Exclude newsletters, marketing, cold outreach, and automated emails even if they contain questions or personalization.",
+  "FYI": "Informational emails I should be aware of but don't require a response or action.",
+  "Comment": "Notifications about comments on documents, tasks, code reviews, or threads I'm involved in.",
+  "Notification": "Automated system notifications, alerts, status updates, and confirmations from apps and services.",
+  "Meeting Update": "Calendar invites, meeting changes, scheduling requests, RSVPs, and video call links.",
+  "Awaiting Reply": "Email threads where I've already responded and am waiting for the other person.",
+  "Actioned": "Emails I've already handled, completed tasks, or resolved issues.",
+  "Marketing": "Promotional content, newsletters, sales outreach, cold emails, and mass campaigns. Includes emails using personalization tricks to appear personal but are automated.",
+  "Other": "Emails that don't clearly fit any other category.",
+};
+
 export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": { name: "To Respond", color: "#ef4444", enabled: true, required: true },
-  "2": { name: "FYI", color: "#f59e0b", enabled: true },
-  "3": { name: "Comment", color: "#10b981", enabled: true },
-  "4": { name: "Notification", color: "#6366f1", enabled: true },
-  "5": { name: "Meeting Update", color: "#8b5cf6", enabled: true },
-  "6": { name: "Awaiting Reply", color: "#06b6d4", enabled: true },
-  "7": { name: "Actioned", color: "#84cc16", enabled: true },
-  "8": { name: "Marketing", color: "#f97316", enabled: true },
+  "1": { name: "To Respond", color: "#ef4444", enabled: true, required: true, rules: DEFAULT_RULES["To Respond"] },
+  "2": { name: "FYI", color: "#f59e0b", enabled: true, rules: DEFAULT_RULES["FYI"] },
+  "3": { name: "Comment", color: "#10b981", enabled: true, rules: DEFAULT_RULES["Comment"] },
+  "4": { name: "Notification", color: "#6366f1", enabled: true, rules: DEFAULT_RULES["Notification"] },
+  "5": { name: "Meeting Update", color: "#8b5cf6", enabled: true, rules: DEFAULT_RULES["Meeting Update"] },
+  "6": { name: "Awaiting Reply", color: "#06b6d4", enabled: true, rules: DEFAULT_RULES["Awaiting Reply"] },
+  "7": { name: "Actioned", color: "#84cc16", enabled: true, rules: DEFAULT_RULES["Actioned"] },
+  "8": { name: "Marketing", color: "#f97316", enabled: true, rules: DEFAULT_RULES["Marketing"] },
 };
 
 export const OTHER_CATEGORY: CategoryConfig = {
@@ -27,6 +40,7 @@ export const OTHER_CATEGORY: CategoryConfig = {
   color: "#6b7280",
   enabled: true,
   required: true,
+  rules: DEFAULT_RULES["Other"],
 };
 
 export async function classifyEmailCategory(
@@ -35,13 +49,19 @@ export async function classifyEmailCategory(
   body: string,
   categories: Record<string, CategoryConfig> = DEFAULT_CATEGORIES
 ): Promise<number> {
-  // Build dynamic category list from user settings
+  // Build dynamic category list from user settings with rules
   const sortedCategories = Object.entries(categories)
     .filter(([, config]) => config.enabled)
     .sort(([a], [b]) => parseInt(a) - parseInt(b));
 
+  // Build category list with rules
   const categoryList = sortedCategories
-    .map(([num, config]) => `${num} = ${config.name}`)
+    .map(([num, config]) => {
+      if (config.rules) {
+        return `${num}. ${config.name}: ${config.rules}`;
+      }
+      return `${num}. ${config.name}`;
+    })
     .join("\n");
 
   const maxCategory = Math.max(
@@ -51,23 +71,25 @@ export async function classifyEmailCategory(
   // Check if "Other" category exists
   const hasOther = sortedCategories.some(([, config]) => config.name === "Other");
 
-  let otherInstruction = "";
-  if (hasOther) {
-    otherInstruction = `\n\nIf the email doesn't clearly fit any specific category above, classify it as "Other". This includes marketing emails, notifications, and other types that may have been consolidated.`;
-  }
+  const prompt = `Classify this email into exactly ONE category. Respond with ONLY the category number.
 
-  const prompt = `Classify this email into one of the following categories. Respond with ONLY a single number:
-
+Categories:
 ${categoryList}
+
+IMPORTANT:
+- Be strict about "To Respond" - only genuine personal emails needing a reply
+- Marketing emails often look personal (using names, company references) - check sender domain
+- Cold sales outreach is Marketing, never To Respond
+- Automated notifications are never To Respond
+- If unsure, prefer a less important category over To Respond
+${hasOther ? '- Use "Other" if email doesn\'t clearly fit any category' : ''}
 
 Email:
 From: ${from}
 Subject: ${subject}
 Body: ${body.slice(0, 2000)}
 
-Important: Category 1 is typically for emails that require YOUR direct response/action.${otherInstruction}
-
-Respond with ONLY the number (1-${maxCategory}), nothing else.`;
+Category number (1-${maxCategory}):`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
