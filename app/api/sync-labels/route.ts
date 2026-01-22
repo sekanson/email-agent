@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createLabel, getLabels, updateLabel, deleteLabel } from "@/lib/gmail";
+import { createLabel, getLabels, updateLabel, deleteLabel, refreshAccessToken } from "@/lib/gmail";
 import { createClient } from "@/lib/supabase";
 import { DEFAULT_CATEGORIES, CategoryConfig } from "@/lib/claude";
 
 export async function POST(request: NextRequest) {
+  console.log("=== SYNC LABELS START ===");
+
   try {
     const { userEmail } = await request.json();
+    console.log("User email:", userEmail);
 
     if (!userEmail) {
       return NextResponse.json(
@@ -24,15 +27,39 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError || !user) {
+      console.log("User not found:", userError);
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    console.log("User found, checking token expiry...");
+
+    // Refresh token if needed
+    let accessToken = user.access_token;
+    const tokenExpiry = user.token_expiry;
+    const now = Date.now();
+
+    if (tokenExpiry && now > tokenExpiry - 60000) {
+      console.log("Token expired or expiring soon, refreshing...");
+      try {
+        accessToken = await refreshAccessToken(user.refresh_token);
+        await supabase
+          .from("users")
+          .update({ access_token: accessToken, updated_at: new Date().toISOString() })
+          .eq("email", userEmail);
+        console.log("Token refreshed successfully");
+      } catch (refreshError) {
+        console.error("Failed to refresh token:", refreshError);
+      }
+    }
+
     // Get user settings for categories and our_label_ids
-    let { data: settings } = await supabase
+    let { data: settings, error: settingsError } = await supabase
       .from("user_settings")
       .select("categories, our_label_ids")
       .eq("user_email", userEmail)
       .single();
+
+    console.log("Settings query (user_email):", { settings, error: settingsError?.message });
 
     if (!settings) {
       const result = await supabase
@@ -41,150 +68,147 @@ export async function POST(request: NextRequest) {
         .eq("email", userEmail)
         .single();
       settings = result.data;
+      console.log("Settings query (email):", { settings, error: result.error?.message });
     }
 
     const categories: Record<string, CategoryConfig> = settings?.categories || DEFAULT_CATEGORIES;
+    // our_label_ids maps category NAME to Gmail label ID
     const ourLabelIds: Record<string, string> = settings?.our_label_ids || {};
 
-    // Get existing labels from Gmail
-    const existingLabels = await getLabels(
-      user.access_token,
-      user.refresh_token
-    );
+    console.log("=== CURRENT STATE ===");
+    console.log("Categories from DB:", JSON.stringify(categories, null, 2));
+    console.log("our_label_ids from DB:", JSON.stringify(ourLabelIds, null, 2));
 
-    // Build a map of Gmail label IDs to their current names
+    // Get current category names (enabled only)
+    const currentCategoryNames = Object.values(categories)
+      .filter((c) => c.enabled)
+      .map((c) => c.name);
+
+    console.log("Current enabled category names:", currentCategoryNames);
+    console.log("Labels we currently own:", Object.keys(ourLabelIds));
+
+    // Get existing labels from Gmail
+    console.log("Fetching labels from Gmail...");
+    let gmailLabels;
+    try {
+      gmailLabels = await getLabels(accessToken, user.refresh_token);
+      console.log("Gmail labels fetched:", gmailLabels.length, "labels");
+    } catch (gmailError: any) {
+      console.error("Failed to fetch Gmail labels:", gmailError.message);
+      return NextResponse.json(
+        { error: `Gmail API error: ${gmailError.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Build a map of Gmail label IDs to names for quick lookup
     const gmailLabelMap = new Map<string, string>();
-    for (const label of existingLabels) {
+    for (const label of gmailLabels) {
       gmailLabelMap.set(label.id, label.name);
     }
 
     const newOurLabelIds: Record<string, string> = {};
     let created = 0;
-    let updated = 0;
-    let renamed = 0;
     let deleted = 0;
+    let updated = 0;
 
-    // Step 1: Process current categories - create, rename, or update
-    for (const [num, config] of Object.entries(categories)) {
-      if (!config.enabled) continue;
+    console.log("=== STEP 1: DELETE labels no longer in categories ===");
 
-      const desiredName = config.name;
-      const existingLabelId = ourLabelIds[num];
-
-      if (existingLabelId) {
-        // We have a label for this category number
-        const currentGmailName = gmailLabelMap.get(existingLabelId);
-
-        if (currentGmailName === undefined) {
-          // Label was deleted from Gmail - recreate it
-          console.log(`Label for category ${num} was deleted, recreating`);
-          try {
-            const newLabel = await createLabel(
-              user.access_token,
-              user.refresh_token,
-              desiredName,
-              config.color
-            );
-            newOurLabelIds[num] = newLabel.id;
-            created++;
-          } catch (error: any) {
-            console.error(`Failed to recreate label ${desiredName}:`, error.message);
-          }
-        } else if (currentGmailName !== desiredName) {
-          // Name changed - rename the label
-          console.log(`Renaming label from "${currentGmailName}" to "${desiredName}"`);
-          try {
-            await updateLabel(
-              user.access_token,
-              user.refresh_token,
-              existingLabelId,
-              desiredName,
-              config.color
-            );
-            newOurLabelIds[num] = existingLabelId;
-            renamed++;
-          } catch (error: any) {
-            console.error(`Failed to rename label:`, error.message);
-            // Keep the old label ID
-            newOurLabelIds[num] = existingLabelId;
-          }
-        } else {
-          // Name is the same - just update color
-          try {
-            await updateLabel(
-              user.access_token,
-              user.refresh_token,
-              existingLabelId,
-              desiredName,
-              config.color
-            );
-            newOurLabelIds[num] = existingLabelId;
-            updated++;
-          } catch (error: any) {
-            console.error(`Failed to update label color:`, error.message);
-            newOurLabelIds[num] = existingLabelId;
-          }
-        }
-      } else {
-        // No existing label for this category - create new one
-        // First check if a label with this name exists (that we don't own)
-        const existingGmailLabel = existingLabels.find((l) => l.name === desiredName);
-
-        if (existingGmailLabel) {
-          // Label exists but we don't own it - create with suffix
-          console.log(`Label "${desiredName}" exists but we don't own it, creating with suffix`);
-          try {
-            const newLabel = await createLabel(
-              user.access_token,
-              user.refresh_token,
-              `${desiredName} (Email Agent)`,
-              config.color
-            );
-            newOurLabelIds[num] = newLabel.id;
-            created++;
-          } catch (error: any) {
-            console.error(`Failed to create label:`, error.message);
-          }
-        } else {
-          // Create new label
-          try {
-            const newLabel = await createLabel(
-              user.access_token,
-              user.refresh_token,
-              desiredName,
-              config.color
-            );
-            newOurLabelIds[num] = newLabel.id;
-            created++;
-          } catch (error: any) {
-            console.error(`Failed to create label ${desiredName}:`, error.message);
-          }
-        }
-      }
-    }
-
-    // Step 2: Delete labels we own that are no longer in categories
-    for (const [num, labelId] of Object.entries(ourLabelIds)) {
-      // If this category number no longer exists or is disabled
-      if (!categories[num] || !categories[num].enabled) {
-        // Only delete if we own this label (it's in ourLabelIds)
+    // Delete labels we own that are no longer in current category names
+    for (const [labelName, labelId] of Object.entries(ourLabelIds)) {
+      if (!currentCategoryNames.includes(labelName)) {
+        console.log(`DELETING: "${labelName}" (ID: ${labelId}) - not in current categories`);
         try {
-          console.log(`Deleting label for removed category ${num}`);
-          await deleteLabel(
-            user.access_token,
-            user.refresh_token,
-            labelId
-          );
+          await deleteLabel(accessToken, user.refresh_token, labelId);
+          console.log(`  ✓ Deleted successfully`);
           deleted++;
         } catch (deleteError: any) {
-          // Label might already be deleted
-          console.error(`Failed to delete label for category ${num}:`, deleteError.message);
+          console.error(`  ✗ Failed to delete: ${deleteError.message}`);
+          // Don't keep it in newOurLabelIds - it's either deleted or doesn't exist
+        }
+      } else {
+        // Label still needed - keep it
+        console.log(`KEEPING: "${labelName}" (ID: ${labelId})`);
+        newOurLabelIds[labelName] = labelId;
+      }
+    }
+
+    console.log("=== STEP 2: CREATE labels for new categories ===");
+
+    // Create labels for categories we don't have yet
+    for (const categoryName of currentCategoryNames) {
+      if (!newOurLabelIds[categoryName]) {
+        console.log(`CREATING: "${categoryName}" - not in our_label_ids`);
+
+        // Check if a label with this name already exists in Gmail
+        const existingLabel = gmailLabels.find((l) => l.name === categoryName);
+
+        if (existingLabel) {
+          // Check if we own it (it's in our original ourLabelIds)
+          const weOwnIt = Object.values(ourLabelIds).includes(existingLabel.id);
+          if (weOwnIt) {
+            console.log(`  → Label exists and we own it, reusing ID: ${existingLabel.id}`);
+            newOurLabelIds[categoryName] = existingLabel.id;
+            continue;
+          } else {
+            console.log(`  → Label "${categoryName}" exists but we don't own it, creating with suffix`);
+            try {
+              const category = Object.values(categories).find((c) => c.name === categoryName);
+              const newLabel = await createLabel(
+                accessToken,
+                user.refresh_token,
+                `${categoryName} (Email Agent)`,
+                category?.color
+              );
+              console.log(`  ✓ Created "${categoryName} (Email Agent)" with ID: ${newLabel.id}`);
+              newOurLabelIds[categoryName] = newLabel.id;
+              created++;
+            } catch (createError: any) {
+              console.error(`  ✗ Failed to create: ${createError.message}`);
+            }
+            continue;
+          }
+        }
+
+        // Create new label
+        try {
+          const category = Object.values(categories).find((c) => c.name === categoryName);
+          const newLabel = await createLabel(
+            accessToken,
+            user.refresh_token,
+            categoryName,
+            category?.color
+          );
+          console.log(`  ✓ Created "${categoryName}" with ID: ${newLabel.id}`);
+          newOurLabelIds[categoryName] = newLabel.id;
+          created++;
+        } catch (createError: any) {
+          console.error(`  ✗ Failed to create "${categoryName}": ${createError.message}`);
         }
       }
     }
 
-    // Step 3: Update user record
-    await supabase
+    console.log("=== STEP 3: UPDATE colors for existing labels ===");
+
+    // Update colors for labels we're keeping
+    for (const [categoryName, labelId] of Object.entries(newOurLabelIds)) {
+      const category = Object.values(categories).find((c) => c.name === categoryName);
+      if (category) {
+        try {
+          await updateLabel(accessToken, user.refresh_token, labelId, categoryName, category.color);
+          console.log(`  ✓ Updated color for "${categoryName}"`);
+          updated++;
+        } catch (updateError: any) {
+          console.error(`  ✗ Failed to update "${categoryName}": ${updateError.message}`);
+        }
+      }
+    }
+
+    console.log("=== STEP 4: SAVE to database ===");
+    console.log("New our_label_ids to save:", JSON.stringify(newOurLabelIds, null, 2));
+
+    // Update user record
+    const { error: userUpdateError } = await supabase
       .from("users")
       .update({
         labels_created: true,
@@ -193,33 +217,47 @@ export async function POST(request: NextRequest) {
       })
       .eq("email", userEmail);
 
-    // Step 4: Save our_label_ids to user_settings
-    const settingsUpdate = { our_label_ids: newOurLabelIds };
+    if (userUpdateError) {
+      console.error("Failed to update users table:", userUpdateError);
+    } else {
+      console.log("  ✓ Updated users table");
+    }
 
+    // Save our_label_ids to user_settings
     // Try user_email first
-    let { error: settingsError } = await supabase
+    let { error: settingsUpdateError } = await supabase
       .from("user_settings")
-      .update(settingsUpdate)
+      .update({ our_label_ids: newOurLabelIds })
       .eq("user_email", userEmail);
 
-    // If that fails, try email
-    if (settingsError) {
-      await supabase
+    if (settingsUpdateError) {
+      console.log("user_email update failed, trying email...", settingsUpdateError.message);
+      const result = await supabase
         .from("user_settings")
-        .update(settingsUpdate)
+        .update({ our_label_ids: newOurLabelIds })
         .eq("email", userEmail);
+      settingsUpdateError = result.error;
     }
+
+    if (settingsUpdateError) {
+      console.error("Failed to update user_settings:", settingsUpdateError);
+    } else {
+      console.log("  ✓ Updated user_settings table");
+    }
+
+    console.log("=== SYNC LABELS COMPLETE ===");
+    console.log(`Results: created=${created}, deleted=${deleted}, updated=${updated}`);
 
     return NextResponse.json({
       success: true,
       labels: newOurLabelIds,
-      message: `Created ${created}, renamed ${renamed}, updated ${updated}, deleted ${deleted} labels`,
-      stats: { created, renamed, updated, deleted },
+      stats: { created, deleted, updated },
+      message: `Created ${created}, deleted ${deleted}, updated ${updated} labels`,
     });
-  } catch (error) {
-    console.error("Error syncing labels:", error);
+  } catch (error: any) {
+    console.error("=== SYNC LABELS ERROR ===", error);
     return NextResponse.json(
-      { error: "Failed to sync labels" },
+      { error: `Failed to sync labels: ${error.message}` },
       { status: 500 }
     );
   }

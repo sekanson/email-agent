@@ -89,7 +89,11 @@ export async function POST(request: NextRequest) {
         );
 
         // Step 2: Apply the label
-        const labelId = user.gmail_label_ids[category.toString()];
+        // Look up the category name from the category number
+        const categoryConfig = categories[category.toString()];
+        const categoryName = categoryConfig?.name;
+        // gmail_label_ids is now keyed by category NAME, not number
+        const labelId = categoryName ? user.gmail_label_ids[categoryName] : null;
         if (labelId) {
           await applyLabel(
             user.access_token,
@@ -97,6 +101,8 @@ export async function POST(request: NextRequest) {
             email.id,
             labelId
           );
+        } else {
+          console.log(`No label found for category ${category} (${categoryName})`);
         }
 
         // Step 3: Generate draft for "To Respond" emails (category 1)
