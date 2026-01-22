@@ -72,8 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     const categories: Record<string, CategoryConfig> = settings?.categories || DEFAULT_CATEGORIES;
-    // our_label_ids maps category NAME to Gmail label ID
-    const ourLabelIds: Record<string, string> = settings?.our_label_ids || {};
+    let ourLabelIds: Record<string, string> = settings?.our_label_ids || {};
 
     console.log("=== CURRENT STATE ===");
     console.log("Categories from DB:", JSON.stringify(categories, null, 2));
@@ -85,9 +84,9 @@ export async function POST(request: NextRequest) {
       .map((c) => c.name);
 
     console.log("Current enabled category names:", currentCategoryNames);
-    console.log("Labels we currently own:", Object.keys(ourLabelIds));
+    console.log("Labels we think we own:", Object.keys(ourLabelIds));
 
-    // Get existing labels from Gmail
+    // Fetch all labels from Gmail
     console.log("Fetching labels from Gmail...");
     let gmailLabels;
     try {
@@ -101,10 +100,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Build a map of Gmail label IDs to names for quick lookup
-    const gmailLabelMap = new Map<string, string>();
-    for (const label of gmailLabels) {
-      gmailLabelMap.set(label.id, label.name);
+    // Build set of Gmail label IDs for quick lookup
+    const gmailLabelIds = new Set(gmailLabels.map((l) => l.id));
+
+    console.log("=== STEP 0: VERIFY labels still exist in Gmail ===");
+
+    // Check each label we think we own - remove any that no longer exist
+    const labelsToRemove: string[] = [];
+    for (const [labelName, labelId] of Object.entries(ourLabelIds)) {
+      if (!gmailLabelIds.has(labelId)) {
+        console.log(`Label "${labelName}" (${labelId}) no longer exists in Gmail - removing from tracking`);
+        labelsToRemove.push(labelName);
+      } else {
+        console.log(`Label "${labelName}" (${labelId}) verified - exists in Gmail`);
+      }
+    }
+
+    // Remove stale labels from our tracking
+    for (const labelName of labelsToRemove) {
+      delete ourLabelIds[labelName];
+    }
+
+    if (labelsToRemove.length > 0) {
+      console.log(`Removed ${labelsToRemove.length} stale labels from tracking`);
     }
 
     const newOurLabelIds: Record<string, string> = {};
@@ -124,7 +142,6 @@ export async function POST(request: NextRequest) {
           deleted++;
         } catch (deleteError: any) {
           console.error(`  ✗ Failed to delete: ${deleteError.message}`);
-          // Don't keep it in newOurLabelIds - it's either deleted or doesn't exist
         }
       } else {
         // Label still needed - keep it
@@ -137,53 +154,44 @@ export async function POST(request: NextRequest) {
 
     // Create labels for categories we don't have yet
     for (const categoryName of currentCategoryNames) {
-      if (!newOurLabelIds[categoryName]) {
-        console.log(`CREATING: "${categoryName}" - not in our_label_ids`);
+      if (newOurLabelIds[categoryName]) {
+        // Already have this label
+        continue;
+      }
 
-        // Check if a label with this name already exists in Gmail
-        const existingLabel = gmailLabels.find((l) => l.name === categoryName);
+      console.log(`CREATING: "${categoryName}" - not in our_label_ids`);
 
-        if (existingLabel) {
-          // Check if we own it (it's in our original ourLabelIds)
-          const weOwnIt = Object.values(ourLabelIds).includes(existingLabel.id);
-          if (weOwnIt) {
-            console.log(`  → Label exists and we own it, reusing ID: ${existingLabel.id}`);
-            newOurLabelIds[categoryName] = existingLabel.id;
-            continue;
-          } else {
-            console.log(`  → Label "${categoryName}" exists but we don't own it, creating with suffix`);
-            try {
-              const category = Object.values(categories).find((c) => c.name === categoryName);
-              const newLabel = await createLabel(
-                accessToken,
-                user.refresh_token,
-                `${categoryName} (Email Agent)`,
-                category?.color
-              );
-              console.log(`  ✓ Created "${categoryName} (Email Agent)" with ID: ${newLabel.id}`);
-              newOurLabelIds[categoryName] = newLabel.id;
-              created++;
-            } catch (createError: any) {
-              console.error(`  ✗ Failed to create: ${createError.message}`);
-            }
-            continue;
-          }
-        }
+      // Check if a label with this exact name already exists in Gmail
+      const existingLabel = gmailLabels.find((l) => l.name === categoryName);
 
-        // Create new label
-        try {
-          const category = Object.values(categories).find((c) => c.name === categoryName);
-          const newLabel = await createLabel(
-            accessToken,
-            user.refresh_token,
-            categoryName,
-            category?.color
-          );
-          console.log(`  ✓ Created "${categoryName}" with ID: ${newLabel.id}`);
-          newOurLabelIds[categoryName] = newLabel.id;
-          created++;
-        } catch (createError: any) {
-          console.error(`  ✗ Failed to create "${categoryName}": ${createError.message}`);
+      if (existingLabel) {
+        // Label exists - check if we should use it or skip
+        console.log(`  → Label "${categoryName}" already exists in Gmail (ID: ${existingLabel.id})`);
+        console.log(`  → Adding to our tracking (we'll manage it now)`);
+        newOurLabelIds[categoryName] = existingLabel.id;
+        continue;
+      }
+
+      // Create new label with exact category name (no suffix)
+      try {
+        const category = Object.values(categories).find((c) => c.name === categoryName);
+        const newLabel = await createLabel(
+          accessToken,
+          user.refresh_token,
+          categoryName,
+          category?.color
+        );
+        console.log(`  ✓ Created "${categoryName}" with ID: ${newLabel.id}`);
+        newOurLabelIds[categoryName] = newLabel.id;
+        created++;
+      } catch (createError: any) {
+        console.error(`  ✗ Failed to create "${categoryName}": ${createError.message}`);
+        // If creation failed, try to find it (maybe race condition)
+        const refreshedLabels = await getLabels(accessToken, user.refresh_token);
+        const found = refreshedLabels.find((l) => l.name === categoryName);
+        if (found) {
+          console.log(`  → Found existing label after error, using ID: ${found.id}`);
+          newOurLabelIds[categoryName] = found.id;
         }
       }
     }
@@ -224,7 +232,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Save our_label_ids to user_settings
-    // Try user_email first
     let { error: settingsUpdateError } = await supabase
       .from("user_settings")
       .update({ our_label_ids: newOurLabelIds })
@@ -246,12 +253,12 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("=== SYNC LABELS COMPLETE ===");
-    console.log(`Results: created=${created}, deleted=${deleted}, updated=${updated}`);
+    console.log(`Results: created=${created}, deleted=${deleted}, updated=${updated}, stale_removed=${labelsToRemove.length}`);
 
     return NextResponse.json({
       success: true,
       labels: newOurLabelIds,
-      stats: { created, deleted, updated },
+      stats: { created, deleted, updated, staleRemoved: labelsToRemove.length },
       message: `Created ${created}, deleted ${deleted}, updated ${updated} labels`,
     });
   } catch (error: any) {

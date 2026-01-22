@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get user settings for categories - try user_email first, then email
+    // Get user settings for categories
     let { data: settings } = await supabase
       .from("user_settings")
       .select("categories, our_label_ids")
@@ -66,8 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     const categories: Record<string, CategoryConfig> = settings?.categories || DEFAULT_CATEGORIES;
-    // our_label_ids now maps category NAME to Gmail label ID
-    const ourLabelIds: Record<string, string> = settings?.our_label_ids || {};
+    let ourLabelIds: Record<string, string> = settings?.our_label_ids || {};
 
     console.log("Categories:", Object.values(categories).map(c => c.name));
     console.log("Existing our_label_ids:", ourLabelIds);
@@ -76,7 +75,17 @@ export async function POST(request: NextRequest) {
     const existingLabels = await getLabels(accessToken, user.refresh_token);
     console.log("Gmail labels count:", existingLabels.length);
 
-    // Create labels and collect their IDs (keyed by NAME, not number)
+    // Build set of Gmail label IDs for verification
+    const gmailLabelIds = new Set(existingLabels.map((l) => l.id));
+
+    // Verify existing labels still exist in Gmail
+    for (const [labelName, labelId] of Object.entries(ourLabelIds)) {
+      if (!gmailLabelIds.has(labelId)) {
+        console.log(`Label "${labelName}" no longer exists in Gmail - removing from tracking`);
+        delete ourLabelIds[labelName];
+      }
+    }
+
     const newOurLabelIds: Record<string, string> = { ...ourLabelIds };
     let created = 0;
     let updated = 0;
@@ -88,11 +97,11 @@ export async function POST(request: NextRequest) {
       const labelName = config.name;
 
       // Check if we already have a label for this name
-      if (ourLabelIds[labelName]) {
+      if (newOurLabelIds[labelName]) {
         // We already own this label - just update the color
         console.log(`Updating color for existing label: ${labelName}`);
         try {
-          await updateLabelColor(accessToken, user.refresh_token, ourLabelIds[labelName], config.color);
+          await updateLabelColor(accessToken, user.refresh_token, newOurLabelIds[labelName], config.color);
           updated++;
         } catch (colorError) {
           console.error(`Failed to update color for ${labelName}:`, colorError);
@@ -104,24 +113,20 @@ export async function POST(request: NextRequest) {
       const existingGmailLabel = existingLabels.find((l) => l.name === labelName);
 
       if (existingGmailLabel) {
-        // Label exists but we don't own it - create with different name
-        console.log(`Label "${labelName}" exists in Gmail, creating with suffix`);
+        // Label exists - add to our tracking
+        console.log(`Label "${labelName}" already exists in Gmail, adding to tracking`);
+        newOurLabelIds[labelName] = existingGmailLabel.id;
+        // Update color
         try {
-          const newLabel = await createLabel(
-            accessToken,
-            user.refresh_token,
-            `${labelName} (Email Agent)`,
-            config.color
-          );
-          newOurLabelIds[labelName] = newLabel.id;
-          created++;
-        } catch (error: any) {
-          console.error(`Failed to create label ${labelName}:`, error.message);
+          await updateLabelColor(accessToken, user.refresh_token, existingGmailLabel.id, config.color);
+          updated++;
+        } catch (colorError) {
+          console.error(`Failed to update color for ${labelName}:`, colorError);
         }
         continue;
       }
 
-      // Create new label
+      // Create new label with exact category name (no suffix)
       console.log(`Creating new label: ${labelName}`);
       try {
         const newLabel = await createLabel(
@@ -134,10 +139,11 @@ export async function POST(request: NextRequest) {
         created++;
       } catch (error: any) {
         console.error(`Failed to create label ${labelName}:`, error.message);
-        // Try to find it if creation failed
+        // Try to find it if creation failed (race condition)
         const refreshedLabels = await getLabels(accessToken, user.refresh_token);
         const found = refreshedLabels.find((l) => l.name === labelName);
         if (found) {
+          console.log(`Found existing label after error: ${labelName}`);
           newOurLabelIds[labelName] = found.id;
         }
       }
