@@ -57,7 +57,6 @@ export async function GET(request: NextRequest) {
         settings: {
           temperature: 0.7,
           signature: "",
-          label_prefix: "C-",
           drafts_enabled: true,
           auto_poll_enabled: false,
           auto_poll_interval: 120,
@@ -96,7 +95,6 @@ export async function POST(request: NextRequest) {
     const baseSettings: Record<string, unknown> = {
       temperature: settings.temperature ?? 0.7,
       signature: settings.signature ?? "",
-      label_prefix: settings.label_prefix ?? "C-",
       drafts_enabled: settings.drafts_enabled ?? true,
       categories: settings.categories ?? DEFAULT_CATEGORIES,
       auto_poll_enabled: settings.auto_poll_enabled,

@@ -196,6 +196,36 @@ export async function updateLabelColor(
   });
 }
 
+export async function updateLabel(
+  accessToken: string,
+  refreshToken: string,
+  labelId: string,
+  newName: string,
+  color?: string
+): Promise<GmailLabel> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  const requestBody: { name: string; color?: { backgroundColor: string; textColor: string } } = {
+    name: newName,
+  };
+
+  if (color) {
+    requestBody.color = getGmailColor(color);
+  }
+
+  const response = await gmail.users.labels.update({
+    userId: "me",
+    id: labelId,
+    requestBody,
+  });
+
+  return {
+    id: response.data.id!,
+    name: response.data.name!,
+  };
+}
+
 export async function deleteLabel(
   accessToken: string,
   refreshToken: string,

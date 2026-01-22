@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(gh:*)",
+      "Bash(git config:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd email agent with Gmail integration, Claude AI classification, and dashboard\n\n- Google OAuth authentication with Gmail API access\n- Claude-powered email categorization \\(To Respond, FYI, Comment, etc.\\)\n- Auto-draft responses for emails requiring reply\n- Gmail label management and sync\n- Real-time dashboard with auto-polling\n- User settings with customizable categories\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(npm install:*)",
+      "Bash(vercel:*)",
+      "Bash(curl:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nOverhaul labels system - remove prefix, add smart label management\n\n- Remove label_prefix feature entirely \\(labels now use category names directly\\)\n- Add our_label_ids tracking to only manage labels we created\n- Add updateLabel function to rename existing Gmail labels\n- Smart sync: rename changed labels, delete only our labels, never touch others\n- Protect user''s existing Gmail labels \\(like Fyxer''s\\) from deletion\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+    ]
+  }
+}

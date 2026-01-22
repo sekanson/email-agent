@@ -13,7 +13,6 @@ interface CategoryConfig {
 interface Settings {
   temperature: number;
   signature: string;
-  label_prefix: string;
   drafts_enabled: boolean;
   auto_poll_enabled: boolean;
   auto_poll_interval: number;
@@ -43,7 +42,6 @@ export default function Settings() {
   const [settings, setSettings] = useState<Settings>({
     temperature: 0.7,
     signature: "",
-    label_prefix: "C-",
     drafts_enabled: true,
     auto_poll_enabled: false,
     auto_poll_interval: 120,
@@ -85,7 +83,6 @@ export default function Settings() {
         setSettings({
           temperature: data.settings.temperature ?? 0.7,
           signature: data.settings.signature ?? "",
-          label_prefix: data.settings.label_prefix ?? "C-",
           drafts_enabled: data.settings.drafts_enabled ?? true,
           auto_poll_enabled: data.settings.auto_poll_enabled ?? false,
           auto_poll_interval: data.settings.auto_poll_interval ?? 120,
@@ -324,31 +321,6 @@ export default function Settings() {
               </div>
             </div>
 
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Label Prefix
-              </label>
-              <input
-                type="text"
-                value={settings.label_prefix}
-                onChange={(e) =>
-                  setSettings((prev) => ({
-                    ...prev,
-                    label_prefix: e.target.value,
-                  }))
-                }
-                className="mt-1 block w-32 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                placeholder="C-"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Labels will be named: {settings.label_prefix}1: {Object.values(settings.categories)[0]?.name || "To Respond"}, etc.
-              </p>
-              {user?.labels_created && (
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-                  Changing prefix creates new labels. Click &quot;Sync Labels&quot; to apply changes.
-                </p>
-              )}
-            </div>
           </section>
 
           {/* Auto-Polling Settings */}
