@@ -412,67 +412,6 @@ export default function Settings() {
             </div>
           </section>
 
-          {/* Auto-Polling Settings */}
-          <section className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-              Auto-Polling
-            </h2>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Enable Auto-Polling
-                  </label>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Automatically check for new emails at regular intervals
-                  </p>
-                </div>
-                <button
-                  onClick={() =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      auto_poll_enabled: !prev.auto_poll_enabled,
-                    }))
-                  }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.auto_poll_enabled ? "bg-blue-600" : "bg-gray-300"
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.auto_poll_enabled ? "translate-x-6" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Polling Interval
-                </label>
-                <select
-                  value={settings.auto_poll_interval}
-                  onChange={(e) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      auto_poll_interval: parseInt(e.target.value),
-                    }))
-                  }
-                  className="mt-1 block w-48 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                >
-                  <option value={60}>Every 1 minute</option>
-                  <option value={120}>Every 2 minutes</option>
-                  <option value={180}>Every 3 minutes</option>
-                  <option value={300}>Every 5 minutes</option>
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  How often to check for new emails when auto-polling is enabled
-                </p>
-              </div>
-            </div>
-          </section>
-
           {/* Response Settings */}
           <section className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
             <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
