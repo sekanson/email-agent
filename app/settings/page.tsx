@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
-import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Eye, Code } from "lucide-react";
+import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Eye, Code, Lock, RotateCcw } from "lucide-react";
 
 interface CategoryConfig {
   name: string;
   color: string;
   enabled: boolean;
+  required?: boolean;
 }
 
 interface Settings {
@@ -27,7 +28,7 @@ interface User {
 }
 
 const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": { name: "To Respond", color: "#ef4444", enabled: true },
+  "1": { name: "To Respond", color: "#ef4444", enabled: true, required: true },
   "2": { name: "FYI", color: "#f59e0b", enabled: true },
   "3": { name: "Comment", color: "#10b981", enabled: true },
   "4": { name: "Notification", color: "#6366f1", enabled: true },
@@ -36,6 +37,54 @@ const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
   "7": { name: "Actioned", color: "#84cc16", enabled: true },
   "8": { name: "Marketing", color: "#f97316", enabled: true },
 };
+
+const OTHER_CATEGORY: CategoryConfig = {
+  name: "Other",
+  color: "#6b7280",
+  enabled: true,
+  required: true,
+};
+
+// Check if categories match the defaults (no Other needed)
+function hasAllDefaults(categories: Record<string, CategoryConfig>): boolean {
+  const defaultNames = Object.values(DEFAULT_CATEGORIES).map(c => c.name);
+  const currentNames = Object.values(categories).map(c => c.name).filter(n => n !== "Other");
+  return defaultNames.every(name => currentNames.includes(name)) && currentNames.length === 8;
+}
+
+// Process categories to ensure proper structure (add Other if needed, ensure order)
+function processCategories(categories: Record<string, CategoryConfig>): Record<string, CategoryConfig> {
+  const entries = Object.entries(categories);
+
+  // Separate Other from rest
+  const otherEntry = entries.find(([, c]) => c.name === "Other");
+  const nonOther = entries.filter(([, c]) => c.name !== "Other");
+
+  // Count non-Other categories
+  const needsOther = nonOther.length < 8;
+
+  // Build new categories object
+  const result: Record<string, CategoryConfig> = {};
+
+  // Add non-Other categories first, renumbered
+  nonOther.forEach(([, config], index) => {
+    result[(index + 1).toString()] = {
+      ...config,
+      // Ensure To Respond is always required
+      required: config.name === "To Respond" ? true : config.required,
+    };
+  });
+
+  // Add Other if needed
+  if (needsOther) {
+    const nextNum = nonOther.length + 1;
+    result[nextNum.toString()] = otherEntry
+      ? { ...otherEntry[1], required: true }
+      : { ...OTHER_CATEGORY };
+  }
+
+  return result;
+}
 
 export default function Settings() {
   const [user, setUser] = useState<User | null>(null);
@@ -56,8 +105,6 @@ export default function Settings() {
   } | null>(null);
   const [signaturePreview, setSignaturePreview] = useState(false);
 
-  // For demo purposes, we'll use a hardcoded email
-  // In production, this would come from session/auth
   const userEmail =
     typeof window !== "undefined"
       ? localStorage.getItem("userEmail") || ""
@@ -80,13 +127,15 @@ export default function Settings() {
         setUser(data.user);
       }
       if (data.settings) {
+        // Process categories to ensure proper structure
+        const categories = processCategories(data.settings.categories ?? DEFAULT_CATEGORIES);
         setSettings({
           temperature: data.settings.temperature ?? 0.7,
           signature: data.settings.signature ?? "",
           drafts_enabled: data.settings.drafts_enabled ?? true,
           auto_poll_enabled: data.settings.auto_poll_enabled ?? false,
           auto_poll_interval: data.settings.auto_poll_interval ?? 120,
-          categories: data.settings.categories ?? DEFAULT_CATEGORIES,
+          categories,
         });
       }
     } catch (error) {
@@ -124,14 +173,14 @@ export default function Settings() {
     setMessage(null);
 
     try {
-      // First save current settings (including label prefix and categories)
+      // First save current settings
       await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userEmail, settings }),
       });
 
-      // Then sync labels (creates new, updates existing, deletes removed)
+      // Then sync labels
       const res = await fetch("/api/sync-labels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -180,47 +229,88 @@ export default function Settings() {
   }
 
   function addCategory() {
-    const existingNums = Object.keys(settings.categories).map((n) => parseInt(n));
-    const nextNum = Math.max(...existingNums) + 1;
+    const nonOtherCount = Object.values(settings.categories).filter(c => c.name !== "Other").length;
+    if (nonOtherCount >= 8) return;
+
+    const entries = Object.entries(settings.categories);
+    const otherIndex = entries.findIndex(([, c]) => c.name === "Other");
 
     const colors = ["#ef4444", "#f59e0b", "#10b981", "#6366f1", "#8b5cf6", "#06b6d4", "#84cc16", "#f97316", "#ec4899", "#14b8a6"];
-    const color = colors[nextNum % colors.length];
 
-    setSettings((prev) => ({
-      ...prev,
-      categories: {
-        ...prev.categories,
-        [nextNum.toString()]: {
-          name: `Category ${nextNum}`,
+    // Insert new category before Other (if exists) or at end
+    const insertPosition = otherIndex !== -1 ? otherIndex : entries.length;
+    const newNum = insertPosition + 1;
+    const color = colors[newNum % colors.length];
+
+    setSettings((prev) => {
+      const newCategories = { ...prev.categories };
+
+      // If Other exists, shift it
+      if (otherIndex !== -1) {
+        const otherKey = entries[otherIndex][0];
+        const otherConfig = newCategories[otherKey];
+        delete newCategories[otherKey];
+
+        // Add new category
+        newCategories[newNum.toString()] = {
+          name: `New Category`,
           color,
           enabled: true,
-        },
-      },
-    }));
+        };
+
+        // Re-add Other at new position
+        newCategories[(newNum + 1).toString()] = otherConfig;
+      } else {
+        // No Other, just add at end
+        newCategories[newNum.toString()] = {
+          name: `New Category`,
+          color,
+          enabled: true,
+        };
+      }
+
+      return {
+        ...prev,
+        categories: processCategories(newCategories),
+      };
+    });
   }
 
   function deleteCategory(num: string) {
-    if (Object.keys(settings.categories).length <= 2) return;
+    const category = settings.categories[num];
+
+    // Can't delete required categories (To Respond, Other)
+    if (category?.required) return;
+
+    // Can't go below 2 (To Respond + Other)
+    const nonOtherCount = Object.values(settings.categories).filter(c => c.name !== "Other").length;
+    if (nonOtherCount <= 2) return;
 
     setSettings((prev) => {
       const newCategories = { ...prev.categories };
       delete newCategories[num];
 
-      // Renumber categories to be sequential starting from 1
-      const sorted = Object.entries(newCategories)
-        .sort(([a], [b]) => parseInt(a) - parseInt(b));
-
-      const renumbered: Record<string, CategoryConfig> = {};
-      sorted.forEach(([, config], index) => {
-        renumbered[(index + 1).toString()] = config;
-      });
-
+      // Process will renumber and add Other if needed
       return {
         ...prev,
-        categories: renumbered,
+        categories: processCategories(newCategories),
       };
     });
   }
+
+  function restoreDefaults() {
+    if (confirm("Reset all categories to defaults? This will remove any custom categories.")) {
+      setSettings((prev) => ({
+        ...prev,
+        categories: { ...DEFAULT_CATEGORIES },
+      }));
+    }
+  }
+
+  // Check if we're at defaults (for showing/hiding restore button)
+  const isAtDefaults = hasAllDefaults(settings.categories);
+  const nonOtherCount = Object.values(settings.categories).filter(c => c.name !== "Other").length;
+  const canAddCategory = nonOtherCount < 8;
 
   if (loading) {
     return (
@@ -320,7 +410,6 @@ export default function Settings() {
                 </button>
               </div>
             </div>
-
           </section>
 
           {/* Auto-Polling Settings */}
@@ -511,63 +600,103 @@ export default function Settings() {
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Categories
               </h2>
-              <button
-                onClick={addCategory}
-                disabled={Object.keys(settings.categories).length >= 10}
-                className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                <Plus className="h-4 w-4" />
-                Add Category
-              </button>
+              <div className="flex items-center gap-2">
+                {!isAtDefaults && (
+                  <button
+                    onClick={restoreDefaults}
+                    className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Restore Defaults
+                  </button>
+                )}
+                {canAddCategory && (
+                  <button
+                    onClick={addCategory}
+                    className="flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Category
+                  </button>
+                )}
+              </div>
             </div>
 
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-              Customize your email categories. The first category is always used for emails requiring a response (drafts will be created).
-              Minimum 2 categories required. Deleting a category removes its Gmail label when you click &quot;Sync Labels&quot;.
+              {isAtDefaults
+                ? "You have all 8 default categories. Delete any to add the \"Other\" catch-all category."
+                : "\"Other\" catches emails that don\'t fit your remaining categories. Restore defaults to remove it."
+              }
             </p>
 
             <div className="space-y-3">
               {Object.entries(settings.categories)
                 .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                .map(([num, config], index) => (
-                <div
-                  key={num}
-                  className="flex items-center gap-4 rounded-lg border border-gray-200 p-3 dark:border-gray-600"
-                >
-                  <span className="w-6 text-center font-mono text-sm text-gray-500">
-                    {num}
-                  </span>
-                  <input
-                    type="color"
-                    value={config.color}
-                    onChange={(e) =>
-                      updateCategory(num, "color", e.target.value)
-                    }
-                    className="h-8 w-8 cursor-pointer rounded border-0"
-                  />
-                  <input
-                    type="text"
-                    value={config.name}
-                    onChange={(e) =>
-                      updateCategory(num, "name", e.target.value)
-                    }
-                    className="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                  />
-                  {index === 0 && (
-                    <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                      Drafts
-                    </span>
-                  )}
-                  <button
-                    onClick={() => deleteCategory(num)}
-                    disabled={Object.keys(settings.categories).length <= 2}
-                    className="rounded p-1.5 text-red-600 hover:bg-red-100 disabled:opacity-30 disabled:hover:bg-transparent dark:hover:bg-red-900"
-                    title={Object.keys(settings.categories).length <= 2 ? "Minimum 2 categories required" : "Delete category (sync to remove from Gmail)"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
+                .map(([num, config]) => {
+                  const isToRespond = config.name === "To Respond";
+                  const isOther = config.name === "Other";
+                  const isRequired = config.required || isToRespond || isOther;
+
+                  return (
+                    <div
+                      key={num}
+                      className={`flex items-center gap-4 rounded-lg border p-3 ${
+                        isRequired
+                          ? "border-gray-300 bg-gray-50 dark:border-gray-500 dark:bg-gray-750"
+                          : "border-gray-200 dark:border-gray-600"
+                      }`}
+                    >
+                      <span className="w-6 text-center font-mono text-sm text-gray-500">
+                        {num}
+                      </span>
+                      <input
+                        type="color"
+                        value={config.color}
+                        onChange={(e) =>
+                          updateCategory(num, "color", e.target.value)
+                        }
+                        className="h-8 w-8 cursor-pointer rounded border-0"
+                      />
+                      <input
+                        type="text"
+                        value={config.name}
+                        onChange={(e) =>
+                          updateCategory(num, "name", e.target.value)
+                        }
+                        disabled={isRequired}
+                        className={`flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${
+                          isRequired ? "bg-gray-100 dark:bg-gray-600" : ""
+                        }`}
+                      />
+                      {isToRespond && (
+                        <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                          Drafts
+                        </span>
+                      )}
+                      {isOther && (
+                        <span className="rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-600 dark:text-gray-300">
+                          Catch-all
+                        </span>
+                      )}
+                      {isRequired ? (
+                        <div
+                          className="rounded p-1.5 text-gray-400"
+                          title={isToRespond ? "Required: emails needing response" : "Required: catches emails from deleted categories"}
+                        >
+                          <Lock className="h-4 w-4" />
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => deleteCategory(num)}
+                          className="rounded p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900"
+                          title="Delete category (sync to remove from Gmail)"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </section>
 
