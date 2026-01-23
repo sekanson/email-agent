@@ -597,20 +597,22 @@ export default function SettingsPage() {
                             }
                             className="sr-only"
                           />
-                          <span className="text-sm font-medium text-[var(--text-muted)]">{num}:</span>
-                          <input
-                            type="text"
-                            value={displayName}
-                            onChange={(e) =>
-                              updateCategory(num, "name", e.target.value)
-                            }
-                            disabled={isRequired}
-                            className={`flex-1 bg-transparent font-medium text-[var(--text-primary)] focus:outline-none ${
-                              isRequired ? "cursor-not-allowed" : ""
-                            }`}
-                            placeholder="Category name"
-                          />
-                          <div className="ml-auto flex items-center gap-2">
+                          <div className="flex flex-1 items-center gap-1">
+                            <span className="text-base font-semibold text-[var(--text-muted)]">{num}:</span>
+                            <input
+                              type="text"
+                              value={displayName}
+                              onChange={(e) =>
+                                updateCategory(num, "name", e.target.value)
+                              }
+                              disabled={isRequired}
+                              className={`flex-1 bg-transparent text-base font-semibold text-[var(--text-primary)] focus:outline-none ${
+                                isRequired ? "cursor-not-allowed" : ""
+                              }`}
+                              placeholder="Category name"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
                             {config.drafts && (
                               <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--accent)]">
                                 Drafts
