@@ -12,6 +12,8 @@ import {
   Tag,
   RefreshCw,
   Power,
+  RotateCcw,
+  ChevronDown,
 } from "lucide-react";
 
 interface ProcessedEmail {
@@ -24,28 +26,123 @@ interface ProcessedEmail {
   processed_at: string;
 }
 
+interface Metrics {
+  totalProcessed: number;
+  toRespond: number;
+  draftsCreated: number;
+  other: number;
+  byCategory: Record<number, number>;
+  totalAll: number;
+}
+
 interface CategoryConfig {
   name: string;
   color: string;
   enabled: boolean;
+  required?: boolean;
+  description: string;
+  rules?: string;
+  drafts?: boolean;
+  order: number;
 }
 
 const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": { name: "To Respond", color: "#F87171", enabled: true },
-  "2": { name: "FYI", color: "#FB923C", enabled: true },
-  "3": { name: "Comment", color: "#22D3EE", enabled: true },
-  "4": { name: "Notification", color: "#4ADE80", enabled: true },
-  "5": { name: "Meeting Update", color: "#A855F7", enabled: true },
-  "6": { name: "Awaiting Reply", color: "#60A5FA", enabled: true },
-  "7": { name: "Actioned", color: "#2DD4BF", enabled: true },
-  "8": { name: "Marketing", color: "#F472B6", enabled: true },
+  "1": {
+    name: "1: Respond",
+    color: "#F87171",
+    enabled: true,
+    required: true,
+    description: "Requires your reply or action",
+    rules: "",
+    drafts: true,
+    order: 1,
+  },
+  "2": {
+    name: "2: Update",
+    color: "#FB923C",
+    enabled: true,
+    description: "Worth knowing, no response required",
+    rules: "",
+    drafts: false,
+    order: 2,
+  },
+  "3": {
+    name: "3: Comment",
+    color: "#22D3EE",
+    enabled: true,
+    description: "Mentions from docs, threads & chats",
+    rules: "",
+    drafts: false,
+    order: 3,
+  },
+  "4": {
+    name: "4: Notification",
+    color: "#4ADE80",
+    enabled: true,
+    description: "Automated alerts & confirmations",
+    rules: "",
+    drafts: false,
+    order: 4,
+  },
+  "5": {
+    name: "5: Calendar",
+    color: "#A855F7",
+    enabled: true,
+    description: "Meetings, invites & calendar events",
+    rules: "",
+    drafts: false,
+    order: 5,
+  },
+  "6": {
+    name: "6: Pending",
+    color: "#60A5FA",
+    enabled: true,
+    description: "Waiting on someone else's response",
+    rules: "",
+    drafts: false,
+    order: 6,
+  },
+  "7": {
+    name: "7: Complete",
+    color: "#2DD4BF",
+    enabled: true,
+    description: "Resolved or finished conversations",
+    rules: "",
+    drafts: false,
+    order: 7,
+  },
+  "8": {
+    name: "8: Marketing/Spam",
+    color: "#F472B6",
+    enabled: true,
+    description: "Newsletters, sales & promotional",
+    rules: "",
+    drafts: false,
+    order: 8,
+  },
 };
+
+const DATE_RANGES = [
+  { value: "all", label: "All Time" },
+  { value: "today", label: "Today" },
+  { value: "week", label: "This Week" },
+  { value: "month", label: "This Month" },
+];
 
 export default function Dashboard() {
   const [emails, setEmails] = useState<ProcessedEmail[]>([]);
+  const [metrics, setMetrics] = useState<Metrics>({
+    totalProcessed: 0,
+    toRespond: 0,
+    draftsCreated: 0,
+    other: 0,
+    byCategory: {},
+    totalAll: 0,
+  });
   const [categories, setCategories] =
     useState<Record<string, CategoryConfig>>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [labelsCreated, setLabelsCreated] = useState(false);
   const [processResult, setProcessResult] = useState<{
@@ -56,6 +153,8 @@ export default function Dashboard() {
   const [pollInterval, setPollInterval] = useState(120);
   const [lastPolled, setLastPolled] = useState<Date | null>(null);
   const [nextPollIn, setNextPollIn] = useState<number | null>(null);
+  const [dateRange, setDateRange] = useState<"all" | "today" | "week" | "month">("all");
+  const [displayLimit, setDisplayLimit] = useState(25);
 
   const userEmail =
     typeof window !== "undefined"
@@ -69,6 +168,12 @@ export default function Dashboard() {
       setLoading(false);
     }
   }, [userEmail]);
+
+  useEffect(() => {
+    if (userEmail && !loading) {
+      fetchEmails();
+    }
+  }, [dateRange, userEmail]);
 
   useEffect(() => {
     if (!autoPolling || !labelsCreated || processing) return;
@@ -126,15 +231,68 @@ export default function Dashboard() {
         setPollInterval(settingsData.settings.auto_poll_interval);
       }
 
-      const emailsRes = await fetch(`/api/emails?userEmail=${userEmail}`);
-      if (emailsRes.ok) {
-        const emailsData = await emailsRes.json();
-        setEmails(emailsData.emails || []);
-      }
+      await fetchEmails();
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function fetchEmails() {
+    try {
+      const emailsRes = await fetch(
+        `/api/emails?userEmail=${userEmail}&dateRange=${dateRange}&limit=100`
+      );
+      if (emailsRes.ok) {
+        const emailsData = await emailsRes.json();
+        setEmails(emailsData.emails || []);
+        if (emailsData.metrics) {
+          setMetrics(emailsData.metrics);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch emails:", error);
+    }
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await fetchEmails();
+    setRefreshing(false);
+  }
+
+  async function handleResetMetrics() {
+    const confirmed = window.confirm(
+      "This will clear all processed email history and reset your metrics to zero. Your Gmail labels will not be affected. Continue?"
+    );
+
+    if (confirmed) {
+      try {
+        const res = await fetch("/api/emails", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userEmail }),
+        });
+
+        if (res.ok) {
+          setEmails([]);
+          setMetrics({
+            totalProcessed: 0,
+            toRespond: 0,
+            draftsCreated: 0,
+            other: 0,
+            byCategory: {},
+            totalAll: 0,
+          });
+          setDisplayLimit(25);
+        } else {
+          alert("Failed to reset metrics");
+        }
+      } catch (error) {
+        console.error("Failed to reset metrics:", error);
+        alert("Failed to reset metrics");
+      }
     }
   }
 
@@ -182,7 +340,7 @@ export default function Dashboard() {
             skipped: data.skipped,
           });
         }
-        await fetchData();
+        await fetchEmails();
         setLastPolled(new Date());
       } else if (!silent) {
         alert(data.error || "Failed to process emails");
@@ -194,18 +352,6 @@ export default function Dashboard() {
       setProcessing(false);
     }
   }
-
-  const stats = {
-    total: emails.length,
-    toRespond: emails.filter((e) => e.category === 1).length,
-    draftsCreated: emails.filter((e) => e.draft_id).length,
-    byCategory: Object.fromEntries(
-      [1, 2, 3, 4, 5, 6, 7, 8].map((num) => [
-        num,
-        emails.filter((e) => e.category === num).length,
-      ])
-    ),
-  };
 
   function getCategoryBadge(category: number) {
     const config = categories[category.toString()] || {
@@ -229,15 +375,18 @@ export default function Dashboard() {
     );
   }
 
+  const displayedEmails = emails.slice(0, displayLimit);
+  const hasMore = emails.length > displayLimit;
+
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[var(--bg-primary)]">
+      <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="flex flex-1 items-center justify-center">
+        <main className="ml-64 flex min-h-screen items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-violet-500/20 blur-xl" />
-              <Loader2 className="relative h-8 w-8 animate-spin text-violet-500" />
+              <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl" />
+              <Loader2 className="relative h-8 w-8 animate-spin text-blue-500" />
             </div>
             <p className="text-sm text-[var(--text-muted)]">Loading dashboard...</p>
           </div>
@@ -248,9 +397,9 @@ export default function Dashboard() {
 
   if (!userEmail) {
     return (
-      <div className="flex min-h-screen bg-[var(--bg-primary)]">
+      <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="flex flex-1 items-center justify-center">
+        <main className="ml-64 flex min-h-screen items-center justify-center">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-card)]">
               <Mail className="h-8 w-8 text-[var(--text-muted)]" />
@@ -263,7 +412,7 @@ export default function Dashboard() {
             </p>
             <a
               href="/"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-violet-500/25"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/15"
             >
               Go to Home
             </a>
@@ -274,10 +423,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg-primary)]">
+    <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="flex-1 overflow-auto">
+      <main className="ml-64 min-h-screen overflow-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
           <div className="flex items-center justify-between px-8 py-5">
@@ -286,10 +435,49 @@ export default function Dashboard() {
                 Dashboard
               </h1>
               <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-                Overview of your email activity
+                {dateRange === "all"
+                  ? "Overview of your email activity"
+                  : `Email activity ${
+                      dateRange === "today"
+                        ? "today"
+                        : dateRange === "week"
+                        ? "this week"
+                        : "this month"
+                    }`}
               </p>
             </div>
 
+            {/* Controls */}
+            <div className="flex items-center gap-3">
+              {/* Date Range Filter */}
+              <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1">
+                {DATE_RANGES.map((range) => (
+                  <button
+                    key={range.value}
+                    onClick={() => setDateRange(range.value as typeof dateRange)}
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                      dateRange === range.value
+                        ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                    }`}
+                  >
+                    {range.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Refresh Button */}
+              <button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
 
@@ -313,7 +501,7 @@ export default function Dashboard() {
                 </div>
                 <a
                   href="/settings"
-                  className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-amber-600 hover:shadow-lg hover:shadow-amber-500/25"
+                  className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-amber-600 hover:shadow-md hover:shadow-amber-500/15"
                 >
                   <Tag className="h-4 w-4" />
                   Setup Labels
@@ -334,7 +522,7 @@ export default function Dashboard() {
                     onClick={toggleAutoPolling}
                     className={`group relative flex h-12 w-12 items-center justify-center rounded-xl transition-all ${
                       autoPolling
-                        ? "bg-emerald-500 shadow-lg shadow-emerald-500/30 hover:bg-emerald-600"
+                        ? "bg-emerald-500 shadow-md shadow-emerald-500/15 hover:bg-emerald-600"
                         : "bg-[var(--bg-elevated)] hover:bg-[var(--border)]"
                     }`}
                   >
@@ -416,27 +604,27 @@ export default function Dashboard() {
           <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatsCard
               title="Total Processed"
-              value={stats.total}
+              value={metrics.totalProcessed}
               icon={<Mail className="h-5 w-5" />}
-              color="violet"
+              color="blue"
             />
             <StatsCard
               title="To Respond"
-              value={stats.toRespond}
+              value={metrics.toRespond}
               icon={<AlertTriangle className="h-5 w-5" />}
               color="red"
             />
             <StatsCard
               title="Drafts Created"
-              value={stats.draftsCreated}
+              value={metrics.draftsCreated}
               icon={<FileText className="h-5 w-5" />}
               color="green"
             />
             <StatsCard
-              title="FYI / Other"
-              value={stats.total - stats.toRespond}
+              title="Other"
+              value={metrics.other}
               icon={<CheckCircle className="h-5 w-5" />}
-              color="blue"
+              color="cyan"
             />
           </div>
 
@@ -461,7 +649,7 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <span className="text-sm font-semibold text-[var(--text-primary)]">
-                    {stats.byCategory[parseInt(num)] || 0}
+                    {metrics.byCategory[parseInt(num)] || 0}
                   </span>
                 </div>
               ))}
@@ -470,10 +658,19 @@ export default function Dashboard() {
 
           {/* Recent Emails */}
           <div className="glass-card overflow-hidden">
-            <div className="border-b border-[var(--border)] px-6 py-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                 Recent Emails
               </h2>
+              {metrics.totalAll > 0 && (
+                <button
+                  onClick={handleResetMetrics}
+                  className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] transition-colors hover:text-red-400"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Reset metrics
+                </button>
+              )}
             </div>
 
             {emails.length === 0 ? (
@@ -485,41 +682,66 @@ export default function Dashboard() {
                   No emails processed yet
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  Click &quot;Process Now&quot; to get started
+                  {labelsCreated
+                    ? "Turn on the Email Agent to start processing"
+                    : 'Click "Setup Labels" to get started'}
                 </p>
               </div>
             ) : (
-              <div className="divide-y divide-[var(--border)]">
-                {emails.slice(0, 20).map((email) => (
-                  <div
-                    key={email.id}
-                    className="group flex items-center justify-between px-6 py-4 transition-all hover:bg-[var(--bg-card-hover)]"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3">
-                        <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
-                          {email.subject || "(No subject)"}
+              <>
+                <div className="divide-y divide-[var(--border)]">
+                  {displayedEmails.map((email) => (
+                    <div
+                      key={email.id}
+                      className="group flex items-center justify-between px-6 py-4 transition-all hover:bg-[var(--bg-card-hover)]"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-3">
+                          <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
+                            {email.subject || "(No subject)"}
+                          </p>
+                          {email.draft_id && (
+                            <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                              <FileText className="h-3 w-3" />
+                              Draft
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
+                          {email.from}
                         </p>
-                        {email.draft_id && (
-                          <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                            <FileText className="h-3 w-3" />
-                            Draft
-                          </span>
-                        )}
                       </div>
-                      <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-                        {email.from}
-                      </p>
+                      <div className="ml-4 flex items-center gap-4">
+                        {getCategoryBadge(email.category)}
+                        <span className="text-xs text-[var(--text-muted)]">
+                          {new Date(email.processed_at).toLocaleDateString()}
+                        </span>
+                      </div>
                     </div>
-                    <div className="ml-4 flex items-center gap-4">
-                      {getCategoryBadge(email.category)}
-                      <span className="text-xs text-[var(--text-muted)]">
-                        {new Date(email.processed_at).toLocaleDateString()}
-                      </span>
-                    </div>
+                  ))}
+                </div>
+
+                {/* Load More */}
+                {hasMore && (
+                  <div className="border-t border-[var(--border)] p-4 text-center">
+                    <button
+                      onClick={() => setDisplayLimit((prev) => Math.min(prev + 25, 100))}
+                      className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                      Load more ({Math.min(emails.length - displayLimit, 25)} remaining)
+                    </button>
                   </div>
-                ))}
-              </div>
+                )}
+
+                {displayLimit >= 100 && emails.length >= 100 && (
+                  <div className="border-t border-[var(--border)] p-4 text-center">
+                    <p className="text-xs text-[var(--text-muted)]">
+                      Showing last 100 emails
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

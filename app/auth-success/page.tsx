@@ -30,11 +30,11 @@ function AuthSuccessContent() {
   return (
     <div className="text-center">
       <Image
-        src="/logo.png"
+        src="/logo.svg"
         alt="Zeno"
-        width={64}
-        height={64}
-        className="mx-auto mb-8 object-contain"
+        width={480}
+        height={280}
+        className="mx-auto mb-8 h-40 w-auto object-contain"
       />
       <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--accent)]" />
       <p className="mt-4 text-[var(--text-muted)]">Signing you in...</p>
@@ -46,7 +46,7 @@ export default function AuthSuccess() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)]">
       {/* Gradient overlay */}
-      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5" />
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-blue-600/5" />
 
       <Suspense
         fallback={

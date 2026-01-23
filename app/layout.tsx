@@ -25,7 +25,7 @@ export default function RootLayout({
           <img
             src="/ribbon.svg"
             alt=""
-            className="absolute -right-1/4 top-1/4 w-[150%] max-w-none"
+            className="absolute left-0 top-0 h-full w-full object-cover"
             aria-hidden="true"
           />
         </div>

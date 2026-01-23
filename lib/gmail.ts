@@ -127,6 +127,7 @@ const GMAIL_ALLOWED_COLORS = [
 
 // Map user's hex colors to closest Gmail allowed color
 const COLOR_MAPPING: Record<string, number> = {
+  // Original mappings
   "#ef4444": 0,  // Red -> fb4c2f
   "#f59e0b": 2,  // Amber -> ffad47
   "#10b981": 4,  // Green -> 16a766
@@ -137,6 +138,16 @@ const COLOR_MAPPING: Record<string, number> = {
   "#f97316": 11, // Orange -> ff7537
   "#ec4899": 8,  // Pink -> f691b3
   "#14b8a6": 9,  // Teal -> 2da2bb
+  // New category colors
+  "#f87171": 0,  // Respond (red) -> fb4c2f
+  "#fb923c": 11, // Update (orange) -> ff7537
+  "#22d3ee": 9,  // Comment (cyan) -> 2da2bb
+  "#4ade80": 5,  // Notification (green) -> 43d692
+  "#a855f7": 7,  // Calendar (purple) -> a479e2
+  "#60a5fa": 6,  // Pending (blue) -> 4a86e8
+  "#2dd4bf": 9,  // Complete (teal) -> 2da2bb
+  "#f472b6": 8,  // Marketing/Spam (pink) -> f691b3
+  "#9ca3af": 6,  // Other (gray) -> 4a86e8 (blue as fallback)
 };
 
 function getGmailColor(hexColor: string): { backgroundColor: string; textColor: string } {

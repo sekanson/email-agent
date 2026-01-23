@@ -27,11 +27,11 @@ export default function Logo() {
 
   return (
     <Image
-      src={isDark ? "/logo.png" : "/logo-dark.png"}
+      src={isDark ? "/logo.svg" : "/logo-dark.svg"}
       alt="Zeno"
-      width={60}
-      height={20}
-      className="h-5 w-auto object-contain"
+      width={480}
+      height={280}
+      className="h-[70px] w-auto object-contain"
       priority
     />
   );

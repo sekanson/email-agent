@@ -153,9 +153,9 @@ export default function DraftsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[var(--bg-primary)]">
+      <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="flex flex-1 items-center justify-center">
+        <main className="ml-64 flex min-h-screen items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
         </main>
       </div>
@@ -164,9 +164,9 @@ export default function DraftsPage() {
 
   if (!userEmail) {
     return (
-      <div className="flex min-h-screen bg-[var(--bg-primary)]">
+      <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="flex flex-1 items-center justify-center">
+        <main className="ml-64 flex min-h-screen items-center justify-center">
           <div className="text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-amber-500" />
             <h2 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">
@@ -182,10 +182,10 @@ export default function DraftsPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg-primary)]">
+    <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="flex-1 overflow-auto">
+      <main className="ml-64 min-h-screen overflow-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-8 py-6 backdrop-blur-xl">
           <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Draft Settings</h1>
@@ -350,7 +350,7 @@ export default function DraftsPage() {
                   <button
                     onClick={analyzeWritingStyle}
                     disabled={analyzing}
-                    className="mx-auto mt-4 flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-[var(--accent)]/20 disabled:opacity-50"
+                    className="mx-auto mt-4 flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-[var(--accent)]/10 disabled:opacity-50"
                   >
                     {analyzing ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -431,7 +431,7 @@ export default function DraftsPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-[var(--accent)]/20 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-[var(--accent)]/10 disabled:opacity-50"
             >
               {saving ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

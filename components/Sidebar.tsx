@@ -54,20 +54,15 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="sidebar-bg flex h-screen w-64 flex-col border-r border-[var(--border)]">
+    <aside className="sidebar-bg fixed left-0 top-0 z-40 flex h-screen w-64 flex-col overflow-y-auto border-r border-[var(--border)]">
       {/* Logo */}
-      <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
+      <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
         <Logo />
         <ThemeToggle />
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-3">
-        <div className="mb-2 px-3 py-2">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Menu
-          </span>
-        </div>
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -111,7 +106,7 @@ export default function Sidebar() {
                   className="h-9 w-9 rounded-full ring-2 ring-[var(--border)]"
                 />
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-semibold text-white">
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-xs font-semibold text-white">
                   {getInitials(user.name)}
                 </div>
               )}

@@ -4,15 +4,15 @@ interface StatsCardProps {
   title: string;
   value: string | number;
   icon: ReactNode;
-  color?: "violet" | "green" | "amber" | "red" | "blue";
+  color?: "blue" | "green" | "amber" | "red" | "cyan";
   trend?: { value: number; label: string };
 }
 
 const colorClasses = {
-  violet: {
-    bg: "bg-violet-500/10",
-    text: "text-violet-400",
-    glow: "shadow-violet-500/10",
+  blue: {
+    bg: "bg-blue-500/10",
+    text: "text-blue-400",
+    glow: "shadow-blue-500/10",
   },
   green: {
     bg: "bg-emerald-500/10",
@@ -29,10 +29,10 @@ const colorClasses = {
     text: "text-red-400",
     glow: "shadow-red-500/10",
   },
-  blue: {
-    bg: "bg-blue-500/10",
-    text: "text-blue-400",
-    glow: "shadow-blue-500/10",
+  cyan: {
+    bg: "bg-cyan-500/10",
+    text: "text-cyan-400",
+    glow: "shadow-cyan-500/10",
   },
 };
 
@@ -40,7 +40,7 @@ export default function StatsCard({
   title,
   value,
   icon,
-  color = "violet",
+  color = "blue",
   trend,
 }: StatsCardProps) {
   const colors = colorClasses[color];
