@@ -57,7 +57,7 @@ export default function Sidebar() {
     <aside className="sidebar-bg flex h-screen w-64 flex-col border-r border-[var(--border)]">
       {/* Logo */}
       <div className="flex items-center justify-between border-b border-[var(--border)] p-5">
-        <Logo size="md" />
+        <Logo />
         <ThemeToggle />
       </div>
 
