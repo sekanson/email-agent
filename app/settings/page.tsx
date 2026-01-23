@@ -655,7 +655,7 @@ export default function SettingsPage() {
                             updateCategory(num, "rules", e.target.value)
                           }
                           placeholder={getPlaceholder(config, isDefault)}
-                          className="ml-7 mt-2 w-[calc(100%-1.75rem)] rounded-lg border border-zinc-200 bg-zinc-100 px-3 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 transition-colors focus:border-zinc-300 focus:outline-none dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:focus:border-zinc-600"
+                          className="ml-7 mt-2 w-[calc(100%-1.75rem)] rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-secondary)] placeholder:text-[var(--text-muted)] transition-colors focus:border-[var(--border-hover)] focus:outline-none"
                         />
                       </div>
                     );
