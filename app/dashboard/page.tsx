@@ -5,17 +5,13 @@ import Sidebar from "@/components/Sidebar";
 import StatsCard from "@/components/StatsCard";
 import {
   Mail,
-  Clock,
   CheckCircle,
   AlertTriangle,
-  Play,
   Loader2,
   FileText,
   Tag,
   RefreshCw,
-  Pause,
   Power,
-  Settings,
 } from "lucide-react";
 
 interface ProcessedEmail {
@@ -35,14 +31,14 @@ interface CategoryConfig {
 }
 
 const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": { name: "To Respond", color: "#ef4444", enabled: true },
-  "2": { name: "FYI", color: "#f59e0b", enabled: true },
-  "3": { name: "Comment", color: "#10b981", enabled: true },
-  "4": { name: "Notification", color: "#6366f1", enabled: true },
-  "5": { name: "Meeting Update", color: "#8b5cf6", enabled: true },
-  "6": { name: "Awaiting Reply", color: "#06b6d4", enabled: true },
-  "7": { name: "Actioned", color: "#84cc16", enabled: true },
-  "8": { name: "Marketing", color: "#f97316", enabled: true },
+  "1": { name: "To Respond", color: "#F87171", enabled: true },
+  "2": { name: "FYI", color: "#FB923C", enabled: true },
+  "3": { name: "Comment", color: "#22D3EE", enabled: true },
+  "4": { name: "Notification", color: "#4ADE80", enabled: true },
+  "5": { name: "Meeting Update", color: "#A855F7", enabled: true },
+  "6": { name: "Awaiting Reply", color: "#60A5FA", enabled: true },
+  "7": { name: "Actioned", color: "#2DD4BF", enabled: true },
+  "8": { name: "Marketing", color: "#F472B6", enabled: true },
 };
 
 export default function Dashboard() {
@@ -57,7 +53,7 @@ export default function Dashboard() {
     skipped: number;
   } | null>(null);
   const [autoPolling, setAutoPolling] = useState(false);
-  const [pollInterval, setPollInterval] = useState(120); // seconds
+  const [pollInterval, setPollInterval] = useState(120);
   const [lastPolled, setLastPolled] = useState<Date | null>(null);
   const [nextPollIn, setNextPollIn] = useState<number | null>(null);
 
@@ -74,23 +70,19 @@ export default function Dashboard() {
     }
   }, [userEmail]);
 
-  // Auto-polling effect
   useEffect(() => {
     if (!autoPolling || !labelsCreated || processing) return;
 
     const pollEmails = async () => {
       if (processing) return;
-      await handleProcessEmails(true); // silent mode
+      await handleProcessEmails(true);
       setLastPolled(new Date());
     };
 
-    // Initial poll
     pollEmails();
 
-    // Set up interval
     const intervalId = setInterval(pollEmails, pollInterval * 1000);
 
-    // Countdown timer
     const countdownId = setInterval(() => {
       if (lastPolled) {
         const elapsed = Math.floor((Date.now() - lastPolled.getTime()) / 1000);
@@ -107,7 +99,6 @@ export default function Dashboard() {
 
   async function fetchData() {
     try {
-      // Fetch settings
       const settingsRes = await fetch(`/api/settings?userEmail=${userEmail}`);
       const settingsData = await settingsRes.json();
 
@@ -118,17 +109,14 @@ export default function Dashboard() {
         setCategories(settingsData.settings.categories);
       }
 
-      // Load auto-poll from localStorage first (user's most recent action), then DB, then default
       const storedAutoPoll = localStorage.getItem("autoPolling");
       const storedInterval = localStorage.getItem("pollInterval");
 
-      // Prioritize localStorage since it reflects user's most recent toggle action
       if (storedAutoPoll !== null) {
         setAutoPolling(storedAutoPoll === "true");
       } else if (settingsData.settings?.auto_poll_enabled !== undefined) {
         setAutoPolling(settingsData.settings.auto_poll_enabled);
       } else if (userLabelsCreated) {
-        // Default to ON if labels are created
         setAutoPolling(true);
       }
 
@@ -138,7 +126,6 @@ export default function Dashboard() {
         setPollInterval(settingsData.settings.auto_poll_interval);
       }
 
-      // Fetch processed emails from Supabase
       const emailsRes = await fetch(`/api/emails?userEmail=${userEmail}`);
       if (emailsRes.ok) {
         const emailsData = await emailsRes.json();
@@ -155,11 +142,9 @@ export default function Dashboard() {
     const newValue = !autoPolling;
     setAutoPolling(newValue);
 
-    // Save to localStorage as fallback
     localStorage.setItem("autoPolling", String(newValue));
     localStorage.setItem("pollInterval", String(pollInterval));
 
-    // Try to save to settings (may fail if DB columns don't exist)
     try {
       await fetch("/api/settings", {
         method: "POST",
@@ -197,7 +182,6 @@ export default function Dashboard() {
             skipped: data.skipped,
           });
         }
-        // Refresh emails list
         await fetchData();
         setLastPolled(new Date());
       } else if (!silent) {
@@ -211,7 +195,6 @@ export default function Dashboard() {
     }
   }
 
-  // Calculate stats
   const stats = {
     total: emails.length,
     toRespond: emails.filter((e) => e.category === 1).length,
@@ -231,9 +214,16 @@ export default function Dashboard() {
     };
     return (
       <span
-        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium text-white"
-        style={{ backgroundColor: config.color }}
+        className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium"
+        style={{
+          backgroundColor: `${config.color}15`,
+          color: config.color,
+        }}
       >
+        <span
+          className="h-1.5 w-1.5 rounded-full"
+          style={{ backgroundColor: config.color }}
+        />
         {config.name}
       </span>
     );
@@ -241,10 +231,16 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
         <main className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <div className="flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-violet-500/20 blur-xl" />
+              <Loader2 className="relative h-8 w-8 animate-spin text-violet-500" />
+            </div>
+            <p className="text-sm text-[var(--text-muted)]">Loading dashboard...</p>
+          </div>
         </main>
       </div>
     );
@@ -252,20 +248,22 @@ export default function Dashboard() {
 
   if (!userEmail) {
     return (
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
         <main className="flex flex-1 items-center justify-center">
           <div className="text-center">
-            <Mail className="mx-auto h-12 w-12 text-gray-400" />
-            <h2 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-card)]">
+              <Mail className="h-8 w-8 text-[var(--text-muted)]" />
+            </div>
+            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
               Not signed in
             </h2>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
+            <p className="mt-2 text-sm text-[var(--text-secondary)]">
               Please sign in to access the dashboard.
             </p>
             <a
               href="/"
-              className="mt-4 inline-block rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-violet-500/25"
             >
               Go to Home
             </a>
@@ -276,254 +274,254 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="flex-1 overflow-auto p-8">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Dashboard
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Overview of your email activity
-            </p>
-          </div>
+      <main className="flex-1 overflow-auto">
+        {/* Header */}
+        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
+          <div className="flex items-center justify-between px-8 py-5">
+            <div>
+              <h1 className="text-xl font-semibold text-[var(--text-primary)]">
+                Dashboard
+              </h1>
+              <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+                Overview of your email activity
+              </p>
+            </div>
 
-          <div className="flex items-center gap-3">
-            <a
-              href="/settings"
-              className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </a>
-            {labelsCreated && (
-              <button
-                onClick={() => handleProcessEmails(false)}
-                disabled={processing}
-                className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                {processing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Play className="h-4 w-4" />
-                )}
-                Process Now
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Agent Status Card */}
-        {!labelsCreated ? (
-          <div className="mb-8 rounded-lg border-2 border-dashed border-yellow-400 bg-yellow-50 p-6 dark:border-yellow-600 dark:bg-yellow-900/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-800">
-                  <Tag className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-                </div>
-                <div>
-                  <h2 className="font-semibold text-gray-900 dark:text-white">Setup Required</h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Create Gmail labels before activating the email agent
-                  </p>
-                </div>
-              </div>
-              <a
-                href="/settings"
-                className="flex items-center gap-2 rounded-lg bg-yellow-500 px-4 py-2 font-medium text-white hover:bg-yellow-600"
-              >
-                <Tag className="h-5 w-5" />
-                Setup Labels
-              </a>
-            </div>
-          </div>
-        ) : (
-          <div className={`mb-8 rounded-lg border-2 p-6 transition-colors ${
-            autoPolling
-              ? "border-green-400 bg-green-50 dark:border-green-600 dark:bg-green-900/20"
-              : "border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800"
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={toggleAutoPolling}
-                  className={`flex h-12 w-12 items-center justify-center rounded-full transition-colors ${
-                    autoPolling
-                      ? "bg-green-500 text-white hover:bg-green-600"
-                      : "bg-gray-300 text-gray-600 hover:bg-gray-400 dark:bg-gray-600 dark:text-gray-300"
-                  }`}
-                >
-                  <Power className="h-6 w-6" />
-                </button>
-                <div>
-                  <h2 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
-                    Email Agent
-                    {autoPolling ? (
-                      <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-800 dark:text-green-300">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                        Paused
-                      </span>
-                    )}
-                  </h2>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {autoPolling
-                      ? "Monitoring Gmail, applying labels, and drafting responses"
-                      : "Click the power button to start monitoring your inbox"
-                    }
-                  </p>
-                </div>
-              </div>
-
-              {autoPolling && (
+        <div className="p-8">
+          {/* Agent Status Card */}
+          {!labelsCreated ? (
+            <div className="glass-card mb-8 border-amber-500/30 bg-amber-500/5 p-6">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Checking every
-                      <select
-                        value={pollInterval}
-                        onChange={(e) => {
-                          setPollInterval(Number(e.target.value));
-                          localStorage.setItem("pollInterval", e.target.value);
-                        }}
-                        className="rounded border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700"
-                      >
-                        <option value={60}>1 min</option>
-                        <option value={120}>2 min</option>
-                        <option value={180}>3 min</option>
-                        <option value={300}>5 min</option>
-                      </select>
-                    </div>
-                    {nextPollIn !== null && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Next check in {nextPollIn}s
-                      </p>
-                    )}
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
+                    <Tag className="h-6 w-6 text-amber-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-[var(--text-primary)]">
+                      Setup Required
+                    </h2>
+                    <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                      Create Gmail labels before activating the email agent
+                    </p>
                   </div>
                 </div>
-              )}
+                <a
+                  href="/settings"
+                  className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-amber-600 hover:shadow-lg hover:shadow-amber-500/25"
+                >
+                  <Tag className="h-4 w-4" />
+                  Setup Labels
+                </a>
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div
+              className={`glass-card mb-8 p-6 transition-all ${
+                autoPolling
+                  ? "border-emerald-500/30 bg-emerald-500/5"
+                  : ""
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={toggleAutoPolling}
+                    className={`group relative flex h-12 w-12 items-center justify-center rounded-xl transition-all ${
+                      autoPolling
+                        ? "bg-emerald-500 shadow-lg shadow-emerald-500/30 hover:bg-emerald-600"
+                        : "bg-[var(--bg-elevated)] hover:bg-[var(--border)]"
+                    }`}
+                  >
+                    <Power
+                      className={`h-5 w-5 transition-transform group-hover:scale-110 ${
+                        autoPolling ? "text-white" : "text-[var(--text-muted)]"
+                      }`}
+                    />
+                  </button>
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h2 className="font-semibold text-[var(--text-primary)]">
+                        Email Agent
+                      </h2>
+                      {autoPolling ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400">
+                          <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-elevated)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />
+                          Paused
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                      {autoPolling
+                        ? "Monitoring Gmail, applying labels, and drafting responses"
+                        : "Click the power button to start monitoring your inbox"}
+                    </p>
+                  </div>
+                </div>
 
-        {processResult && (
-          <div className="mb-6 rounded-lg bg-green-100 p-4 text-green-800 dark:bg-green-900 dark:text-green-200">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              <span>
-                Processed {processResult.processed} new emails - labeled in Gmail
+                {autoPolling && (
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin text-emerald-400" />
+                        <span>Checking every</span>
+                        <select
+                          value={pollInterval}
+                          onChange={(e) => {
+                            setPollInterval(Number(e.target.value));
+                            localStorage.setItem("pollInterval", e.target.value);
+                          }}
+                          className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                        >
+                          <option value={60}>1 min</option>
+                          <option value={120}>2 min</option>
+                          <option value={180}>3 min</option>
+                          <option value={300}>5 min</option>
+                        </select>
+                      </div>
+                      {nextPollIn !== null && (
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">
+                          Next check in {nextPollIn}s
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {processResult && (
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
+              <span className="text-sm text-emerald-300">
+                Processed {processResult.processed} new emails
                 {processResult.skipped > 0 &&
                   ` (${processResult.skipped} already processed)`}
               </span>
             </div>
+          )}
+
+          {/* Stats Grid */}
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatsCard
+              title="Total Processed"
+              value={stats.total}
+              icon={<Mail className="h-5 w-5" />}
+              color="violet"
+            />
+            <StatsCard
+              title="To Respond"
+              value={stats.toRespond}
+              icon={<AlertTriangle className="h-5 w-5" />}
+              color="red"
+            />
+            <StatsCard
+              title="Drafts Created"
+              value={stats.draftsCreated}
+              icon={<FileText className="h-5 w-5" />}
+              color="green"
+            />
+            <StatsCard
+              title="FYI / Other"
+              value={stats.total - stats.toRespond}
+              icon={<CheckCircle className="h-5 w-5" />}
+              color="blue"
+            />
           </div>
-        )}
 
-        <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <StatsCard
-            title="Total Processed"
-            value={stats.total}
-            icon={<Mail className="h-5 w-5" />}
-            color="blue"
-          />
-          <StatsCard
-            title="To Respond"
-            value={stats.toRespond}
-            icon={<AlertTriangle className="h-5 w-5" />}
-            color="red"
-          />
-          <StatsCard
-            title="Drafts Created"
-            value={stats.draftsCreated}
-            icon={<FileText className="h-5 w-5" />}
-            color="green"
-          />
-          <StatsCard
-            title="FYI / Other"
-            value={stats.total - stats.toRespond}
-            icon={<CheckCircle className="h-5 w-5" />}
-            color="yellow"
-          />
-        </div>
-
-        {/* Category breakdown */}
-        <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
-            By Category
-          </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {Object.entries(categories).map(([num, config]) => (
-              <div
-                key={num}
-                className="flex items-center justify-between rounded-lg border border-gray-200 p-3 dark:border-gray-600"
-              >
-                <div className="flex items-center gap-2">
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: config.color }}
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {config.name}
-                  </span>
-                </div>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {stats.byCategory[parseInt(num)] || 0}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent emails */}
-        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-          <div className="border-b border-gray-200 p-4 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Recent Emails
+          {/* Category Breakdown */}
+          <div className="glass-card mb-8 p-6">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              By Category
             </h2>
-          </div>
-
-          {emails.length === 0 ? (
-            <div className="py-12 text-center text-gray-500 dark:text-gray-400">
-              No emails processed yet. Click &quot;Process Emails Now&quot; to get started.
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-              {emails.slice(0, 20).map((email) => (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {Object.entries(categories).map(([num, config]) => (
                 <div
-                  key={email.id}
-                  className="flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  key={num}
+                  className="group flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card-hover)]"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate font-medium text-gray-900 dark:text-white">
-                        {email.subject || "(No subject)"}
-                      </p>
-                      {email.draft_id && (
-                        <span className="flex items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700 dark:bg-green-900 dark:text-green-300">
-                          <FileText className="h-3 w-3" />
-                          Draft
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-1 truncate text-sm text-gray-500 dark:text-gray-400">
-                      {email.from}
-                    </p>
-                  </div>
-                  <div className="ml-4 flex items-center gap-4">
-                    {getCategoryBadge(email.category)}
-                    <span className="text-xs text-gray-400">
-                      {new Date(email.processed_at).toLocaleDateString()}
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: config.color }}
+                    />
+                    <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
+                      {config.name}
                     </span>
                   </div>
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">
+                    {stats.byCategory[parseInt(num)] || 0}
+                  </span>
                 </div>
               ))}
             </div>
-          )}
+          </div>
+
+          {/* Recent Emails */}
+          <div className="glass-card overflow-hidden">
+            <div className="border-b border-[var(--border)] px-6 py-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Recent Emails
+              </h2>
+            </div>
+
+            {emails.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-elevated)]">
+                  <Mail className="h-6 w-6 text-[var(--text-muted)]" />
+                </div>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  No emails processed yet
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  Click &quot;Process Now&quot; to get started
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-[var(--border)]">
+                {emails.slice(0, 20).map((email) => (
+                  <div
+                    key={email.id}
+                    className="group flex items-center justify-between px-6 py-4 transition-all hover:bg-[var(--bg-card-hover)]"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3">
+                        <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
+                          {email.subject || "(No subject)"}
+                        </p>
+                        {email.draft_id && (
+                          <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                            <FileText className="h-3 w-3" />
+                            Draft
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
+                        {email.from}
+                      </p>
+                    </div>
+                    <div className="ml-4 flex items-center gap-4">
+                      {getCategoryBadge(email.category)}
+                      <span className="text-xs text-[var(--text-muted)]">
+                        {new Date(email.processed_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

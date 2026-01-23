@@ -25,14 +25,14 @@ export const DEFAULT_RULES: Record<string, string> = {
 };
 
 export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": { name: "To Respond", color: "#ef4444", enabled: true, required: true, rules: DEFAULT_RULES["To Respond"] },
-  "2": { name: "FYI", color: "#f59e0b", enabled: true, rules: DEFAULT_RULES["FYI"] },
-  "3": { name: "Comment", color: "#10b981", enabled: true, rules: DEFAULT_RULES["Comment"] },
-  "4": { name: "Notification", color: "#6366f1", enabled: true, rules: DEFAULT_RULES["Notification"] },
-  "5": { name: "Meeting Update", color: "#8b5cf6", enabled: true, rules: DEFAULT_RULES["Meeting Update"] },
-  "6": { name: "Awaiting Reply", color: "#06b6d4", enabled: true, rules: DEFAULT_RULES["Awaiting Reply"] },
-  "7": { name: "Actioned", color: "#84cc16", enabled: true, rules: DEFAULT_RULES["Actioned"] },
-  "8": { name: "Marketing", color: "#f97316", enabled: true, rules: DEFAULT_RULES["Marketing"] },
+  "1": { name: "To Respond", color: "#F87171", enabled: true, required: true, rules: DEFAULT_RULES["To Respond"] },
+  "2": { name: "FYI", color: "#FB923C", enabled: true, rules: DEFAULT_RULES["FYI"] },
+  "3": { name: "Comment", color: "#22D3EE", enabled: true, rules: DEFAULT_RULES["Comment"] },
+  "4": { name: "Notification", color: "#4ADE80", enabled: true, rules: DEFAULT_RULES["Notification"] },
+  "5": { name: "Meeting Update", color: "#A855F7", enabled: true, rules: DEFAULT_RULES["Meeting Update"] },
+  "6": { name: "Awaiting Reply", color: "#60A5FA", enabled: true, rules: DEFAULT_RULES["Awaiting Reply"] },
+  "7": { name: "Actioned", color: "#2DD4BF", enabled: true, rules: DEFAULT_RULES["Actioned"] },
+  "8": { name: "Marketing", color: "#F472B6", enabled: true, rules: DEFAULT_RULES["Marketing"] },
 };
 
 export const OTHER_CATEGORY: CategoryConfig = {
@@ -122,8 +122,13 @@ export async function generateDraftResponse(
   subject: string,
   body: string,
   temperature: number = 0.7,
-  signature: string = ""
+  signature: string = "",
+  writingStyle: string = ""
 ): Promise<string> {
+  const styleInstruction = writingStyle
+    ? `\n- IMPORTANT: Match this writing style: ${writingStyle}`
+    : "";
+
   const prompt = `Write a professional email reply to this message.
 
 From: ${from}
@@ -134,7 +139,7 @@ ${body.slice(0, 3000)}
 Instructions:
 - Write a helpful, professional response
 - Be concise but thorough
-- Match the tone of the original email
+- Match the tone of the original email${styleInstruction}
 - Only write the email body text
 - Do NOT include a subject line
 - Do NOT include a greeting like "Dear..." (start with the content)

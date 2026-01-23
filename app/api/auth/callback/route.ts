@@ -62,10 +62,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Redirect to auth-success page with email as query param
-    // This page will store email in localStorage and redirect to dashboard
+    // Redirect to auth-success page with user info as query params
+    // This page will store in localStorage and redirect to dashboard
+    const params = new URLSearchParams({
+      email: userInfo.email!,
+      name: userInfo.name || "",
+      picture: userInfo.picture || "",
+    });
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/auth-success?email=${encodeURIComponent(userInfo.email!)}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/auth-success?${params.toString()}`
     );
   } catch (error) {
     console.error("OAuth error:", error);

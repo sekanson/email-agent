@@ -1,0 +1,448 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Sidebar from "@/components/Sidebar";
+import {
+  Save,
+  Loader2,
+  Check,
+  AlertCircle,
+  Eye,
+  Code,
+  Sparkles,
+  PenTool,
+  RefreshCw,
+} from "lucide-react";
+
+interface DraftSettings {
+  drafts_enabled: boolean;
+  temperature: number;
+  signature: string;
+  use_writing_style: boolean;
+  writing_style?: string;
+}
+
+interface User {
+  email: string;
+  name: string;
+  picture: string;
+}
+
+export default function DraftsPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [settings, setSettings] = useState<DraftSettings>({
+    drafts_enabled: true,
+    temperature: 0.7,
+    signature: "",
+    use_writing_style: false,
+    writing_style: "",
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState(false);
+
+  const userEmail =
+    typeof window !== "undefined"
+      ? localStorage.getItem("userEmail") || ""
+      : "";
+
+  useEffect(() => {
+    if (userEmail) {
+      fetchSettings();
+    } else {
+      setLoading(false);
+    }
+  }, [userEmail]);
+
+  async function fetchSettings() {
+    try {
+      const res = await fetch(`/api/settings?userEmail=${userEmail}`);
+      const data = await res.json();
+
+      if (data.user) {
+        setUser(data.user);
+      }
+      if (data.settings) {
+        setSettings({
+          drafts_enabled: data.settings.drafts_enabled ?? true,
+          temperature: data.settings.temperature ?? 0.7,
+          signature: data.settings.signature ?? "",
+          use_writing_style: data.settings.use_writing_style ?? false,
+          writing_style: data.settings.writing_style ?? "",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to fetch settings:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail,
+          settings: {
+            drafts_enabled: settings.drafts_enabled,
+            temperature: settings.temperature,
+            signature: settings.signature,
+            use_writing_style: settings.use_writing_style,
+            writing_style: settings.writing_style,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        setMessage({ type: "success", text: "Draft settings saved!" });
+      } else {
+        setMessage({ type: "error", text: "Failed to save settings" });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to save settings" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function analyzeWritingStyle() {
+    setAnalyzing(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/analyze-style", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.style) {
+        setSettings((prev) => ({
+          ...prev,
+          writing_style: data.style,
+          use_writing_style: true,
+        }));
+        setMessage({
+          type: "success",
+          text: `Analyzed ${data.emailsAnalyzed} sent emails to learn your writing style!`,
+        });
+      } else {
+        setMessage({
+          type: "error",
+          text: data.error || "Failed to analyze writing style",
+        });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to analyze writing style" });
+    } finally {
+      setAnalyzing(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-[var(--bg-primary)]">
+        <Sidebar />
+        <main className="flex flex-1 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
+        </main>
+      </div>
+    );
+  }
+
+  if (!userEmail) {
+    return (
+      <div className="flex min-h-screen bg-[var(--bg-primary)]">
+        <Sidebar />
+        <main className="flex flex-1 items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="mx-auto h-12 w-12 text-amber-500" />
+            <h2 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">
+              Not signed in
+            </h2>
+            <p className="mt-2 text-[var(--text-muted)]">
+              Please sign in to access draft settings.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-[var(--bg-primary)]">
+      <Sidebar />
+
+      <main className="flex-1 overflow-auto">
+        {/* Header */}
+        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-8 py-6 backdrop-blur-xl">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Draft Settings</h1>
+          <p className="text-[var(--text-muted)]">
+            Configure how AI generates draft responses for your emails
+          </p>
+        </div>
+
+        <div className="p-8">
+          {message && (
+            <div
+              className={`mb-6 flex items-center gap-2 rounded-xl p-4 ${
+                message.type === "success"
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  : "bg-red-500/10 text-red-400 border border-red-500/20"
+              }`}
+            >
+              {message.type === "success" ? (
+                <Check className="h-5 w-5" />
+              ) : (
+                <AlertCircle className="h-5 w-5" />
+              )}
+              {message.text}
+            </div>
+          )}
+
+          <div className="max-w-3xl space-y-6">
+            {/* Auto-Generate Drafts */}
+            <section className="glass-card p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
+                    <Sparkles className="h-5 w-5 text-[var(--accent)]" />
+                    Auto-Generate Drafts
+                  </h2>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">
+                    Automatically create draft responses for emails marked as
+                    &quot;To Respond&quot;
+                  </p>
+                </div>
+                <button
+                  onClick={() =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      drafts_enabled: !prev.drafts_enabled,
+                    }))
+                  }
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.drafts_enabled ? "bg-[var(--accent)]" : "bg-[var(--border)]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                      settings.drafts_enabled ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+            </section>
+
+            {/* Response Temperature */}
+            <section className="glass-card p-6">
+              <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Response Temperature
+              </h2>
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                Controls how creative or conservative the AI responses are. Lower
+                values produce more predictable responses, higher values are more
+                varied.
+              </p>
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-[var(--text-primary)]">
+                  Temperature: <span className="text-[var(--accent)]">{settings.temperature.toFixed(1)}</span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={settings.temperature}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      temperature: parseFloat(e.target.value),
+                    }))
+                  }
+                  className="mt-3 w-full accent-[var(--accent)]"
+                />
+                <div className="mt-2 flex justify-between text-xs text-[var(--text-muted)]">
+                  <span>Conservative (0.0)</span>
+                  <span>Balanced (0.5)</span>
+                  <span>Creative (1.0)</span>
+                </div>
+              </div>
+            </section>
+
+            {/* Writing Style */}
+            <section className="glass-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
+                    <PenTool className="h-5 w-5 text-[var(--accent)]" />
+                    Writing Style
+                  </h2>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">
+                    Learn from your sent emails to match your writing style
+                  </p>
+                </div>
+                <button
+                  onClick={() =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      use_writing_style: !prev.use_writing_style,
+                    }))
+                  }
+                  disabled={!settings.writing_style}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.use_writing_style && settings.writing_style
+                      ? "bg-[var(--accent)]"
+                      : "bg-[var(--border)]"
+                  } ${!settings.writing_style ? "cursor-not-allowed opacity-50" : ""}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                      settings.use_writing_style && settings.writing_style
+                        ? "translate-x-6"
+                        : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {settings.writing_style ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl bg-[var(--bg-secondary)] border border-[var(--border)] p-4">
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                      Your Writing Style Summary
+                    </h3>
+                    <p className="whitespace-pre-wrap text-sm text-[var(--text-secondary)]">
+                      {settings.writing_style}
+                    </p>
+                  </div>
+                  <button
+                    onClick={analyzeWritingStyle}
+                    disabled={analyzing}
+                    className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+                  >
+                    {analyzing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    Re-analyze Style
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-xl border-2 border-dashed border-[var(--border)] p-8 text-center">
+                  <PenTool className="mx-auto h-8 w-8 text-[var(--text-muted)]" />
+                  <p className="mt-3 text-sm text-[var(--text-muted)]">
+                    Analyze your sent emails to learn your unique writing style
+                  </p>
+                  <button
+                    onClick={analyzeWritingStyle}
+                    disabled={analyzing}
+                    className="mx-auto mt-4 flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-[var(--accent)]/20 disabled:opacity-50"
+                  >
+                    {analyzing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Analyze My Writing Style
+                  </button>
+                </div>
+              )}
+            </section>
+
+            {/* Email Signature */}
+            <section className="glass-card p-6">
+              <div className="mb-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                    Email Signature
+                  </h2>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--accent)]">
+                      HTML Supported
+                    </span>
+                    {settings.signature && (
+                      <button
+                        type="button"
+                        onClick={() => setSignaturePreview(!signaturePreview)}
+                        className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+                      >
+                        {signaturePreview ? (
+                          <>
+                            <Code className="h-3 w-3" />
+                            Code
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="h-3 w-3" />
+                            Preview
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                  Your signature will be appended to all generated draft responses
+                </p>
+              </div>
+
+              {signaturePreview && settings.signature ? (
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                  <div
+                    className="prose prose-sm prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: settings.signature }}
+                  />
+                </div>
+              ) : (
+                <textarea
+                  rows={6}
+                  value={settings.signature}
+                  onChange={(e) =>
+                    setSettings((prev) => ({
+                      ...prev,
+                      signature: e.target.value,
+                    }))
+                  }
+                  className="block w-full rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 font-mono text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] transition-colors focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20"
+                  placeholder={`<div>
+  <p>Best regards,</p>
+  <p><strong>Your Name</strong></p>
+  <p>Your Company | your@email.com</p>
+</div>`}
+                />
+              )}
+            </section>
+
+            {/* Save Button */}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-[var(--accent)]/20 disabled:opacity-50"
+            >
+              {saving ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Save className="h-5 w-5" />
+              )}
+              Save Draft Settings
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}

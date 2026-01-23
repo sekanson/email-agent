@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
     const signature = settings?.signature || "";
     const draftsEnabled = settings?.drafts_enabled ?? true;
     const categories: Record<string, CategoryConfig> = settings?.categories || DEFAULT_CATEGORIES;
+    const writingStyle = (settings?.use_writing_style && settings?.writing_style) ? settings.writing_style : "";
 
     // Get already processed email IDs
     const { data: processedEmails } = await supabase
@@ -125,7 +126,8 @@ export async function POST(request: NextRequest) {
               email.subject,
               email.body || email.bodyPreview,
               temperature,
-              signature
+              signature,
+              writingStyle
             );
 
             console.log(`Draft body generated, creating Gmail draft...`);

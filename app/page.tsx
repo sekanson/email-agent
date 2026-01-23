@@ -1,24 +1,44 @@
-import { Mail } from "lucide-react";
+import { Tag, Sparkles, Clock } from "lucide-react";
+import Image from "next/image";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
-      <main className="flex flex-col items-center gap-8 p-8">
-        <div className="flex items-center gap-3">
-          <Mail className="h-12 w-12 text-blue-600" />
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-            Email Agent
-          </h1>
+    <div className="flex min-h-screen flex-col bg-[var(--bg-primary)]">
+      {/* Gradient overlay */}
+      <div className="pointer-events-none fixed inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5" />
+
+      <main className="relative flex flex-1 flex-col items-center justify-center gap-8 p-8">
+        {/* Logo */}
+        <div className="flex flex-col items-center gap-4">
+          <Image
+            src="/logo.png"
+            alt="Zeno"
+            width={64}
+            height={64}
+            className="object-contain"
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+              Zeno
+            </span>
+            <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
+              Email Agent
+            </span>
+          </div>
         </div>
 
-        <p className="max-w-md text-center text-lg text-gray-600 dark:text-gray-400">
-          AI-powered email management. Automatically classify, prioritize, and
-          draft responses to your emails.
+        <h1 className="max-w-2xl text-center text-4xl font-bold tracking-tight text-[var(--text-primary)]">
+          Your AI-powered email assistant
+        </h1>
+
+        <p className="max-w-md text-center text-lg text-[var(--text-secondary)]">
+          Automatically classify, prioritize, and draft responses to your
+          emails. Spend less time in your inbox.
         </p>
 
         <a
           href="/api/auth/callback"
-          className="flex items-center gap-3 rounded-lg bg-white px-6 py-3 font-medium text-gray-700 shadow-md transition-all hover:shadow-lg dark:bg-gray-800 dark:text-gray-200"
+          className="group flex items-center gap-3 rounded-xl bg-[var(--bg-card)] px-6 py-3 font-medium text-[var(--text-primary)] shadow-lg transition-all hover:shadow-xl border border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-elevated)]"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
@@ -41,38 +61,48 @@ export default function Home() {
           Sign in with Google
         </a>
 
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
+        <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
           <FeatureCard
+            icon={<Tag className="h-6 w-6 text-[var(--accent)]" />}
             title="Smart Classification"
-            description="AI categorizes emails by urgency and type"
+            description="AI categorizes emails by urgency and type into customizable labels"
           />
           <FeatureCard
+            icon={<Sparkles className="h-6 w-6 text-[var(--accent)]" />}
             title="Auto Responses"
-            description="Draft intelligent replies automatically"
+            description="Draft intelligent replies that match your writing style"
           />
           <FeatureCard
+            icon={<Clock className="h-6 w-6 text-[var(--accent)]" />}
             title="Time Savings"
-            description="Spend less time on email management"
+            description="Spend less time managing email, more time on what matters"
           />
         </div>
       </main>
+
+      <footer className="relative py-8 text-center text-sm text-[var(--text-muted)]">
+        Powered by Claude AI
+      </footer>
     </div>
   );
 }
 
 function FeatureCard({
+  icon,
   title,
   description,
 }: {
+  icon: React.ReactNode;
   title: string;
   description: string;
 }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-        {description}
-      </p>
+    <div className="glass-card group p-6 transition-all hover:border-[var(--border-hover)]">
+      <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--accent)]/10">
+        {icon}
+      </div>
+      <h3 className="font-semibold text-[var(--text-primary)]">{title}</h3>
+      <p className="mt-2 text-sm text-[var(--text-muted)]">{description}</p>
     </div>
   );
 }

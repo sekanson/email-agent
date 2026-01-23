@@ -61,6 +61,8 @@ export async function GET(request: NextRequest) {
           auto_poll_enabled: false,
           auto_poll_interval: 120,
           categories: DEFAULT_CATEGORIES,
+          use_writing_style: false,
+          writing_style: "",
         },
       });
     }
@@ -99,6 +101,8 @@ export async function POST(request: NextRequest) {
       categories: settings.categories ?? DEFAULT_CATEGORIES,
       auto_poll_enabled: settings.auto_poll_enabled,
       auto_poll_interval: settings.auto_poll_interval,
+      use_writing_style: settings.use_writing_style ?? false,
+      writing_style: settings.writing_style ?? "",
     };
 
     // Try with user_email first, then email as fallback
