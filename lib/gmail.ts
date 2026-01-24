@@ -7,6 +7,7 @@ export interface Email {
   from: string;
   fromEmail: string;  // Extracted email address from "Name <email>" format
   to: string;
+  cc?: string;        // CC recipients
   date: string;
   bodyPreview: string;
   body: string;
@@ -14,6 +15,16 @@ export interface Email {
   references?: string;   // References header for thread tracking
   inReplyTo?: string;    // In-Reply-To header
   messageId?: string;    // Message-ID header
+}
+
+export interface ThreadMessage {
+  from: string;
+  fromEmail: string;
+  to: string;
+  cc?: string;
+  date: string;
+  body: string;
+  isFromUser: boolean;  // true if this message was sent by the user
 }
 
 // Extract email address from "Name <email@domain.com>" format
@@ -105,6 +116,7 @@ export async function getEmails(
     }
 
     const fromHeader = getHeader("from");
+    const ccHeader = getHeader("cc");
     emails.push({
       id: message.id!,
       threadId: message.threadId!,
@@ -112,6 +124,7 @@ export async function getEmails(
       from: fromHeader,
       fromEmail: extractEmailAddress(fromHeader),
       to: getHeader("to"),
+      cc: ccHeader || undefined,
       date: getHeader("date"),
       bodyPreview: msg.data.snippet || "",
       body,
@@ -123,6 +136,105 @@ export async function getEmails(
   }
 
   return emails;
+}
+
+/**
+ * Fetch all messages in a thread to get full conversation context
+ * Returns messages in chronological order (oldest first)
+ */
+export async function getThreadMessages(
+  accessToken: string,
+  refreshToken: string,
+  threadId: string,
+  userEmail: string
+): Promise<ThreadMessage[]> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  const response = await gmail.users.threads.get({
+    userId: "me",
+    id: threadId,
+    format: "full",
+  });
+
+  const messages = response.data.messages || [];
+  const threadMessages: ThreadMessage[] = [];
+
+  for (const msg of messages) {
+    const headers = msg.payload?.headers || [];
+    const getHeader = (name: string) =>
+      headers.find((h) => h.name?.toLowerCase() === name.toLowerCase())?.value || "";
+
+    let body = "";
+    const payload = msg.payload;
+
+    if (payload?.body?.data) {
+      body = Buffer.from(payload.body.data, "base64").toString("utf-8");
+    } else if (payload?.parts) {
+      const textPart = payload.parts.find((p) => p.mimeType === "text/plain");
+      const htmlPart = payload.parts.find((p) => p.mimeType === "text/html");
+      const part = textPart || htmlPart;
+      if (part?.body?.data) {
+        body = Buffer.from(part.body.data, "base64").toString("utf-8");
+      }
+    }
+
+    const fromHeader = getHeader("from");
+    const fromEmail = extractEmailAddress(fromHeader);
+
+    // Check if this message was sent by the user
+    const isFromUser = fromEmail.toLowerCase() === userEmail.toLowerCase();
+
+    threadMessages.push({
+      from: fromHeader,
+      fromEmail,
+      to: getHeader("to"),
+      cc: getHeader("cc") || undefined,
+      date: getHeader("date"),
+      body: body.slice(0, 2000), // Limit each message body
+      isFromUser,
+    });
+  }
+
+  // Sort by date (oldest first) for chronological context
+  threadMessages.sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+    return dateA - dateB;
+  });
+
+  return threadMessages;
+}
+
+/**
+ * Format thread messages for AI context
+ */
+export function formatThreadForAI(messages: ThreadMessage[], maxLength: number = 4000): string {
+  if (messages.length <= 1) {
+    return ""; // No thread context needed for single message
+  }
+
+  let formatted = "=== PREVIOUS CONVERSATION ===\n\n";
+  let totalLength = formatted.length;
+
+  // Include messages from oldest to newest, but skip the last one (current email)
+  const previousMessages = messages.slice(0, -1);
+
+  for (const msg of previousMessages) {
+    const sender = msg.isFromUser ? "YOU (sent)" : msg.from;
+    const entry = `[${msg.date}] ${sender}:\n${msg.body}\n\n---\n\n`;
+
+    if (totalLength + entry.length > maxLength) {
+      formatted += "[Earlier messages truncated for length]\n\n";
+      break;
+    }
+
+    formatted += entry;
+    totalLength += entry.length;
+  }
+
+  formatted += "=== END PREVIOUS CONVERSATION ===\n\n";
+  return formatted;
 }
 
 // Gmail's allowed label color palette (verified from API)
@@ -327,7 +439,9 @@ export async function createDraft(
   to: string,
   subject: string,
   body: string,
-  threadId: string
+  threadId: string,
+  cc?: string,  // Optional CC for reply-all
+  userEmail?: string  // User's email to exclude from CC
 ): Promise<string> {
   const auth = getOAuth2Client(accessToken, refreshToken);
   const gmail = google.gmail({ version: "v1", auth });
@@ -364,14 +478,35 @@ ${htmlBody}
     contentType = "text/plain; charset=utf-8";
   }
 
-  // Build the raw email message
-  const message = [
+  // Build message headers
+  const headers = [
     `To: ${to}`,
+  ];
+
+  // Add CC if provided (for reply-all), excluding the user's own email
+  if (cc) {
+    // Parse CC addresses and filter out user's own email
+    const ccAddresses = cc.split(',')
+      .map(addr => addr.trim())
+      .filter(addr => {
+        if (!userEmail) return true;
+        const email = extractEmailAddress(addr).toLowerCase();
+        return email !== userEmail.toLowerCase();
+      });
+
+    if (ccAddresses.length > 0) {
+      headers.push(`Cc: ${ccAddresses.join(', ')}`);
+    }
+  }
+
+  headers.push(
     `Subject: Re: ${subject.replace(/^Re:\s*/i, "")}`,
     `Content-Type: ${contentType}`,
     "",
-    formattedBody,
-  ].join("\n");
+    formattedBody
+  );
+
+  const message = headers.join("\n");
 
   const encodedMessage = Buffer.from(message)
     .toString("base64")

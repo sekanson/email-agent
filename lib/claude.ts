@@ -258,7 +258,8 @@ export async function generateDraftResponse(
   body: string,
   temperature: number = 0.5,
   signature: string = "",
-  writingStyle: string = ""
+  writingStyle: string = "",
+  threadContext: string = ""  // Full conversation history for context
 ): Promise<string> {
   // Determine response style from temperature
   const style = getStyleFromTemp(temperature);
@@ -268,8 +269,17 @@ export async function generateDraftResponse(
     ? `\n- IMPORTANT: Match this writing style: ${writingStyle}`
     : "";
 
-  const prompt = `Write a professional email reply to this message.
+  // Include thread context if available
+  const threadSection = threadContext
+    ? `\n${threadContext}\n=== LATEST MESSAGE (reply to this) ===\n`
+    : "";
 
+  const threadInstruction = threadContext
+    ? "\n- Consider the FULL conversation history above when crafting your response"
+    : "";
+
+  const prompt = `Write a professional email reply to this message.
+${threadSection}
 From: ${from}
 Subject: ${subject}
 Body:
@@ -278,7 +288,7 @@ ${body.slice(0, 3000)}
 Instructions:
 - ${config.lengthInstruction}
 - Write a helpful, professional response
-- Match the tone of the original email${styleInstruction}
+- Match the tone of the original email${styleInstruction}${threadInstruction}
 - Only write the email body text
 - Do NOT include a subject line
 - Do NOT include a greeting like "Dear..." (start with the content)

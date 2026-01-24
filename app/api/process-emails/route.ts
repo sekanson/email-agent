@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEmails, applyLabel, createDraft } from "@/lib/gmail";
+import { getEmails, applyLabel, createDraft, getThreadMessages, formatThreadForAI } from "@/lib/gmail";
 import {
   classifyEmailWithContext,
   generateDraftResponse,
@@ -153,16 +153,61 @@ export async function POST(request: NextRequest) {
               console.log(`Sender email: ${senderEmail}`);
               console.log(`Thread ID: ${email.threadId}`);
 
+              // Fetch full thread context for better responses
+              let threadContext = "";
+              try {
+                const threadMessages = await getThreadMessages(
+                  user.access_token,
+                  user.refresh_token,
+                  email.threadId,
+                  userEmail
+                );
+                threadContext = formatThreadForAI(threadMessages);
+                if (threadContext) {
+                  console.log(`Loaded ${threadMessages.length} messages from thread for context`);
+                }
+              } catch (threadError) {
+                console.log(`Could not load thread context: ${threadError}`);
+              }
+
               const draftBody = await generateDraftResponse(
                 email.from,
                 email.subject,
                 email.body || email.bodyPreview,
                 temperature,
                 signature,
-                writingStyle
+                writingStyle,
+                threadContext  // Pass thread context to AI
               );
 
               console.log(`Draft body generated, creating Gmail draft...`);
+
+              // Build CC list for reply-all
+              // Include original CC recipients + original To recipients (except sender and user)
+              let ccRecipients: string[] = [];
+
+              // Add original CC recipients
+              if (email.cc) {
+                ccRecipients.push(...email.cc.split(',').map(addr => addr.trim()));
+              }
+
+              // Add original To recipients (for multi-recipient emails, reply-all should include them)
+              if (email.to) {
+                ccRecipients.push(...email.to.split(',').map(addr => addr.trim()));
+              }
+
+              // Filter and dedupe: remove sender (they go in To), remove user's own email
+              const senderEmailLower = senderEmail.toLowerCase();
+              const userEmailLower = userEmail.toLowerCase();
+              ccRecipients = [...new Set(ccRecipients)].filter(addr => {
+                const addrEmail = addr.match(/<([^>]+)>/)?.[1]?.toLowerCase() || addr.toLowerCase();
+                return addrEmail !== senderEmailLower && addrEmail !== userEmailLower;
+              });
+
+              const ccString = ccRecipients.length > 0 ? ccRecipients.join(', ') : undefined;
+              if (ccString) {
+                console.log(`Reply-all CC: ${ccString}`);
+              }
 
               draftId = await createDraft(
                 user.access_token,
@@ -170,7 +215,9 @@ export async function POST(request: NextRequest) {
                 senderEmail,
                 email.subject,
                 draftBody,
-                email.threadId
+                email.threadId,
+                ccString,   // CC for reply-all
+                userEmail   // User's email to exclude from CC
               );
 
               console.log(`Draft created successfully with ID: ${draftId}`);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEmails, applyLabel, createDraft, refreshAccessToken } from "@/lib/gmail";
+import { getEmails, applyLabel, createDraft, refreshAccessToken, getThreadMessages, formatThreadForAI } from "@/lib/gmail";
 import {
   classifyEmailWithContext,
   generateDraftResponse,
@@ -203,14 +203,48 @@ export async function GET(request: NextRequest) {
                 ];
                 const senderEmail = senderMatch[1] || email.from;
 
+                // Fetch full thread context for better responses
+                let threadContext = "";
+                try {
+                  const threadMessages = await getThreadMessages(
+                    accessToken,
+                    user.refresh_token,
+                    email.threadId,
+                    user.email
+                  );
+                  threadContext = formatThreadForAI(threadMessages);
+                } catch (threadError) {
+                  console.log(`Could not load thread context: ${threadError}`);
+                }
+
                 const draftBody = await generateDraftResponse(
                   email.from,
                   email.subject,
                   email.body || email.bodyPreview,
                   temperature,
                   signature,
-                  writingStyle
+                  writingStyle,
+                  threadContext  // Pass thread context to AI
                 );
+
+                // Build CC list for reply-all
+                let ccRecipients: string[] = [];
+                if (email.cc) {
+                  ccRecipients.push(...email.cc.split(',').map(addr => addr.trim()));
+                }
+                if (email.to) {
+                  ccRecipients.push(...email.to.split(',').map(addr => addr.trim()));
+                }
+
+                // Filter: remove sender and user's own email
+                const senderEmailLower = senderEmail.toLowerCase();
+                const userEmailLower = user.email.toLowerCase();
+                ccRecipients = [...new Set(ccRecipients)].filter(addr => {
+                  const addrEmail = addr.match(/<([^>]+)>/)?.[1]?.toLowerCase() || addr.toLowerCase();
+                  return addrEmail !== senderEmailLower && addrEmail !== userEmailLower;
+                });
+
+                const ccString = ccRecipients.length > 0 ? ccRecipients.join(', ') : undefined;
 
                 draftId = await createDraft(
                   accessToken,
@@ -218,7 +252,9 @@ export async function GET(request: NextRequest) {
                   senderEmail,
                   email.subject,
                   draftBody,
-                  email.threadId
+                  email.threadId,
+                  ccString,    // CC for reply-all
+                  user.email   // User's email to exclude from CC
                 );
 
                 // Increment draft count
