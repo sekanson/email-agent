@@ -218,14 +218,52 @@ Category number (1-${maxCategory}):`;
   return Object.keys(categories).length >= 2 ? 2 : 1;
 }
 
+// Response style configuration
+type ResponseStyle = "concise" | "balanced" | "detailed";
+
+interface StyleConfig {
+  temperature: number;
+  lengthInstruction: string;
+  maxTokens: number;
+}
+
+const STYLE_CONFIGS: Record<ResponseStyle, StyleConfig> = {
+  concise: {
+    temperature: 0.3,
+    lengthInstruction: "Keep your response SHORT and DIRECT - aim for 2-4 sentences maximum. Get straight to the point without filler or unnecessary pleasantries.",
+    maxTokens: 300,
+  },
+  balanced: {
+    temperature: 0.5,
+    lengthInstruction: "Write a natural-length response appropriate to the context. Be helpful but don't over-explain.",
+    maxTokens: 600,
+  },
+  detailed: {
+    temperature: 0.7,
+    lengthInstruction: "Provide a thorough, comprehensive response that fully addresses all aspects of the email.",
+    maxTokens: 1000,
+  },
+};
+
+// Map temperature value to response style (for backward compatibility)
+function getStyleFromTemp(temp: number): ResponseStyle {
+  if (temp <= 0.4) return "concise";
+  if (temp <= 0.6) return "balanced";
+  return "detailed";
+}
+
 export async function generateDraftResponse(
   from: string,
   subject: string,
   body: string,
-  temperature: number = 0.7,
+  temperature: number = 0.5,
   signature: string = "",
   writingStyle: string = ""
 ): Promise<string> {
+  // Determine response style from temperature
+  const style = getStyleFromTemp(temperature);
+  const config = STYLE_CONFIGS[style];
+
   const styleInstruction = writingStyle
     ? `\n- IMPORTANT: Match this writing style: ${writingStyle}`
     : "";
@@ -238,20 +276,21 @@ Body:
 ${body.slice(0, 3000)}
 
 Instructions:
+- ${config.lengthInstruction}
 - Write a helpful, professional response
-- Be concise but thorough
 - Match the tone of the original email${styleInstruction}
 - Only write the email body text
 - Do NOT include a subject line
 - Do NOT include a greeting like "Dear..." (start with the content)
 - Do NOT include a sign-off or signature (that will be added separately)
+- Do NOT make up information you don't know - if you need info from the user, indicate that clearly
 
 Write ONLY the email body text:`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 1000,
-    temperature,
+    max_tokens: config.maxTokens,
+    temperature: config.temperature,
     messages: [
       {
         role: "user",

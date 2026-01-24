@@ -14,12 +14,28 @@ import {
   RefreshCw,
 } from "lucide-react";
 
+type ResponseStyle = "concise" | "balanced" | "detailed";
+
 interface DraftSettings {
   drafts_enabled: boolean;
-  temperature: number;
+  response_style: ResponseStyle;
   signature: string;
   use_writing_style: boolean;
   writing_style?: string;
+}
+
+// Map response style to internal temperature value for storage
+const STYLE_TO_TEMP: Record<ResponseStyle, number> = {
+  concise: 0.3,
+  balanced: 0.5,
+  detailed: 0.7,
+};
+
+// Map temperature back to response style
+function tempToStyle(temp: number): ResponseStyle {
+  if (temp <= 0.4) return "concise";
+  if (temp <= 0.6) return "balanced";
+  return "detailed";
 }
 
 interface User {
@@ -32,7 +48,7 @@ export default function DraftsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [settings, setSettings] = useState<DraftSettings>({
     drafts_enabled: true,
-    temperature: 0.7,
+    response_style: "balanced",
     signature: "",
     use_writing_style: false,
     writing_style: "",
@@ -70,7 +86,7 @@ export default function DraftsPage() {
       if (data.settings) {
         setSettings({
           drafts_enabled: data.settings.drafts_enabled ?? true,
-          temperature: data.settings.temperature ?? 0.7,
+          response_style: tempToStyle(data.settings.temperature ?? 0.5),
           signature: data.settings.signature ?? "",
           use_writing_style: data.settings.use_writing_style ?? false,
           writing_style: data.settings.writing_style ?? "",
@@ -95,7 +111,8 @@ export default function DraftsPage() {
           userEmail,
           settings: {
             drafts_enabled: settings.drafts_enabled,
-            temperature: settings.temperature,
+            temperature: STYLE_TO_TEMP[settings.response_style],
+            response_style: settings.response_style,
             signature: settings.signature,
             use_writing_style: settings.use_writing_style,
             writing_style: settings.writing_style,
@@ -246,39 +263,69 @@ export default function DraftsPage() {
               </div>
             </section>
 
-            {/* Response Temperature */}
+            {/* Response Style */}
             <section className="glass-card p-6">
               <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                Response Temperature
+                Response Style
               </h2>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                Controls how creative or conservative the AI responses are. Lower
-                values produce more predictable responses, higher values are more
-                varied.
+                Choose how detailed your AI-generated draft responses should be
               </p>
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-[var(--text-primary)]">
-                  Temperature: <span className="text-[var(--accent)]">{settings.temperature.toFixed(1)}</span>
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={settings.temperature}
-                  onChange={(e) =>
-                    setSettings((prev) => ({
-                      ...prev,
-                      temperature: parseFloat(e.target.value),
-                    }))
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSettings((prev) => ({ ...prev, response_style: "concise" }))
                   }
-                  className="mt-3 w-full accent-[var(--accent)]"
-                />
-                <div className="mt-2 flex justify-between text-xs text-[var(--text-muted)]">
-                  <span>Conservative (0.0)</span>
-                  <span>Balanced (0.5)</span>
-                  <span>Creative (1.0)</span>
-                </div>
+                  className={`rounded-xl border-2 p-4 text-left transition-all ${
+                    settings.response_style === "concise"
+                      ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                      : "border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-elevated)]"
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">
+                    Concise
+                  </div>
+                  <div className="mt-1 text-xs text-[var(--text-muted)]">
+                    Short & direct. Gets to the point quickly.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSettings((prev) => ({ ...prev, response_style: "balanced" }))
+                  }
+                  className={`rounded-xl border-2 p-4 text-left transition-all ${
+                    settings.response_style === "balanced"
+                      ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                      : "border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-elevated)]"
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">
+                    Balanced
+                  </div>
+                  <div className="mt-1 text-xs text-[var(--text-muted)]">
+                    Natural length. Adjusts based on context.
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSettings((prev) => ({ ...prev, response_style: "detailed" }))
+                  }
+                  className={`rounded-xl border-2 p-4 text-left transition-all ${
+                    settings.response_style === "detailed"
+                      ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                      : "border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-elevated)]"
+                  }`}
+                >
+                  <div className="text-sm font-semibold text-[var(--text-primary)]">
+                    Detailed
+                  </div>
+                  <div className="mt-1 text-xs text-[var(--text-muted)]">
+                    Thorough responses when depth is needed.
+                  </div>
+                </button>
               </div>
             </section>
 
