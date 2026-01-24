@@ -76,12 +76,21 @@ export async function GET(request: NextRequest) {
     // Process each user
     for (const user of users) {
       try {
-        // Check if user has auto-polling enabled (if setting exists)
-        const { data: settings } = await supabase
+        // Get user settings - try user_email first, then email
+        let { data: settings } = await supabase
           .from("user_settings")
-          .select("auto_poll_enabled")
-          .or(`user_email.eq.${user.email},email.eq.${user.email}`)
+          .select("*")
+          .eq("user_email", user.email)
           .single();
+
+        if (!settings) {
+          const result = await supabase
+            .from("user_settings")
+            .select("*")
+            .eq("email", user.email)
+            .single();
+          settings = result.data;
+        }
 
         // Skip users who have explicitly disabled auto-polling
         if (settings && settings.auto_poll_enabled === false) {
@@ -113,25 +122,14 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        // Get user settings
-        let userSettings = settings;
-        if (!userSettings) {
-          const { data: settingsRetry } = await supabase
-            .from("user_settings")
-            .select("*")
-            .or(`user_email.eq.${user.email},email.eq.${user.email}`)
-            .single();
-          userSettings = settingsRetry;
-        }
-
-        const temperature = userSettings?.temperature || 0.7;
-        const signature = userSettings?.signature || "";
-        const draftsEnabled = userSettings?.drafts_enabled ?? true;
+        const temperature = settings?.temperature || 0.7;
+        const signature = settings?.signature || "";
+        const draftsEnabled = settings?.drafts_enabled ?? true;
         const categories: Record<string, CategoryConfig> =
-          userSettings?.categories || DEFAULT_CATEGORIES;
+          settings?.categories || DEFAULT_CATEGORIES;
         const writingStyle =
-          userSettings?.use_writing_style && userSettings?.writing_style
-            ? userSettings.writing_style
+          settings?.use_writing_style && settings?.writing_style
+            ? settings.writing_style
             : "";
 
         // Get already processed email IDs
