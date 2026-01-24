@@ -151,7 +151,6 @@ export default function Dashboard() {
   const [categories, setCategories] =
     useState<Record<string, CategoryConfig>>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [labelsCreated, setLabelsCreated] = useState(false);
   const [processResult, setProcessResult] = useState<{
@@ -200,7 +199,7 @@ export default function Dashboard() {
     if (userEmail && !loading) {
       fetchEmails();
     }
-  }, [dateRange, userEmail]);
+  }, [dateRange, categoryFilter, userEmail]);
 
   useEffect(() => {
     if (!autoPolling || !labelsCreated || processing) return;
@@ -281,9 +280,11 @@ export default function Dashboard() {
 
   async function fetchEmails() {
     try {
-      const emailsRes = await fetch(
-        `/api/emails?userEmail=${userEmail}&dateRange=${dateRange}&limit=100`
-      );
+      let url = `/api/emails?userEmail=${userEmail}&dateRange=${dateRange}&limit=100`;
+      if (categoryFilter !== null) {
+        url += `&category=${categoryFilter}`;
+      }
+      const emailsRes = await fetch(url);
       if (emailsRes.ok) {
         const emailsData = await emailsRes.json();
         setEmails(emailsData.emails || []);
@@ -294,12 +295,6 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Failed to fetch emails:", error);
     }
-  }
-
-  async function handleRefresh() {
-    setRefreshing(true);
-    await fetchEmails();
-    setRefreshing(false);
   }
 
   async function handleUpgrade() {
@@ -445,11 +440,9 @@ export default function Dashboard() {
     );
   }
 
-  const filteredEmails = categoryFilter !== null
-    ? emails.filter((e) => e.category === categoryFilter)
-    : emails;
-  const displayedEmails = filteredEmails.slice(0, displayLimit);
-  const hasMore = filteredEmails.length > displayLimit;
+  // Emails are now filtered server-side via API
+  const displayedEmails = emails.slice(0, displayLimit);
+  const hasMore = emails.length > displayLimit;
 
   if (loading) {
     return (
@@ -538,18 +531,6 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
-
-              {/* Refresh Button */}
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-              >
-                <RefreshCw
-                  className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-                />
-                Refresh
-              </button>
 
               {/* Upgrade Button - show if not on active pro */}
               {subscriptionStatus !== "active" && (
@@ -857,7 +838,7 @@ export default function Dashboard() {
               )}
             </div>
 
-            {filteredEmails.length === 0 ? (
+            {emails.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-elevated)]">
                   <Mail className="h-6 w-6 text-[var(--text-muted)]" />
@@ -987,12 +968,12 @@ export default function Dashboard() {
                       className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
                     >
                       <ChevronDown className="h-4 w-4" />
-                      Load more ({Math.min(filteredEmails.length - displayLimit, 25)} remaining)
+                      Load more ({Math.min(emails.length - displayLimit, 25)} remaining)
                     </button>
                   </div>
                 )}
 
-                {displayLimit >= 100 && filteredEmails.length >= 100 && (
+                {displayLimit >= 100 && emails.length >= 100 && (
                   <div className="border-t border-[var(--border)] p-4 text-center">
                     <p className="text-xs text-[var(--text-muted)]">
                       Showing last 100 emails

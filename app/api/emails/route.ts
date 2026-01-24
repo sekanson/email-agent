@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const userEmail = searchParams.get("userEmail");
     const dateRange = searchParams.get("dateRange") || "all";
     const limit = parseInt(searchParams.get("limit") || "100");
+    const category = searchParams.get("category"); // Optional category filter
 
     if (!userEmail) {
       return NextResponse.json(
@@ -51,6 +52,11 @@ export async function GET(request: NextRequest) {
       emailsQuery = emailsQuery.gte("processed_at", startDate.toISOString());
     }
 
+    // Apply category filter if specified
+    if (category) {
+      emailsQuery = emailsQuery.eq("category", parseInt(category));
+    }
+
     const { data: emails, error: emailsError } = await emailsQuery;
 
     if (emailsError) {
@@ -61,14 +67,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Calculate metrics from fetched emails
-    const emailList = emails || [];
-    const totalProcessed = emailList.length;
-    const draftsCreated = emailList.filter((e) => e.draft_id).length;
+    // Get ALL emails for metrics (without category filter, but with date filter)
+    let metricsQuery = supabase
+      .from("emails")
+      .select("category, draft_id")
+      .eq("user_email", userEmail);
+
+    if (startDate) {
+      metricsQuery = metricsQuery.gte("processed_at", startDate.toISOString());
+    }
+
+    const { data: allEmailsForMetrics } = await metricsQuery;
+    const metricsEmails = allEmailsForMetrics || [];
+
+    // Calculate metrics from ALL emails (not limited/filtered)
+    const totalProcessed = metricsEmails.length;
+    const draftsCreated = metricsEmails.filter((e) => e.draft_id).length;
 
     // Count by category
     const byCategory: Record<number, number> = {};
-    emailList.forEach((email) => {
+    metricsEmails.forEach((email) => {
       const cat = email.category;
       byCategory[cat] = (byCategory[cat] || 0) + 1;
     });
@@ -76,14 +94,14 @@ export async function GET(request: NextRequest) {
     const toRespond = byCategory[1] || 0;
     const other = totalProcessed - toRespond;
 
-    // Get total count (unfiltered) for context
+    // Get total count (all time) for context
     const { count: totalAll } = await supabase
       .from("emails")
       .select("*", { count: "exact", head: true })
       .eq("user_email", userEmail);
 
     return NextResponse.json({
-      emails: emailList,
+      emails: emails || [],
       metrics: {
         totalProcessed,
         toRespond,
