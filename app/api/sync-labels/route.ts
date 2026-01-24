@@ -153,9 +153,11 @@ export async function POST(request: NextRequest) {
     console.log("=== STEP 2: CREATE labels for new categories ===");
 
     // Create labels for categories we don't have yet
+    // IMPORTANT: We NEVER take ownership of pre-existing labels to avoid deleting
+    // labels created by other apps (like Fyxer)
     for (const categoryName of currentCategoryNames) {
       if (newOurLabelIds[categoryName]) {
-        // Already have this label
+        // Already have this label in our tracking
         continue;
       }
 
@@ -165,14 +167,40 @@ export async function POST(request: NextRequest) {
       const existingLabel = gmailLabels.find((l) => l.name === categoryName);
 
       if (existingLabel) {
-        // Label exists - check if we should use it or skip
+        // Label with same name exists but we DIDN'T create it
+        // DO NOT take ownership - create with a suffix instead
         console.log(`  → Label "${categoryName}" already exists in Gmail (ID: ${existingLabel.id})`);
-        console.log(`  → Adding to our tracking (we'll manage it now)`);
-        newOurLabelIds[categoryName] = existingLabel.id;
+        console.log(`  → This is NOT our label - creating with suffix to avoid conflict`);
+
+        const suffixedName = `${categoryName} (Zeno)`;
+        const existingSuffixed = gmailLabels.find((l) => l.name === suffixedName);
+
+        if (existingSuffixed) {
+          // We already have a suffixed version - use it
+          console.log(`  → Found existing suffixed label: ${suffixedName}`);
+          newOurLabelIds[categoryName] = existingSuffixed.id;
+          continue;
+        }
+
+        // Create new label with suffix
+        try {
+          const category = Object.values(categories).find((c) => c.name === categoryName);
+          const newLabel = await createLabel(
+            accessToken,
+            user.refresh_token,
+            suffixedName,
+            category?.color
+          );
+          console.log(`  ✓ Created "${suffixedName}" with ID: ${newLabel.id}`);
+          newOurLabelIds[categoryName] = newLabel.id;
+          created++;
+        } catch (createError: any) {
+          console.error(`  ✗ Failed to create "${suffixedName}": ${createError.message}`);
+        }
         continue;
       }
 
-      // Create new label with exact category name (no suffix)
+      // No conflict - create new label with exact category name
       try {
         const category = Object.values(categories).find((c) => c.name === categoryName);
         const newLabel = await createLabel(
@@ -186,28 +214,35 @@ export async function POST(request: NextRequest) {
         created++;
       } catch (createError: any) {
         console.error(`  ✗ Failed to create "${categoryName}": ${createError.message}`);
-        // If creation failed, try to find it (maybe race condition)
+        // If creation failed due to race condition, check if it exists now
         const refreshedLabels = await getLabels(accessToken, user.refresh_token);
         const found = refreshedLabels.find((l) => l.name === categoryName);
         if (found) {
-          console.log(`  → Found existing label after error, using ID: ${found.id}`);
-          newOurLabelIds[categoryName] = found.id;
+          // Verify this is a label we just created (check our tracking)
+          // Only add if we're confident we created it
+          console.log(`  → Found label after error - but won't claim ownership of external labels`);
         }
       }
     }
 
     console.log("=== STEP 3: UPDATE colors for existing labels ===");
 
+    // Refresh Gmail labels to get actual label names (might have suffix)
+    const refreshedGmailLabels = await getLabels(accessToken, user.refresh_token);
+    const labelIdToName = new Map(refreshedGmailLabels.map((l) => [l.id, l.name]));
+
     // Update colors for labels we're keeping
     for (const [categoryName, labelId] of Object.entries(newOurLabelIds)) {
       const category = Object.values(categories).find((c) => c.name === categoryName);
       if (category) {
+        // Get actual Gmail label name (might be suffixed)
+        const actualLabelName = labelIdToName.get(labelId) || categoryName;
         try {
-          await updateLabel(accessToken, user.refresh_token, labelId, categoryName, category.color);
-          console.log(`  ✓ Updated color for "${categoryName}"`);
+          await updateLabel(accessToken, user.refresh_token, labelId, actualLabelName, category.color);
+          console.log(`  ✓ Updated color for "${actualLabelName}"`);
           updated++;
         } catch (updateError: any) {
-          console.error(`  ✗ Failed to update "${categoryName}": ${updateError.message}`);
+          console.error(`  ✗ Failed to update "${actualLabelName}": ${updateError.message}`);
         }
       }
     }

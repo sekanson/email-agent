@@ -1,8 +1,21 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { detectThreadSignals, ThreadSignals, analyzeThreadState } from "./thread-detection";
+import { SenderContext, formatSenderContextForPrompt } from "./sender-context";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+/**
+ * Enhanced classification result with metadata
+ */
+export interface ClassificationResult {
+  category: number;
+  confidence: number;
+  reasoning: string;
+  isThread: boolean;
+  senderKnown: boolean;
+}
 
 export interface CategoryConfig {
   name: string;
@@ -260,4 +273,293 @@ Write ONLY the email body text:`;
   }
 
   return draft;
+}
+
+/**
+ * Build the tiered classification prompt with thread and sender context
+ */
+function buildTieredPrompt(
+  email: { from: string; subject: string; body: string },
+  senderContext: SenderContext,
+  threadSignals: ThreadSignals,
+  categories: Record<string, CategoryConfig>
+): string {
+  const sortedCategories = Object.entries(categories)
+    .filter(([, config]) => config.enabled)
+    .sort(([a], [b]) => parseInt(a) - parseInt(b));
+
+  const categoryList = sortedCategories
+    .map(([num, config]) => `${num}. ${buildCategoryContext(config)}`)
+    .join("\n");
+
+  const maxCategory = Math.max(
+    ...Object.keys(categories).map((n) => parseInt(n))
+  );
+
+  const hasOther = sortedCategories.some(([, config]) =>
+    isOtherCategory(config.name)
+  );
+
+  // Build context sections
+  let contextSection = "";
+
+  if (threadSignals.isThread) {
+    const threadState = analyzeThreadState(email.body, email.subject);
+    contextSection += `
+THREAD CONTEXT (Tier 0 - Check First):
+- This is a REPLY or FORWARDED email
+- Thread signals detected: ${threadSignals.signals.join(", ")}
+- Thread confidence: ${(threadSignals.confidence * 100).toFixed(0)}%
+- Thread state analysis: ${threadState}
+- CRITICAL: Reply threads should NEVER be classified as Marketing/Spam
+- Classify based on the conversation state, not promotional-sounding content
+`;
+  }
+
+  contextSection += "\n" + formatSenderContextForPrompt(senderContext);
+
+  return `Classify this email using TIERED analysis. Respond in this exact format:
+CATEGORY: [number]
+CONFIDENCE: [0.0-1.0]
+REASONING: [one sentence explanation]
+
+ANALYSIS TIERS (check in order, stop at first match):
+
+TIER 0 - THREAD CONTEXT (highest priority):
+Is this part of an existing conversation thread?
+- If YES and it's a reply thread: NEVER classify as Marketing/Spam
+- Analyze based on conversation state (question asked, answer given, etc.)
+
+TIER 1 - STRUCTURAL SIGNALS:
+- Calendar invite attachment or meeting request → Calendar
+- @mention or direct question to you → Respond
+- Automated system notification (receipts, alerts) → Notification
+
+TIER 2 - CONVERSATION STATE:
+- Waiting on someone else → Pending
+- Matter is resolved/complete → Complete
+- Just a "thanks" or acknowledgment → Complete
+
+TIER 3 - CONTENT ANALYSIS:
+- Requires your reply/action → Respond
+- FYI/informational → Update
+- Thread mention/discussion → Comment
+
+TIER 4 - CATCH-ALL:
+- Marketing/Spam ONLY if ALL of these are true:
+  1. NOT a reply thread (no Re:/Fwd: prefix, no quoted content)
+  2. First contact OR bulk sender
+  3. Has 2+ marketing signals: unsubscribe link, promotional language, mass-send format
+${hasOther ? '- Use "Other" if email doesn\'t clearly fit any category' : ""}
+
+Categories:
+${categoryList}
+${contextSection}
+
+UNCERTAINTY HANDLING:
+If confidence < 70% between two categories, prefer:
+- Marketing vs Update → Known contact = Update, Unknown = Marketing
+- Respond vs Update → If any question exists = Respond
+- Notification vs Calendar → If specific date/time to attend = Calendar
+- Pending vs Complete → If open loop remains = Pending
+
+Default hierarchy when truly uncertain:
+Respond > Calendar > Pending > Comment > Update > Notification > Complete > Marketing/Spam > Other
+(Better to surface something that might need action than bury it in Marketing/Spam)
+
+Email:
+From: ${email.from}
+Subject: ${email.subject}
+Body: ${email.body.slice(0, 2000)}
+
+Respond with CATEGORY, CONFIDENCE, and REASONING:`;
+}
+
+/**
+ * Parse the structured response from Claude
+ */
+function parseStructuredResponse(
+  text: string,
+  threadSignals: ThreadSignals,
+  senderContext: SenderContext,
+  categories: Record<string, CategoryConfig>
+): ClassificationResult {
+  const categoryMatch = text.match(/CATEGORY:\s*(\d+)/i);
+  const confidenceMatch = text.match(/CONFIDENCE:\s*([\d.]+)/i);
+  const reasoningMatch = text.match(/REASONING:\s*(.+?)(?:\n|$)/i);
+
+  const category = categoryMatch ? parseInt(categoryMatch[1]) : 2;
+  const confidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.5;
+  const reasoning = reasoningMatch
+    ? reasoningMatch[1].trim()
+    : "Unable to parse reasoning";
+
+  const maxCategory = Math.max(
+    ...Object.keys(categories).map((n) => parseInt(n))
+  );
+
+  // Validate category
+  let finalCategory = category;
+  if (category < 1 || category > maxCategory || !categories[category.toString()]) {
+    finalCategory = 2;
+  }
+
+  // SAFETY OVERRIDE: If thread detected but classified as Marketing/Spam (8), override
+  // This is the critical protection against misclassifying reply threads
+  if (threadSignals.isThread && finalCategory === 8) {
+    // Determine better category based on thread state
+    const threadState = analyzeThreadState("", ""); // We don't have body here, use default
+    let overrideCategory = 2; // Default to Update
+
+    if (senderContext.mostCommonCategory && senderContext.mostCommonCategory !== 8) {
+      overrideCategory = senderContext.mostCommonCategory;
+    }
+
+    return {
+      category: overrideCategory,
+      confidence: 0.6,
+      reasoning: `Reply thread incorrectly flagged as marketing - overridden to category ${overrideCategory}`,
+      isThread: true,
+      senderKnown: senderContext.hasHistory,
+    };
+  }
+
+  return {
+    category: finalCategory,
+    confidence: Math.min(Math.max(confidence, 0), 1),
+    reasoning,
+    isThread: threadSignals.isThread,
+    senderKnown: senderContext.hasHistory,
+  };
+}
+
+/**
+ * Enhanced email classification with thread detection and sender context
+ *
+ * This is the new primary classification function that:
+ * 1. Detects if the email is part of a thread (Tier 0)
+ * 2. Looks up sender history for context
+ * 3. Uses tiered classification prompt
+ * 4. Returns confidence and reasoning for debugging
+ */
+export async function classifyEmailWithContext(
+  email: {
+    from: string;
+    fromEmail: string;
+    subject: string;
+    body: string;
+    references?: string;
+    inReplyTo?: string;
+  },
+  senderContext: SenderContext,
+  categories: Record<string, CategoryConfig> = DEFAULT_CATEGORIES
+): Promise<ClassificationResult> {
+  // TIER 0: Thread Detection (pre-check)
+  const threadSignals = detectThreadSignals(
+    email.subject,
+    email.body,
+    email.references,
+    email.inReplyTo
+  );
+
+  // Build enhanced prompt with tiered analysis
+  const prompt = buildTieredPrompt(
+    {
+      from: email.from,
+      subject: email.subject,
+      body: email.body,
+    },
+    senderContext,
+    threadSignals,
+    categories
+  );
+
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 200, // Increased to allow reasoning
+    temperature: 0,
+    messages: [{ role: "user", content: prompt }],
+  });
+
+  const content = response.content[0];
+  if (content.type !== "text") {
+    return {
+      category: 2,
+      confidence: 0.5,
+      reasoning: "Parse error - non-text response",
+      isThread: threadSignals.isThread,
+      senderKnown: senderContext.hasHistory,
+    };
+  }
+
+  return parseStructuredResponse(
+    content.text,
+    threadSignals,
+    senderContext,
+    categories
+  );
+}
+
+/**
+ * Unified classification function with fallback support
+ *
+ * Uses enhanced classification by default, falls back to simple
+ * classification if enhanced data is missing.
+ */
+export async function classifyEmail(
+  email: {
+    from: string;
+    fromEmail?: string;
+    subject: string;
+    body: string;
+    references?: string;
+    inReplyTo?: string;
+  },
+  senderContext?: SenderContext,
+  categories: Record<string, CategoryConfig> = DEFAULT_CATEGORIES
+): Promise<ClassificationResult> {
+  // Check if we can use enhanced classification
+  const useEnhanced =
+    process.env.ENHANCED_CLASSIFICATION !== "false" &&
+    email.fromEmail &&
+    senderContext;
+
+  if (!useEnhanced) {
+    // Fallback to simple classification
+    const simpleCategory = await classifyEmailCategory(
+      email.from,
+      email.subject,
+      email.body,
+      categories
+    );
+
+    // Still detect thread signals for the result
+    const threadSignals = detectThreadSignals(
+      email.subject,
+      email.body,
+      email.references,
+      email.inReplyTo
+    );
+
+    return {
+      category: simpleCategory,
+      confidence: 0.7,
+      reasoning: "Simple classification (enhanced disabled or data missing)",
+      isThread: threadSignals.isThread,
+      senderKnown: false,
+    };
+  }
+
+  return classifyEmailWithContext(
+    {
+      from: email.from,
+      fromEmail: email.fromEmail!,
+      subject: email.subject,
+      body: email.body,
+      references: email.references,
+      inReplyTo: email.inReplyTo,
+    },
+    senderContext!,
+    categories
+  );
 }

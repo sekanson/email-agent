@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getEmails, applyLabel, createDraft } from "@/lib/gmail";
-import { classifyEmailCategory, generateDraftResponse, DEFAULT_CATEGORIES, CategoryConfig } from "@/lib/claude";
+import {
+  classifyEmailWithContext,
+  generateDraftResponse,
+  DEFAULT_CATEGORIES,
+  CategoryConfig,
+  ClassificationResult,
+} from "@/lib/claude";
 import { createClient } from "@/lib/supabase";
+import { getSenderContext } from "@/lib/sender-context";
+
+// Free tier limit for drafts
+const FREE_DRAFT_LIMIT = 10;
 
 export async function POST(request: NextRequest) {
   try {
@@ -81,15 +91,26 @@ export async function POST(request: NextRequest) {
 
     for (const email of newEmails) {
       try {
-        // Step 1: Classify the email using user's categories
-        const category = await classifyEmailCategory(
-          email.from,
-          email.subject,
-          email.body || email.bodyPreview,
+        // Step 1: Get sender context for enhanced classification
+        const senderContext = await getSenderContext(userEmail, email.fromEmail);
+
+        // Step 2: Classify the email with thread detection and sender context
+        const result: ClassificationResult = await classifyEmailWithContext(
+          {
+            from: email.from,
+            fromEmail: email.fromEmail,
+            subject: email.subject,
+            body: email.body || email.bodyPreview,
+            references: email.references,
+            inReplyTo: email.inReplyTo,
+          },
+          senderContext,
           categories
         );
 
-        // Step 2: Apply the label
+        const category = result.category;
+
+        // Step 3: Apply the label
         // Look up the category name from the category number
         const categoryConfig = categories[category.toString()];
         const categoryName = categoryConfig?.name;
@@ -106,49 +127,73 @@ export async function POST(request: NextRequest) {
           console.log(`No label found for category ${category} (${categoryName})`);
         }
 
-        // Step 3: Generate draft for "To Respond" emails (category 1)
+        // Step 4: Generate draft for "To Respond" emails (category 1)
         let draftId = null;
+        let draftSkippedDueToLimit = false;
+
+        // Check if user can create drafts (paid user or under free limit)
+        const canCreateDraft =
+          user.subscription_status === "active" ||
+          (user.drafts_created_count || 0) < FREE_DRAFT_LIMIT;
+
         if (category === 1 && draftsEnabled) {
-          try {
-            // Extract sender email from "From" header
-            const senderMatch = email.from.match(/<([^>]+)>/) || [
-              null,
-              email.from,
-            ];
-            const senderEmail = senderMatch[1] || email.from;
+          if (!canCreateDraft) {
+            console.log(`Draft limit reached for user ${userEmail}. Drafts created: ${user.drafts_created_count || 0}`);
+            draftSkippedDueToLimit = true;
+          } else {
+            try {
+              // Extract sender email from "From" header
+              const senderMatch = email.from.match(/<([^>]+)>/) || [
+                null,
+                email.from,
+              ];
+              const senderEmail = senderMatch[1] || email.from;
 
-            console.log(`Generating draft response for: ${email.subject}`);
-            console.log(`Sender email: ${senderEmail}`);
-            console.log(`Thread ID: ${email.threadId}`);
+              console.log(`Generating draft response for: ${email.subject}`);
+              console.log(`Sender email: ${senderEmail}`);
+              console.log(`Thread ID: ${email.threadId}`);
 
-            const draftBody = await generateDraftResponse(
-              email.from,
-              email.subject,
-              email.body || email.bodyPreview,
-              temperature,
-              signature,
-              writingStyle
-            );
+              const draftBody = await generateDraftResponse(
+                email.from,
+                email.subject,
+                email.body || email.bodyPreview,
+                temperature,
+                signature,
+                writingStyle
+              );
 
-            console.log(`Draft body generated, creating Gmail draft...`);
+              console.log(`Draft body generated, creating Gmail draft...`);
 
-            draftId = await createDraft(
-              user.access_token,
-              user.refresh_token,
-              senderEmail,
-              email.subject,
-              draftBody,
-              email.threadId
-            );
+              draftId = await createDraft(
+                user.access_token,
+                user.refresh_token,
+                senderEmail,
+                email.subject,
+                draftBody,
+                email.threadId
+              );
 
-            console.log(`Draft created successfully with ID: ${draftId}`);
-          } catch (draftError: any) {
-            console.error(`Failed to create draft for email ${email.id}:`, draftError);
-            console.error(`Draft error details:`, draftError.message || draftError);
+              console.log(`Draft created successfully with ID: ${draftId}`);
+
+              // Increment the user's draft count
+              await supabase
+                .from("users")
+                .update({
+                  drafts_created_count: (user.drafts_created_count || 0) + 1
+                })
+                .eq("email", userEmail);
+
+              // Update local user object to reflect the new count
+              user.drafts_created_count = (user.drafts_created_count || 0) + 1;
+
+            } catch (draftError: any) {
+              console.error(`Failed to create draft for email ${email.id}:`, draftError);
+              console.error(`Draft error details:`, draftError.message || draftError);
+            }
           }
         }
 
-        // Step 4: Save to database
+        // Step 5: Save to database with classification metadata
         const { data: savedEmail, error: saveError } = await supabase
           .from("emails")
           .upsert({
@@ -156,10 +201,17 @@ export async function POST(request: NextRequest) {
             gmail_id: email.id,
             subject: email.subject,
             from: email.from,
+            from_email: email.fromEmail,
             body_preview: email.bodyPreview,
             category: category,
             draft_id: draftId,
             processed_at: new Date().toISOString(),
+            // New classification metadata fields
+            thread_id: email.threadId,
+            classification_reasoning: result.reasoning,
+            classification_confidence: result.confidence,
+            is_thread: result.isThread,
+            sender_known: result.senderKnown,
           })
           .select()
           .single();
@@ -171,6 +223,7 @@ export async function POST(request: NextRequest) {
             from: email.from,
             category,
             draftCreated: !!draftId,
+            draftSkippedDueToLimit,
           });
         }
       } catch (emailError) {
@@ -178,11 +231,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Count drafts skipped due to limit
+    const draftsSkipped = results.filter(r => r.draftSkippedDueToLimit).length;
+
     return NextResponse.json({
       success: true,
       processed: results.length,
       skipped: emails.length - newEmails.length,
       emails: results,
+      draftsSkippedDueToLimit: draftsSkipped,
+      userDraftCount: user.drafts_created_count || 0,
+      draftLimitReached: (user.drafts_created_count || 0) >= FREE_DRAFT_LIMIT && user.subscription_status !== "active",
     });
   } catch (error) {
     console.error("Error processing emails:", error);

@@ -14,6 +14,7 @@ import {
   Power,
   RotateCcw,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 
 interface ProcessedEmail {
@@ -155,6 +156,10 @@ export default function Dashboard() {
   const [nextPollIn, setNextPollIn] = useState<number | null>(null);
   const [dateRange, setDateRange] = useState<"all" | "today" | "week" | "month">("all");
   const [displayLimit, setDisplayLimit] = useState(25);
+  const [upgrading, setUpgrading] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("trial");
+  const [draftLimitReached, setDraftLimitReached] = useState(false);
+  const [userDraftCount, setUserDraftCount] = useState(0);
 
   const userEmail =
     typeof window !== "undefined"
@@ -210,6 +215,19 @@ export default function Dashboard() {
       const userLabelsCreated = settingsData.user?.labels_created || false;
       setLabelsCreated(userLabelsCreated);
 
+      // Get subscription status and draft count
+      if (settingsData.user?.subscription_status) {
+        setSubscriptionStatus(settingsData.user.subscription_status);
+      }
+      if (settingsData.user?.drafts_created_count !== undefined) {
+        setUserDraftCount(settingsData.user.drafts_created_count);
+        // Check if limit reached for non-pro users
+        if (settingsData.user.subscription_status !== "active" &&
+            settingsData.user.drafts_created_count >= 10) {
+          setDraftLimitReached(true);
+        }
+      }
+
       if (settingsData.settings?.categories) {
         setCategories(settingsData.settings.categories);
       }
@@ -260,6 +278,29 @@ export default function Dashboard() {
     setRefreshing(true);
     await fetchEmails();
     setRefreshing(false);
+  }
+
+  async function handleUpgrade() {
+    setUpgrading(true);
+    try {
+      const res = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail }),
+      });
+
+      const data = await res.json();
+
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        console.error("No checkout URL returned");
+      }
+    } catch (error) {
+      console.error("Failed to start checkout:", error);
+    } finally {
+      setUpgrading(false);
+    }
   }
 
   async function handleResetMetrics() {
@@ -339,6 +380,13 @@ export default function Dashboard() {
             processed: data.processed,
             skipped: data.skipped,
           });
+        }
+        // Update draft limit status from response
+        if (data.draftLimitReached !== undefined) {
+          setDraftLimitReached(data.draftLimitReached);
+        }
+        if (data.userDraftCount !== undefined) {
+          setUserDraftCount(data.userDraftCount);
         }
         await fetchEmails();
         setLastPolled(new Date());
@@ -477,6 +525,22 @@ export default function Dashboard() {
                 />
                 Refresh
               </button>
+
+              {/* Upgrade Button - show if not on active pro */}
+              {subscriptionStatus !== "active" && (
+                <button
+                  onClick={handleUpgrade}
+                  disabled={upgrading}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-2 text-sm font-medium text-white transition-all hover:from-blue-600 hover:to-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50"
+                >
+                  {upgrading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  Upgrade
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -500,7 +564,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <a
-                  href="/settings"
+                  href="/categorize"
                   className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-amber-600 hover:shadow-md hover:shadow-amber-500/15"
                 >
                   <Tag className="h-4 w-4" />
@@ -586,6 +650,56 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Draft Limit Warning - Reached */}
+          {draftLimitReached && subscriptionStatus !== "active" && (
+            <div className="mb-6 flex items-center justify-between rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-red-400" />
+                <div>
+                  <span className="text-sm font-medium text-red-300">
+                    Draft limit reached
+                  </span>
+                  <p className="text-xs text-red-400/80">
+                    You've used all 10 free drafts. Upgrade to Pro for unlimited AI-generated drafts.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleUpgrade}
+                disabled={upgrading}
+                className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-600 disabled:opacity-50"
+              >
+                <Sparkles className="h-4 w-4" />
+                Upgrade
+              </button>
+            </div>
+          )}
+
+          {/* Draft Limit Warning - Approaching (>7 but not reached) */}
+          {!draftLimitReached && userDraftCount > 7 && subscriptionStatus !== "active" && (
+            <div className="mb-6 flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-400" />
+                <div>
+                  <span className="text-sm font-medium text-amber-300">
+                    Approaching draft limit
+                  </span>
+                  <p className="text-xs text-amber-400/70">
+                    You've used {userDraftCount} of 10 free drafts. Upgrade for unlimited.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleUpgrade}
+                disabled={upgrading}
+                className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-300 transition-all hover:bg-amber-500/20 disabled:opacity-50"
+              >
+                <Sparkles className="h-4 w-4" />
+                Upgrade
+              </button>
             </div>
           )}
 

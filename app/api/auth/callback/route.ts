@@ -42,6 +42,13 @@ export async function GET(request: NextRequest) {
     // Store tokens in Supabase
     const supabase = createClient();
 
+    // Check if user already exists to preserve their data
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("email, subscription_status, drafts_created_count")
+      .eq("email", userInfo.email)
+      .single();
+
     const { error } = await supabase.from("users").upsert(
       {
         email: userInfo.email,
@@ -51,6 +58,13 @@ export async function GET(request: NextRequest) {
         refresh_token: tokens.refresh_token,
         token_expiry: tokens.expiry_date,
         updated_at: new Date().toISOString(),
+        // Initialize new users with defaults
+        ...(existingUser ? {} : {
+          subscription_status: "trial",
+          subscription_tier: "free",
+          drafts_created_count: 0,
+          created_at: new Date().toISOString(),
+        }),
       },
       { onConflict: "email" }
     );

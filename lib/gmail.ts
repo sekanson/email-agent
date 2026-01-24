@@ -5,10 +5,21 @@ export interface Email {
   threadId: string;
   subject: string;
   from: string;
+  fromEmail: string;  // Extracted email address from "Name <email>" format
   to: string;
   date: string;
   bodyPreview: string;
   body: string;
+  // Thread detection headers
+  references?: string;   // References header for thread tracking
+  inReplyTo?: string;    // In-Reply-To header
+  messageId?: string;    // Message-ID header
+}
+
+// Extract email address from "Name <email@domain.com>" format
+function extractEmailAddress(fromHeader: string): string {
+  const match = fromHeader.match(/<([^>]+)>/);
+  return match ? match[1].toLowerCase() : fromHeader.trim().toLowerCase();
 }
 
 export interface GmailLabel {
@@ -93,15 +104,21 @@ export async function getEmails(
       }
     }
 
+    const fromHeader = getHeader("from");
     emails.push({
       id: message.id!,
       threadId: message.threadId!,
       subject: getHeader("subject"),
-      from: getHeader("from"),
+      from: fromHeader,
+      fromEmail: extractEmailAddress(fromHeader),
       to: getHeader("to"),
       date: getHeader("date"),
       bodyPreview: msg.data.snippet || "",
       body,
+      // Thread detection headers
+      references: getHeader("references") || undefined,
+      inReplyTo: getHeader("in-reply-to") || undefined,
+      messageId: getHeader("message-id") || undefined,
     });
   }
 

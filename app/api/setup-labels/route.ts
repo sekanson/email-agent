@@ -113,20 +113,45 @@ export async function POST(request: NextRequest) {
       const existingGmailLabel = existingLabels.find((l) => l.name === labelName);
 
       if (existingGmailLabel) {
-        // Label exists - add to our tracking
-        console.log(`Label "${labelName}" already exists in Gmail, adding to tracking`);
-        newOurLabelIds[labelName] = existingGmailLabel.id;
-        // Update color
+        // Label with same name exists but we DIDN'T create it
+        // DO NOT take ownership - this could be from another app (Fyxer, etc.)
+        console.log(`Label "${labelName}" already exists in Gmail but is NOT ours`);
+        console.log(`  → Creating with suffix to avoid conflict`);
+
+        const suffixedName = `${labelName} (Zeno)`;
+        const existingSuffixed = existingLabels.find((l) => l.name === suffixedName);
+
+        if (existingSuffixed) {
+          // We already have a suffixed version - use it
+          console.log(`  → Found existing suffixed label: ${suffixedName}`);
+          newOurLabelIds[labelName] = existingSuffixed.id;
+          try {
+            await updateLabelColor(accessToken, user.refresh_token, existingSuffixed.id, config.color);
+            updated++;
+          } catch (colorError) {
+            console.error(`Failed to update color for ${suffixedName}:`, colorError);
+          }
+          continue;
+        }
+
+        // Create new label with suffix
         try {
-          await updateLabelColor(accessToken, user.refresh_token, existingGmailLabel.id, config.color);
-          updated++;
-        } catch (colorError) {
-          console.error(`Failed to update color for ${labelName}:`, colorError);
+          const newLabel = await createLabel(
+            accessToken,
+            user.refresh_token,
+            suffixedName,
+            config.color
+          );
+          console.log(`  ✓ Created "${suffixedName}" with ID: ${newLabel.id}`);
+          newOurLabelIds[labelName] = newLabel.id;
+          created++;
+        } catch (error: any) {
+          console.error(`Failed to create ${suffixedName}:`, error.message);
         }
         continue;
       }
 
-      // Create new label with exact category name (no suffix)
+      // No conflict - create new label with exact category name
       console.log(`Creating new label: ${labelName}`);
       try {
         const newLabel = await createLabel(
@@ -139,13 +164,8 @@ export async function POST(request: NextRequest) {
         created++;
       } catch (error: any) {
         console.error(`Failed to create label ${labelName}:`, error.message);
-        // Try to find it if creation failed (race condition)
-        const refreshedLabels = await getLabels(accessToken, user.refresh_token);
-        const found = refreshedLabels.find((l) => l.name === labelName);
-        if (found) {
-          console.log(`Found existing label after error: ${labelName}`);
-          newOurLabelIds[labelName] = found.id;
-        }
+        // Don't claim ownership of external labels on error
+        console.log(`  → Won't claim ownership of potentially external label`);
       }
     }
 

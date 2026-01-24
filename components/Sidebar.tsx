@@ -3,25 +3,34 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutDashboard, Tag, Mail, LogOut } from "lucide-react";
+import { LayoutDashboard, Tag, Mail, LogOut, Shield, Sparkles, Settings, CreditCard } from "lucide-react";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
 
-const navItems = [
+const FREE_DRAFT_LIMIT = 10;
+
+const baseNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/settings", label: "Categorize", icon: Tag },
+  { href: "/categorize", label: "Categorize", icon: Tag },
   { href: "/drafts", label: "Drafts", icon: Mail },
 ];
+
+const adminNavItem = { href: "/admin", label: "Admin", icon: Shield };
 
 interface User {
   email: string;
   name: string;
   picture?: string;
+  isAdmin?: boolean;
+  subscriptionStatus?: string;
+  draftsCreatedCount?: number;
 }
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
 
   useEffect(() => {
     const userEmail = localStorage.getItem("userEmail");
@@ -34,8 +43,27 @@ export default function Sidebar() {
         name: userName || userEmail.split("@")[0],
         picture: userPicture || undefined,
       });
+
+      // Fetch user data including subscription status
+      fetch(`/api/settings?userEmail=${userEmail}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.user) {
+            setUser((prev) => prev ? {
+              ...prev,
+              subscriptionStatus: data.user.subscription_status || "trial",
+              draftsCreatedCount: data.user.drafts_created_count || 0,
+            } : null);
+            if (data.user.is_admin) {
+              setIsAdmin(true);
+            }
+          }
+        })
+        .catch(() => {});
     }
   }, []);
+
+  const navItems = isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
 
   const getInitials = (name: string) => {
     return name
@@ -52,6 +80,46 @@ export default function Sidebar() {
     localStorage.removeItem("userPicture");
     window.location.href = "/";
   };
+
+  const handleUpgrade = async () => {
+    if (!user?.email) return;
+    setUpgrading(true);
+    try {
+      const res = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: user.email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Failed to start checkout:", error);
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    if (!user?.email) return;
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail: user.email }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Failed to open customer portal:", error);
+    }
+  };
+
+  const draftsRemaining = Math.max(0, FREE_DRAFT_LIMIT - (user?.draftsCreatedCount || 0));
+  const isProUser = user?.subscriptionStatus === "active";
 
   return (
     <aside className="sidebar-bg fixed left-0 top-0 z-40 flex h-screen w-64 flex-col overflow-y-auto border-r border-[var(--border)]">
@@ -94,6 +162,51 @@ export default function Sidebar() {
         </ul>
       </nav>
 
+      {/* Subscription Status */}
+      {user && (
+        <div className="border-t border-[var(--border)] p-3">
+          {isProUser ? (
+            <div className="rounded-lg bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-emerald-400" />
+                <span className="text-sm font-medium text-emerald-400">Pro Plan</span>
+              </div>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Unlimited drafts</p>
+              <button
+                onClick={handleManageSubscription}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)]"
+              >
+                <CreditCard className="h-3.5 w-3.5" />
+                Manage Subscription
+              </button>
+            </div>
+          ) : (
+            <div className="rounded-lg bg-[var(--bg-elevated)] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-[var(--text-secondary)]">Free Plan</span>
+                <span className="text-xs text-[var(--text-muted)]">
+                  {draftsRemaining} drafts left
+                </span>
+              </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--border)]">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all"
+                  style={{ width: `${((user?.draftsCreatedCount || 0) / FREE_DRAFT_LIMIT) * 100}%` }}
+                />
+              </div>
+              <button
+                onClick={handleUpgrade}
+                disabled={upgrading}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 px-3 py-2 text-xs font-medium text-white transition-all hover:from-blue-600 hover:to-purple-600 disabled:opacity-50"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {upgrading ? "Loading..." : "Upgrade to Pro"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* User Info */}
       <div className="border-t border-[var(--border)] p-4">
         {user ? (
@@ -119,13 +232,22 @@ export default function Sidebar() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </button>
+            <div className="flex gap-2">
+              <Link
+                href="/account"
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
+              >
+                <Settings className="h-3.5 w-3.5" />
+                Settings
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-secondary)]"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out
+              </button>
+            </div>
           </div>
         ) : (
           <div className="flex items-center gap-3">

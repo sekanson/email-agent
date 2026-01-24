@@ -26,10 +26,10 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient();
 
-    // Get user info
+    // Get user info including subscription status and draft count
     const { data: user } = await supabase
       .from("users")
-      .select("email, name, picture, labels_created")
+      .select("email, name, picture, labels_created, subscription_status, subscription_tier, trial_ends_at, is_admin, drafts_created_count, created_at, stripe_customer_id")
       .eq("email", userEmail)
       .single();
 
