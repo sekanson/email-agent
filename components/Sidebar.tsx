@@ -28,41 +28,65 @@ interface User {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Initialize state from localStorage to prevent flicker on navigation
+  const [user, setUser] = useState<User | null>(() => {
+    if (typeof window === "undefined") return null;
+    const userEmail = localStorage.getItem("userEmail");
+    if (!userEmail) return null;
+    return {
+      email: userEmail,
+      name: localStorage.getItem("userName") || userEmail.split("@")[0],
+      picture: localStorage.getItem("userPicture") || undefined,
+      subscriptionStatus: localStorage.getItem("subscriptionStatus") || undefined,
+      draftsCreatedCount: parseInt(localStorage.getItem("draftsCreatedCount") || "0", 10),
+    };
+  });
+
+  const [isAdmin, setIsAdmin] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("isAdmin") === "true";
+  });
+
   const [upgrading, setUpgrading] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(() => {
+    if (typeof window === "undefined") return false;
+    // Consider data loaded if we have cached subscription status
+    return !!localStorage.getItem("subscriptionStatus");
+  });
 
   useEffect(() => {
     const userEmail = localStorage.getItem("userEmail");
-    const userName = localStorage.getItem("userName");
-    const userPicture = localStorage.getItem("userPicture");
 
     if (userEmail) {
-      setUser({
-        email: userEmail,
-        name: userName || userEmail.split("@")[0],
-        picture: userPicture || undefined,
-      });
-
-      // Fetch user data including subscription status
+      // Fetch fresh user data in background
       fetch(`/api/settings?userEmail=${userEmail}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.user) {
+            // Cache in localStorage to prevent flicker on future navigations
+            localStorage.setItem("subscriptionStatus", data.user.subscription_status || "trial");
+            localStorage.setItem("draftsCreatedCount", String(data.user.drafts_created_count || 0));
+            localStorage.setItem("isAdmin", data.user.is_admin ? "true" : "false");
+
             setUser((prev) => prev ? {
               ...prev,
               subscriptionStatus: data.user.subscription_status || "trial",
               draftsCreatedCount: data.user.drafts_created_count || 0,
             } : null);
-            if (data.user.is_admin) {
-              setIsAdmin(true);
-            }
+            setIsAdmin(!!data.user.is_admin);
           }
+          setDataLoaded(true);
         })
-        .catch(() => {});
+        .catch(() => {
+          setDataLoaded(true);
+        });
+    } else {
+      setDataLoaded(true);
     }
   }, []);
 
+  // Show admin nav item if cached or freshly loaded
   const navItems = isAdmin ? [...baseNavItems, adminNavItem] : baseNavItems;
 
   const getInitials = (name: string) => {
@@ -78,6 +102,9 @@ export default function Sidebar() {
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");
     localStorage.removeItem("userPicture");
+    localStorage.removeItem("subscriptionStatus");
+    localStorage.removeItem("draftsCreatedCount");
+    localStorage.removeItem("isAdmin");
     window.location.href = "/";
   };
 
@@ -165,7 +192,17 @@ export default function Sidebar() {
       {/* Subscription Status */}
       {user && (
         <div className="border-t border-[var(--border)] p-3">
-          {isProUser ? (
+          {!dataLoaded ? (
+            /* Loading skeleton */
+            <div className="rounded-lg bg-[var(--bg-elevated)] p-3">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-16 animate-pulse rounded bg-[var(--border)]" />
+                <div className="h-4 w-20 animate-pulse rounded bg-[var(--border)]" />
+              </div>
+              <div className="mt-2 h-1.5 animate-pulse rounded-full bg-[var(--border)]" />
+              <div className="mt-3 h-8 animate-pulse rounded-lg bg-[var(--border)]" />
+            </div>
+          ) : isProUser ? (
             <div className="rounded-lg bg-gradient-to-r from-emerald-500/10 to-teal-500/10 p-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-emerald-400" />

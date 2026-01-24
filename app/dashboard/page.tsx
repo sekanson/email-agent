@@ -14,7 +14,11 @@ import {
   Power,
   RotateCcw,
   ChevronDown,
+  ChevronRight,
   Sparkles,
+  Brain,
+  GitBranch,
+  User,
 } from "lucide-react";
 
 interface ProcessedEmail {
@@ -25,6 +29,10 @@ interface ProcessedEmail {
   category: number;
   draft_id: string | null;
   processed_at: string;
+  classification_reasoning?: string;
+  classification_confidence?: number;
+  is_thread?: boolean;
+  sender_known?: boolean;
 }
 
 interface Metrics {
@@ -160,6 +168,20 @@ export default function Dashboard() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("trial");
   const [draftLimitReached, setDraftLimitReached] = useState(false);
   const [userDraftCount, setUserDraftCount] = useState(0);
+  const [expandedEmails, setExpandedEmails] = useState<Set<string>>(new Set());
+  const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+
+  const toggleEmailExpanded = (emailId: string) => {
+    setExpandedEmails((prev) => {
+      const next = new Set(prev);
+      if (next.has(emailId)) {
+        next.delete(emailId);
+      } else {
+        next.add(emailId);
+      }
+      return next;
+    });
+  };
 
   const userEmail =
     typeof window !== "undefined"
@@ -423,8 +445,11 @@ export default function Dashboard() {
     );
   }
 
-  const displayedEmails = emails.slice(0, displayLimit);
-  const hasMore = emails.length > displayLimit;
+  const filteredEmails = categoryFilter !== null
+    ? emails.filter((e) => e.category === categoryFilter)
+    : emails;
+  const displayedEmails = filteredEmails.slice(0, displayLimit);
+  const hasMore = filteredEmails.length > displayLimit;
 
   if (loading) {
     return (
@@ -744,38 +769,83 @@ export default function Dashboard() {
 
           {/* Category Breakdown */}
           <div className="glass-card mb-8 p-6">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-              By Category
-            </h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {Object.entries(categories).map(([num, config]) => (
-                <div
-                  key={num}
-                  className="group flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card-hover)]"
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                By Category
+              </h2>
+              {categoryFilter !== null && (
+                <button
+                  onClick={() => setCategoryFilter(null)}
+                  className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: config.color }}
-                    />
-                    <span className="text-sm text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]">
-                      {config.name}
+                  Clear filter
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {Object.entries(categories).map(([num, config]) => {
+                const categoryNum = parseInt(num);
+                const isSelected = categoryFilter === categoryNum;
+                const count = metrics.byCategory[categoryNum] || 0;
+                return (
+                  <button
+                    key={num}
+                    onClick={() => setCategoryFilter(isSelected ? null : categoryNum)}
+                    className={`group flex items-center justify-between rounded-xl border p-3 transition-all text-left ${
+                      isSelected
+                        ? "border-[var(--accent)] bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20"
+                        : "border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-card-hover)]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className={`h-2.5 w-2.5 rounded-full transition-transform ${isSelected ? "scale-125" : ""}`}
+                        style={{ backgroundColor: config.color }}
+                      />
+                      <span className={`text-sm ${
+                        isSelected
+                          ? "text-[var(--accent)] font-medium"
+                          : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
+                      }`}>
+                        {config.name}
+                      </span>
+                    </div>
+                    <span className={`text-sm font-semibold ${
+                      isSelected ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
+                    }`}>
+                      {count}
                     </span>
-                  </div>
-                  <span className="text-sm font-semibold text-[var(--text-primary)]">
-                    {metrics.byCategory[parseInt(num)] || 0}
-                  </span>
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Recent Emails */}
           <div className="glass-card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                Recent Emails
-              </h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Recent Emails
+                </h2>
+                {categoryFilter !== null && (
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{
+                      backgroundColor: `${categories[categoryFilter.toString()]?.color}15`,
+                      color: categories[categoryFilter.toString()]?.color,
+                    }}
+                  >
+                    Filtered: {categories[categoryFilter.toString()]?.name}
+                    <button
+                      onClick={() => setCategoryFilter(null)}
+                      className="ml-1 hover:opacity-70"
+                    >
+                      ×
+                    </button>
+                  </span>
+                )}
+              </div>
               {metrics.totalAll > 0 && (
                 <button
                   onClick={handleResetMetrics}
@@ -787,52 +857,126 @@ export default function Dashboard() {
               )}
             </div>
 
-            {emails.length === 0 ? (
+            {filteredEmails.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16">
                 <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-elevated)]">
                   <Mail className="h-6 w-6 text-[var(--text-muted)]" />
                 </div>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  No emails processed yet
-                </p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  {labelsCreated
-                    ? "Turn on the Email Agent to start processing"
-                    : 'Click "Setup Labels" to get started'}
-                </p>
+                {categoryFilter !== null && emails.length > 0 ? (
+                  <>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      No emails in this category
+                    </p>
+                    <button
+                      onClick={() => setCategoryFilter(null)}
+                      className="mt-2 text-xs text-[var(--accent)] hover:text-[var(--accent-hover)]"
+                    >
+                      Clear filter to see all emails
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      No emails processed yet
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
+                      {labelsCreated
+                        ? "Turn on the Email Agent to start processing"
+                        : 'Click "Setup Labels" to get started'}
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               <>
                 <div className="divide-y divide-[var(--border)]">
-                  {displayedEmails.map((email) => (
-                    <div
-                      key={email.id}
-                      className="group flex items-center justify-between px-6 py-4 transition-all hover:bg-[var(--bg-card-hover)]"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-3">
-                          <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
-                            {email.subject || "(No subject)"}
-                          </p>
-                          {email.draft_id && (
-                            <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                              <FileText className="h-3 w-3" />
-                              Draft
+                  {displayedEmails.map((email) => {
+                    const isExpanded = expandedEmails.has(email.id);
+                    return (
+                      <div key={email.id}>
+                        <button
+                          onClick={() => toggleEmailExpanded(email.id)}
+                          className="group flex w-full items-center justify-between px-6 py-4 text-left transition-all hover:bg-[var(--bg-card-hover)]"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}>
+                              <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-3">
+                                <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
+                                  {email.subject || "(No subject)"}
+                                </p>
+                                {email.draft_id && (
+                                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                                    <FileText className="h-3 w-3" />
+                                    Draft
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
+                                {email.from}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="ml-4 flex items-center gap-4">
+                            {getCategoryBadge(email.category)}
+                            <span className="text-xs text-[var(--text-muted)]">
+                              {new Date(email.processed_at).toLocaleDateString()}
                             </span>
-                          )}
-                        </div>
-                        <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-                          {email.from}
-                        </p>
+                          </div>
+                        </button>
+
+                        {/* Expanded Classification Details */}
+                        {isExpanded && (
+                          <div className="border-t border-[var(--border)] bg-[var(--bg-elevated)] px-6 py-4">
+                            <div className="ml-7 space-y-3">
+                              {/* AI Reasoning */}
+                              {email.classification_reasoning ? (
+                                <div className="flex gap-3">
+                                  <Brain className="mt-0.5 h-4 w-4 flex-shrink-0 text-purple-400" />
+                                  <div>
+                                    <p className="text-xs font-medium text-[var(--text-secondary)]">AI Classification Reasoning</p>
+                                    <p className="mt-1 text-sm text-[var(--text-primary)]">
+                                      {email.classification_reasoning}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex gap-3">
+                                  <Brain className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--text-muted)]" />
+                                  <p className="text-sm text-[var(--text-muted)] italic">
+                                    No classification reasoning available (processed before enhancement)
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Metadata badges */}
+                              <div className="flex flex-wrap items-center gap-2">
+                                {email.classification_confidence !== undefined && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs text-[var(--text-secondary)]">
+                                    Confidence: {Math.round(email.classification_confidence * 100)}%
+                                  </span>
+                                )}
+                                {email.is_thread && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 text-xs text-blue-400">
+                                    <GitBranch className="h-3 w-3" />
+                                    Thread
+                                  </span>
+                                )}
+                                {email.sender_known && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400">
+                                    <User className="h-3 w-3" />
+                                    Known Sender
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="ml-4 flex items-center gap-4">
-                        {getCategoryBadge(email.category)}
-                        <span className="text-xs text-[var(--text-muted)]">
-                          {new Date(email.processed_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Load More */}
@@ -843,12 +987,12 @@ export default function Dashboard() {
                       className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
                     >
                       <ChevronDown className="h-4 w-4" />
-                      Load more ({Math.min(emails.length - displayLimit, 25)} remaining)
+                      Load more ({Math.min(filteredEmails.length - displayLimit, 25)} remaining)
                     </button>
                   </div>
                 )}
 
-                {displayLimit >= 100 && emails.length >= 100 && (
+                {displayLimit >= 100 && filteredEmails.length >= 100 && (
                   <div className="border-t border-[var(--border)] p-4 text-center">
                     <p className="text-xs text-[var(--text-muted)]">
                       Showing last 100 emails
