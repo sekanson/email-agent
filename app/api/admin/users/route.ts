@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get email counts for each user
+    // Get email counts and settings for each user
     const usersWithEmailCounts = await Promise.all(
       (users || []).map(async (user) => {
         const { count } = await supabase
@@ -51,9 +51,22 @@ export async function GET(request: NextRequest) {
           .select("*", { count: "exact", head: true })
           .eq("user_email", user.email);
 
+        // Get auto_poll_enabled from user_settings
+        let autoPollEnabled = true; // Default to true
+        const { data: settings } = await supabase
+          .from("user_settings")
+          .select("auto_poll_enabled")
+          .or(`user_email.eq.${user.email},email.eq.${user.email}`)
+          .single();
+
+        if (settings && settings.auto_poll_enabled === false) {
+          autoPollEnabled = false;
+        }
+
         return {
           ...user,
           emails_processed: count || 0,
+          auto_poll_enabled: autoPollEnabled,
         };
       })
     );

@@ -29,6 +29,10 @@ import {
   TrendingUp,
   UserPlus,
   DollarSign,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
 } from "lucide-react";
 
 interface UserRecord {
@@ -45,6 +49,9 @@ interface UserRecord {
   drafts_created_count?: number;
   stripe_customer_id?: string;
   stripe_subscription_id?: string;
+  labels_created?: boolean;
+  refresh_token?: string;
+  auto_poll_enabled?: boolean;
 }
 
 interface Stats {
@@ -119,6 +126,58 @@ function getStatusBadge(user: UserRecord) {
       Trial ({daysLeft}d left)
     </span>
   );
+}
+
+function getSyncStatusBadge(user: UserRecord) {
+  // Check if auto-polling is explicitly disabled
+  if (user.auto_poll_enabled === false) {
+    return {
+      badge: (
+        <span className="inline-flex items-center gap-1 rounded-full bg-zinc-500/10 px-2.5 py-1 text-xs font-medium text-zinc-400">
+          <Pause className="h-3 w-3" />
+          Disabled
+        </span>
+      ),
+      reason: "User has disabled automatic email processing",
+    };
+  }
+
+  // Check if user has no refresh token
+  if (!user.refresh_token) {
+    return {
+      badge: (
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400">
+          <XCircle className="h-3 w-3" />
+          No Token
+        </span>
+      ),
+      reason: "User needs to re-authenticate with Gmail",
+    };
+  }
+
+  // Check if labels are not set up
+  if (!user.labels_created) {
+    return {
+      badge: (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400">
+          <AlertCircle className="h-3 w-3" />
+          Setup Needed
+        </span>
+      ),
+      reason: "User hasn't completed Gmail label setup",
+    };
+  }
+
+  // All good - syncing
+  return {
+    badge: (
+      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400">
+        <CheckCircle2 className="h-3 w-3" />
+        Active
+      </span>
+    ),
+    reason: "Emails are being processed automatically every 5 minutes",
+  };
 }
 
 function formatDate(dateString?: string) {
@@ -579,6 +638,7 @@ export default function AdminPage() {
                   <tr className="border-b border-[var(--border)] text-left text-sm text-[var(--text-muted)]">
                     <th className="px-6 py-3 font-medium">User</th>
                     <th className="px-6 py-3 font-medium">Status</th>
+                    <th className="px-6 py-3 font-medium">Sync Status</th>
                     <th className="px-6 py-3 font-medium">Signed Up</th>
                     <th className="px-6 py-3 font-medium">Emails</th>
                     <th className="px-6 py-3 font-medium">Drafts</th>
@@ -617,6 +677,7 @@ export default function AdminPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4">{getStatusBadge(user)}</td>
+                      <td className="px-6 py-4">{getSyncStatusBadge(user).badge}</td>
                       <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">
                         {formatDate(user.created_at)}
                       </td>
@@ -707,6 +768,20 @@ export default function AdminPage() {
                       {selectedUser.drafts_created_count || 0}
                     </p>
                   </div>
+                </div>
+
+                {/* Sync Status */}
+                <div className="mb-6 rounded-lg bg-[var(--bg-card)] p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4 text-[var(--text-muted)]" />
+                      <span className="text-sm font-medium text-[var(--text-primary)]">Sync Status</span>
+                    </div>
+                    {getSyncStatusBadge(selectedUser).badge}
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">
+                    {getSyncStatusBadge(selectedUser).reason}
+                  </p>
                 </div>
 
                 {/* Details */}
