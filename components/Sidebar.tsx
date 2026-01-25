@@ -19,8 +19,6 @@ import {
   ChevronRight,
   MessageSquare,
   Calendar,
-  FileText,
-  ScrollText,
 } from "lucide-react";
 import Logo from "./Logo";
 
@@ -386,23 +384,6 @@ export default function Sidebar() {
                         <Calendar className="h-3.5 w-3.5" />
                         Book a Call
                       </a>
-                      <div className="my-1.5 border-t border-[var(--border)]" />
-                      <Link
-                        href="/terms"
-                        onClick={() => { setMenuOpen(false); setHelpMenuOpen(false); }}
-                        className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        Terms of Service
-                      </Link>
-                      <Link
-                        href="/privacy"
-                        onClick={() => { setMenuOpen(false); setHelpMenuOpen(false); }}
-                        className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-                      >
-                        <ScrollText className="h-3.5 w-3.5" />
-                        Privacy Policy
-                      </Link>
                     </div>
                   )}
                 </div>

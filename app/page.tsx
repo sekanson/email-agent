@@ -130,23 +130,10 @@ export default function LoginPage() {
             </Link>
           </p>
 
-          {/* Footer */}
-          <footer className="mt-12 text-center text-sm text-zinc-500">
-            <div className="flex justify-center gap-4">
-              <Link href="/terms" className="hover:text-white transition-colors">
-                Terms of Service
-              </Link>
-              <span>•</span>
-              <Link href="/privacy" className="hover:text-white transition-colors">
-                Privacy Policy
-              </Link>
-              <span>•</span>
-              <a href="mailto:support@xix3d.com" className="hover:text-white transition-colors">
-                Contact
-              </a>
-            </div>
-            <p className="mt-4">&copy; 2026 xix3D Inc. All rights reserved.</p>
-          </footer>
+          {/* Copyright */}
+          <p className="mt-12 text-center text-xs text-zinc-600">
+            &copy; 2026 xix3D Inc. All rights reserved.
+          </p>
         </div>
       </div>
     </div>
