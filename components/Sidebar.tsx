@@ -169,9 +169,20 @@ export default function Sidebar() {
 
   const toggleTheme = () => {
     const newTheme = theme === "dark" ? "light" : "dark";
+
+    // Disable transitions during theme change for instant switch
+    document.documentElement.classList.add("theme-transitioning");
+
     setTheme(newTheme);
     localStorage.setItem("theme", newTheme);
     document.documentElement.setAttribute("data-theme", newTheme);
+
+    // Re-enable transitions after a brief delay
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("theme-transitioning");
+      });
+    });
   };
 
   const handleUpgrade = async () => {

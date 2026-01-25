@@ -73,10 +73,10 @@
   --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-* {
-  transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+/* Disable all transitions during theme switch for instant change */
+.theme-transitioning,
+.theme-transitioning * {
+  transition: none !important;
 }
 
 body {

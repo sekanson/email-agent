@@ -17,8 +17,21 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Inline script to set theme immediately, preventing flash
+  const themeScript = `
+    (function() {
+      try {
+        var theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) {}
+    })();
+  `;
+
   return (
-    <html lang="en" data-theme="dark">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         {/* Background ribbon decoration */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-[0.03]">
