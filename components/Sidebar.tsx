@@ -303,14 +303,17 @@ export default function Sidebar() {
             <div className="fixed bottom-16 left-3 z-50 w-56 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] shadow-xl">
               {/* Plan Display */}
               <div className="border-b border-[var(--border)] px-2 py-2">
-                <div className="flex items-center justify-between rounded-lg px-3 py-2">
+                <div className="flex items-center gap-3 rounded-lg px-3 py-2">
                   {isProUser ? (
-                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Pro Plan
-                    </span>
+                    <>
+                      <Sparkles className="h-4 w-4 text-emerald-400" />
+                      <span className="text-sm font-medium text-emerald-400">Pro Plan</span>
+                    </>
                   ) : (
-                    <span className="text-sm text-[var(--text-primary)]">Free Plan</span>
+                    <>
+                      <Mail className="h-4 w-4 text-[var(--text-muted)]" />
+                      <span className="text-sm text-[var(--text-primary)]">Free Plan</span>
+                    </>
                   )}
                 </div>
               </div>
