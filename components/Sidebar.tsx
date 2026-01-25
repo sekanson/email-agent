@@ -14,7 +14,6 @@ import {
   Shield,
   BarChart3,
   HelpCircle,
-  Check,
   Sparkles,
   ChevronUp,
   ChevronRight,
@@ -313,7 +312,6 @@ export default function Sidebar() {
                   ) : (
                     <span className="text-sm text-[var(--text-primary)]">Free Plan</span>
                   )}
-                  <Check className="h-4 w-4 text-emerald-400" />
                 </div>
               </div>
 
