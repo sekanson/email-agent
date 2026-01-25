@@ -56,17 +56,14 @@ export default function LoginPage() {
             </div>
 
             {/* Testimonial card */}
-            <div className="absolute -bottom-4 left-1/2 max-w-sm -translate-x-1/2 transform rounded-2xl bg-white p-6 shadow-2xl">
-              <div className="flex gap-1">
-                <span className="font-serif text-4xl leading-none text-blue-500">&ldquo;</span>
-                <p className="flex-1 text-sm text-zinc-700">
-                  Zeno&apos;s Email Agent is a gamechanger to start my day. My inbox is
-                  finally under control.
-                  <span className="font-serif text-4xl leading-none text-blue-500">&rdquo;</span>
-                </p>
-              </div>
-              <div className="mt-4 flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400" />
+            <div className="absolute -bottom-4 left-1/2 max-w-xs -translate-x-1/2 transform rounded-2xl bg-white p-6 shadow-2xl">
+              <p className="text-sm leading-relaxed text-zinc-700">
+                <span className="text-lg text-blue-500">&ldquo;</span>
+                Zeno&apos;s Email Agent is a gamechanger to start my day. My inbox is finally under control.
+                <span className="text-lg text-blue-500">&rdquo;</span>
+              </p>
+              <div className="mt-4 flex items-center gap-3 border-t border-zinc-100 pt-4">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400" />
                 <span className="text-sm font-medium text-zinc-800">Zeno User</span>
               </div>
             </div>
