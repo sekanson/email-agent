@@ -448,7 +448,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-64 flex min-h-screen items-center justify-center">
+        <main className="ml-60 flex min-h-screen items-center justify-center">
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
               <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl" />
@@ -465,7 +465,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-64 flex min-h-screen items-center justify-center">
+        <main className="ml-60 flex min-h-screen items-center justify-center">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-card)]">
               <Mail className="h-8 w-8 text-[var(--text-muted)]" />
@@ -492,7 +492,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="ml-64 min-h-screen overflow-auto">
+      <main className="ml-60 min-h-screen overflow-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
           <div className="flex items-center justify-between px-8 py-5">

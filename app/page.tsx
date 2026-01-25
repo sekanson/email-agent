@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
   const handleGoogleSignIn = () => {
@@ -118,21 +119,34 @@ export default function LoginPage() {
           </button>
 
           {/* Terms */}
-          <p className="mt-6 text-center text-xs text-zinc-600">
-            By continuing, you agree to our{" "}
-            <a href="/terms" className="text-zinc-400 hover:text-white">
-              Terms
-            </a>{" "}
+          <p className="mt-6 text-center text-xs text-zinc-500">
+            By signing in, you agree to our{" "}
+            <Link href="/terms" className="text-blue-400 hover:underline">
+              Terms of Service
+            </Link>{" "}
             and{" "}
-            <a href="/privacy" className="text-zinc-400 hover:text-white">
+            <Link href="/privacy" className="text-blue-400 hover:underline">
               Privacy Policy
-            </a>
+            </Link>
           </p>
 
-          {/* Powered by */}
-          <p className="mt-8 text-center text-xs text-zinc-700">
-            Powered by xix3D
-          </p>
+          {/* Footer */}
+          <footer className="mt-12 text-center text-sm text-zinc-500">
+            <div className="flex justify-center gap-4">
+              <Link href="/terms" className="hover:text-white transition-colors">
+                Terms of Service
+              </Link>
+              <span>•</span>
+              <Link href="/privacy" className="hover:text-white transition-colors">
+                Privacy Policy
+              </Link>
+              <span>•</span>
+              <a href="mailto:support@xix3d.com" className="hover:text-white transition-colors">
+                Contact
+              </a>
+            </div>
+            <p className="mt-4">&copy; 2026 xix3D Inc. All rights reserved.</p>
+          </footer>
         </div>
       </div>
     </div>

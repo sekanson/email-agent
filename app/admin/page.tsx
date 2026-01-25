@@ -36,10 +36,12 @@ import {
 } from "lucide-react";
 
 interface UserRecord {
+  id?: string;
   email: string;
   name: string;
   picture?: string;
   is_admin?: boolean;
+  role?: "user" | "admin" | "owner" | "primary_owner";
   subscription_status?: string;
   subscription_tier?: string;
   trial_ends_at?: string;
@@ -52,6 +54,51 @@ interface UserRecord {
   labels_created?: boolean;
   refresh_token?: string;
   auto_poll_enabled?: boolean;
+}
+
+type Role = "user" | "admin" | "owner" | "primary_owner";
+
+const ROLE_LABELS: Record<Role, string> = {
+  user: "User",
+  admin: "Admin",
+  owner: "Owner",
+  primary_owner: "Primary Owner",
+};
+
+const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  user: "Can use the app",
+  admin: "Can manage user membership",
+  owner: "Can manage user roles and admin settings",
+  primary_owner: "Can manage org and data settings",
+};
+
+function getRoleBadge(role?: Role) {
+  const r = role || "user";
+  switch (r) {
+    case "primary_owner":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+          Primary Owner
+        </span>
+      );
+    case "owner":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2.5 py-1 text-xs font-medium text-purple-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+          Owner
+        </span>
+      );
+    case "admin":
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+          Admin
+        </span>
+      );
+    default:
+      return null;
+  }
 }
 
 interface Stats {
@@ -208,6 +255,11 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<UserRecord | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [recentActivity, setRecentActivity] = useState<UserRecord[]>([]);
+  const [currentUserRole, setCurrentUserRole] = useState<Role>("user");
+
+  // Permission checks
+  const canManageRoles = ["owner", "primary_owner"].includes(currentUserRole);
+  const canManageOwners = currentUserRole === "primary_owner";
 
   const adminEmail = typeof window !== "undefined"
     ? localStorage.getItem("userEmail") || ""
@@ -233,6 +285,7 @@ export default function AdminPage() {
       }
 
       setIsAdmin(true);
+      setCurrentUserRole(data.currentUserRole || "admin");
       setUsers(data.users || []);
       calculateStats(data.users || []);
     } catch (error) {
@@ -347,6 +400,42 @@ export default function AdminPage() {
     }
   }
 
+  async function handleRoleChange(userId: string, newRole: string) {
+    setActionLoading("role");
+    try {
+      const res = await fetch("/api/admin/update-role", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requesterEmail: adminEmail,
+          targetUserId: userId,
+          newRole,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Refresh user data
+        await checkAdminAndFetchData();
+        // Update selected user if it's the one being modified
+        if (selectedUser?.id === userId) {
+          const updatedUser = users.find((u) => u.id === userId);
+          if (updatedUser) {
+            setSelectedUser({ ...updatedUser, role: newRole as Role });
+          }
+        }
+      } else {
+        alert(data.error || "Failed to update role");
+      }
+    } catch (error) {
+      console.error("Role update failed:", error);
+      alert("Failed to update role");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   const filteredUsers = users.filter(
     (user) =>
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -411,7 +500,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-64 flex min-h-screen items-center justify-center">
+        <main className="ml-60 flex min-h-screen items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         </main>
       </div>
@@ -426,7 +515,7 @@ export default function AdminPage() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="ml-64 min-h-screen overflow-auto">
+      <main className="ml-60 min-h-screen overflow-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-8 py-6 backdrop-blur-xl">
           <div className="flex items-center justify-between">
@@ -449,10 +538,10 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="p-8">
+        <div className="p-6">
           {/* Stats Cards - Row 1 */}
-          <div className="mb-4 grid grid-cols-4 gap-4">
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+          <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-blue-500/10 p-2">
                   <Users className="h-5 w-5 text-blue-500" />
@@ -466,7 +555,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-emerald-500/10 p-2">
                   <CreditCard className="h-5 w-5 text-emerald-500" />
@@ -480,7 +569,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-blue-500/10 p-2">
                   <Clock className="h-5 w-5 text-blue-500" />
@@ -494,7 +583,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-red-500/10 p-2">
                   <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -510,8 +599,8 @@ export default function AdminPage() {
           </div>
 
           {/* Stats Cards - Row 2 */}
-          <div className="mb-8 grid grid-cols-4 gap-4">
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-cyan-500/10 p-2">
                   <UserPlus className="h-5 w-5 text-cyan-500" />
@@ -525,7 +614,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-green-500/10 p-2">
                   <TrendingUp className="h-5 w-5 text-green-500" />
@@ -539,7 +628,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-purple-500/10 p-2">
                   <Mail className="h-5 w-5 text-purple-500" />
@@ -553,7 +642,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
               <div className="flex items-center gap-3">
                 <div className="rounded-lg bg-amber-500/10 p-2">
                   <FileText className="h-5 w-5 text-amber-500" />
@@ -633,16 +722,17 @@ export default function AdminPage() {
               </h2>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="border-b border-[var(--border)] text-left text-sm text-[var(--text-muted)]">
-                    <th className="px-6 py-3 font-medium">User</th>
-                    <th className="px-6 py-3 font-medium">Status</th>
-                    <th className="px-6 py-3 font-medium">Sync Status</th>
-                    <th className="px-6 py-3 font-medium">Signed Up</th>
-                    <th className="px-6 py-3 font-medium">Emails</th>
-                    <th className="px-6 py-3 font-medium">Drafts</th>
-                    <th className="px-6 py-3 font-medium"></th>
+                    <th className="px-4 py-3 font-medium">User</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">Role</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">Sync</th>
+                    <th className="px-4 py-3 font-medium whitespace-nowrap">Signed Up</th>
+                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Emails</th>
+                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Drafts</th>
+                    <th className="px-2 py-3 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
@@ -652,42 +742,40 @@ export default function AdminPage() {
                       className="cursor-pointer transition-colors hover:bg-[var(--bg-elevated)]"
                       onClick={() => setSelectedUser(user)}
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           {user.picture ? (
                             <img
                               src={user.picture}
                               alt={user.name || user.email}
-                              className="h-8 w-8 rounded-full"
+                              className="h-8 w-8 flex-shrink-0 rounded-full"
                             />
                           ) : (
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-sm font-medium text-[var(--text-primary)]">
+                            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-sm font-medium text-[var(--text-primary)]">
                               {(user.name || user.email)[0].toUpperCase()}
                             </div>
                           )}
-                          <div>
-                            <p className="font-medium text-[var(--text-primary)]">
+                          <div className="min-w-0">
+                            <p className="font-medium text-[var(--text-primary)] truncate">
                               {user.name || "—"}
-                              {user.is_admin && (
-                                <span className="ml-2 text-xs text-blue-400">(Admin)</span>
-                              )}
                             </p>
-                            <p className="text-sm text-[var(--text-muted)]">{user.email}</p>
+                            <p className="text-sm text-[var(--text-muted)] truncate">{user.email}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">{getStatusBadge(user)}</td>
-                      <td className="px-6 py-4">{getSyncStatusBadge(user).badge}</td>
-                      <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">
+                      <td className="px-4 py-3 whitespace-nowrap">{getRoleBadge(user.role)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{getStatusBadge(user)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">{getSyncStatusBadge(user).badge}</td>
+                      <td className="px-4 py-3 text-sm text-[var(--text-secondary)] whitespace-nowrap">
                         {formatDate(user.created_at)}
                       </td>
-                      <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">
+                      <td className="px-4 py-3 text-sm text-[var(--text-secondary)] text-right whitespace-nowrap">
                         {user.emails_processed?.toLocaleString() || 0}
                       </td>
-                      <td className="px-6 py-4 text-sm text-[var(--text-secondary)]">
+                      <td className="px-4 py-3 text-sm text-[var(--text-secondary)] text-right whitespace-nowrap">
                         {user.drafts_created_count || 0}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-2 py-3">
                         <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
                       </td>
                     </tr>
@@ -933,41 +1021,48 @@ export default function AdminPage() {
                     </button>
                   )}
 
-                  {/* Admin Access */}
+                  {/* Role Management */}
                   <div className="mt-4 border-t border-[var(--border)] pt-4">
                     <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Admin Access
+                      Role Management
                     </p>
 
-                    {selectedUser.is_admin ? (
-                      <button
-                        onClick={() => handleSubscriptionAction("revoke_admin")}
-                        disabled={!!actionLoading || selectedUser.email === adminEmail}
-                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
-                      >
-                        {actionLoading === "revoke_admin" ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <ShieldOff className="h-4 w-4 text-amber-400" />
-                        )}
-                        {selectedUser.email === adminEmail
-                          ? "Cannot revoke own admin"
-                          : "Revoke Admin Access"}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleSubscriptionAction("grant_admin")}
-                        disabled={!!actionLoading}
-                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
-                      >
-                        {actionLoading === "grant_admin" ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <ShieldCheck className="h-4 w-4 text-blue-400" />
-                        )}
-                        Grant Admin Access
-                      </button>
-                    )}
+                    <div className="rounded-lg bg-[var(--bg-card)] p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-[var(--text-muted)]">Current Role</span>
+                        {getRoleBadge(selectedUser.role)}
+                      </div>
+
+                      {/* Role Selector */}
+                      {canManageRoles && selectedUser.role !== "primary_owner" && selectedUser.email !== adminEmail ? (
+                        <div className="mt-3">
+                          <select
+                            value={selectedUser.role || "user"}
+                            onChange={(e) => selectedUser.id && handleRoleChange(selectedUser.id, e.target.value)}
+                            disabled={actionLoading === "role"}
+                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none disabled:opacity-50"
+                          >
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                            {canManageOwners && <option value="owner">Owner</option>}
+                            {canManageOwners && <option value="primary_owner">Primary Owner</option>}
+                          </select>
+                          <p className="mt-2 text-xs text-[var(--text-muted)]">
+                            {ROLE_DESCRIPTIONS[(selectedUser.role || "user") as Role]}
+                          </p>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-xs text-[var(--text-muted)]">
+                          {selectedUser.email === adminEmail
+                            ? "Cannot change your own role"
+                            : selectedUser.role === "primary_owner"
+                            ? "Primary owner role cannot be changed"
+                            : !canManageRoles
+                            ? "You don't have permission to manage roles"
+                            : ROLE_DESCRIPTIONS[(selectedUser.role || "user") as Role]}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Danger Zone */}
@@ -978,7 +1073,7 @@ export default function AdminPage() {
 
                     <button
                       onClick={handleDeleteUser}
-                      disabled={!!actionLoading || selectedUser.email === adminEmail}
+                      disabled={!!actionLoading || selectedUser.email === adminEmail || selectedUser.role === "primary_owner"}
                       className="flex w-full items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-left text-sm text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
                     >
                       {actionLoading === "delete_user" ? (
@@ -988,6 +1083,8 @@ export default function AdminPage() {
                       )}
                       {selectedUser.email === adminEmail
                         ? "Cannot delete own account"
+                        : selectedUser.role === "primary_owner"
+                        ? "Cannot delete primary owner"
                         : "Delete User Account"}
                     </button>
                   </div>

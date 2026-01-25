@@ -15,14 +15,17 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient();
 
-    // Check if requesting user is admin
+    // Check if requesting user has admin access (admin, owner, or primary_owner)
     const { data: currentUser, error: userError } = await supabase
       .from("users")
-      .select("is_admin")
+      .select("is_admin, role")
       .eq("email", userEmail)
       .single();
 
-    if (userError || !currentUser?.is_admin) {
+    const userRole = currentUser?.role || "user";
+    const canAccessAdmin = ["admin", "owner", "primary_owner"].includes(userRole) || currentUser?.is_admin;
+
+    if (userError || !canAccessAdmin) {
       return NextResponse.json(
         { isAdmin: false, error: "Not authorized" },
         { status: 403 }
@@ -73,6 +76,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       isAdmin: true,
+      currentUserRole: userRole,
       users: usersWithEmailCounts,
     });
   } catch (error) {

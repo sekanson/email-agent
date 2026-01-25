@@ -172,7 +172,7 @@ export default function DraftsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-64 flex min-h-screen items-center justify-center">
+        <main className="ml-60 flex min-h-screen items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
         </main>
       </div>
@@ -183,7 +183,7 @@ export default function DraftsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-64 flex min-h-screen items-center justify-center">
+        <main className="ml-60 flex min-h-screen items-center justify-center">
           <div className="text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-amber-500" />
             <h2 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">
@@ -202,7 +202,7 @@ export default function DraftsPage() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="ml-64 min-h-screen overflow-auto">
+      <main className="ml-60 min-h-screen overflow-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-8 py-6 backdrop-blur-xl">
           <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Draft Settings</h1>
