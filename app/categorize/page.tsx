@@ -437,7 +437,7 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center">
+        <main className="flex min-h-screen items-center justify-center pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
           <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
         </main>
       </div>
@@ -448,7 +448,7 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center">
+        <main className="flex min-h-screen items-center justify-center px-4 pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
           <div className="text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-amber-500" />
             <h2 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">
@@ -467,37 +467,37 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="ml-60 min-h-screen overflow-auto">
+      <main className="min-h-screen overflow-auto pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-8 py-6 backdrop-blur-xl">
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">Categorize</h1>
-          <p className="text-[var(--text-muted)]">Configure your email classification categories</p>
+        <div className="sticky top-14 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-4 py-4 backdrop-blur-xl sm:px-8 sm:py-6 lg:top-0">
+          <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">Categorize</h1>
+          <p className="text-sm text-[var(--text-muted)] sm:text-base">Configure your email classification categories</p>
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-8">
           {message && (
             <div
-              className={`mb-6 flex items-center gap-2 rounded-xl p-4 ${
+              className={`mb-4 flex items-center gap-2 rounded-xl p-3 text-sm sm:mb-6 sm:p-4 sm:text-base ${
                 message.type === "success"
                   ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                   : "bg-red-500/10 text-red-400 border border-red-500/20"
               }`}
             >
               {message.type === "success" ? (
-                <Check className="h-5 w-5" />
+                <Check className="h-5 w-5 flex-shrink-0" />
               ) : (
-                <AlertCircle className="h-5 w-5" />
+                <AlertCircle className="h-5 w-5 flex-shrink-0" />
               )}
               {message.text}
             </div>
           )}
 
-          <div className="max-w-3xl space-y-6">
+          <div className="max-w-3xl space-y-4 sm:space-y-6">
             {/* Gmail Labels Setup */}
-            <section className="glass-card p-6">
-              <div className="flex items-center justify-between">
+            <section className="glass-card p-4 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--text-primary)]">
+                  <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] sm:text-lg">
                     <Tag className="h-5 w-5 text-[var(--accent)]" />
                     Gmail Labels
                   </h2>
@@ -517,7 +517,7 @@ export default function SettingsPage() {
                   <button
                     onClick={handleSyncLabels}
                     disabled={setupLoading}
-                    className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/10 disabled:opacity-50"
+                    className="flex min-h-[44px] items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/10 disabled:opacity-50 sm:min-h-0 sm:py-2"
                   >
                     {setupLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -531,8 +531,8 @@ export default function SettingsPage() {
             </section>
 
             {/* Category Settings */}
-            <section className="glass-card p-6">
-              <div className="mb-4 flex items-center justify-between">
+            <section className="glass-card p-4 sm:p-6">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Categories</h2>
                   <p className="mt-1 text-sm text-[var(--text-secondary)]">
@@ -545,16 +545,17 @@ export default function SettingsPage() {
                   {!isAtDefaults && (
                     <button
                       onClick={restoreDefaults}
-                      className="flex items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
+                      className="flex min-h-[44px] items-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] sm:min-h-0 sm:py-1.5"
                     >
                       <RotateCcw className="h-4 w-4" />
-                      Restore Defaults
+                      <span className="hidden sm:inline">Restore Defaults</span>
+                      <span className="sm:hidden">Reset</span>
                     </button>
                   )}
                   {canAddCategory && (
                     <button
                       onClick={addCategory}
-                      className="flex items-center gap-1 rounded-lg bg-emerald-500 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-600"
+                      className="flex min-h-[44px] items-center gap-1 rounded-lg bg-emerald-500 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 sm:min-h-0 sm:py-1.5"
                     >
                       <Plus className="h-4 w-4" />
                       Add
@@ -576,12 +577,13 @@ export default function SettingsPage() {
                     return (
                       <div
                         key={num}
-                        className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 transition-all hover:border-[var(--border-hover)]"
+                        className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 transition-all hover:border-[var(--border-hover)] sm:p-4"
                       >
                         {/* Row 1: Color + Prefix + Name + Actions */}
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="h-4 w-4 rounded cursor-pointer"
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <button
+                            type="button"
+                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-6 sm:w-6"
                             style={{ backgroundColor: config.color }}
                             onClick={() => {
                               const input = document.getElementById(`color-${num}`) as HTMLInputElement;
@@ -598,7 +600,7 @@ export default function SettingsPage() {
                             className="sr-only"
                           />
                           <div className="flex flex-1 items-center gap-1">
-                            <span className="text-base font-semibold text-[var(--text-muted)]">{num}:</span>
+                            <span className="text-sm font-semibold text-[var(--text-muted)] sm:text-base">{num}:</span>
                             <input
                               type="text"
                               value={displayName}
@@ -606,26 +608,26 @@ export default function SettingsPage() {
                                 updateCategory(num, "name", e.target.value)
                               }
                               disabled={isRequired}
-                              className={`flex-1 bg-transparent text-base font-semibold text-[var(--text-primary)] focus:outline-none ${
+                              className={`min-h-[44px] min-w-0 flex-1 bg-transparent text-sm font-semibold text-[var(--text-primary)] focus:outline-none sm:min-h-0 sm:text-base ${
                                 isRequired ? "cursor-not-allowed" : ""
                               }`}
                               placeholder="Category name"
                             />
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 sm:gap-2">
                             {config.drafts && (
-                              <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--accent)]">
+                              <span className="hidden rounded-full bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--accent)] sm:inline-block">
                                 Drafts
                               </span>
                             )}
                             {isOther && (
-                              <span className="rounded-full bg-[var(--text-muted)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--text-muted)]">
+                              <span className="hidden rounded-full bg-[var(--text-muted)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--text-muted)] sm:inline-block">
                                 Catch-all
                               </span>
                             )}
                             {isRequired ? (
                               <div
-                                className="rounded-lg p-2 text-[var(--text-muted)]"
+                                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-[var(--text-muted)] sm:min-h-0 sm:min-w-0 sm:p-2"
                                 title={isRespond ? "Required: emails needing response" : "Required: catches uncategorized emails"}
                               >
                                 <Lock className="h-4 w-4" />
@@ -633,7 +635,7 @@ export default function SettingsPage() {
                             ) : (
                               <button
                                 onClick={() => deleteCategory(num)}
-                                className="rounded-lg p-2 text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
+                                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300 sm:min-h-0 sm:min-w-0 sm:p-2"
                                 title="Delete category (sync to remove from Gmail)"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -642,8 +644,22 @@ export default function SettingsPage() {
                           </div>
                         </div>
 
+                        {/* Mobile badges row */}
+                        <div className="mt-2 flex flex-wrap gap-2 sm:hidden">
+                          {config.drafts && (
+                            <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--accent)]">
+                              Drafts
+                            </span>
+                          )}
+                          {isOther && (
+                            <span className="rounded-full bg-[var(--text-muted)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--text-muted)]">
+                              Catch-all
+                            </span>
+                          )}
+                        </div>
+
                         {/* Row 2: Static description */}
-                        <p className="ml-7 mt-1 text-sm text-zinc-500">
+                        <p className="mt-1 text-sm text-zinc-500 sm:ml-7">
                           {config.description || "Custom category"}
                         </p>
 
@@ -655,7 +671,7 @@ export default function SettingsPage() {
                             updateCategory(num, "rules", e.target.value)
                           }
                           placeholder={getPlaceholder(config, isDefault)}
-                          className="ml-7 mt-2 w-[calc(100%-1.75rem)] rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-secondary)] placeholder:text-[var(--text-muted)] transition-colors focus:border-[var(--border-hover)] focus:outline-none"
+                          className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-3 text-sm text-[var(--text-secondary)] placeholder:text-[var(--text-muted)] transition-colors focus:border-[var(--border-hover)] focus:outline-none sm:ml-7 sm:w-[calc(100%-1.75rem)] sm:py-2"
                         />
                       </div>
                     );
@@ -667,7 +683,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/10 disabled:opacity-50"
+              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-4 text-base font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/10 disabled:opacity-50 sm:min-h-0 sm:py-3"
             >
               {saving ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

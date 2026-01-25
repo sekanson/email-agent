@@ -208,7 +208,7 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center">
+        <main className="flex min-h-screen items-center justify-center pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             <p className="text-sm text-[var(--text-muted)]">Loading...</p>
@@ -222,7 +222,7 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center">
+        <main className="flex min-h-screen items-center justify-center px-4 pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
           <div className="text-center">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">
               Not signed in
@@ -232,7 +232,7 @@ export default function SettingsPage() {
             </p>
             <a
               href="/"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
+              className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white"
             >
               Go to Home
             </a>
@@ -246,22 +246,45 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="ml-60 min-h-screen">
+      <main className="min-h-screen pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
-          <div className="px-8 py-6">
-            <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+        <div className="sticky top-14 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl lg:top-0">
+          <div className="px-4 py-4 sm:px-8 sm:py-6">
+            <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">
               Settings
             </h1>
             <p className="mt-1 text-sm text-[var(--text-muted)]">
               Manage your account, billing, and integrations
             </p>
           </div>
+
+          {/* Mobile Tab Navigation - Horizontal scroll */}
+          <div className="-mx-px overflow-x-auto px-4 sm:hidden">
+            <nav className="flex gap-1 pb-3">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex min-h-[44px] flex-shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                        : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)]/50 hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </div>
 
         <div className="flex">
-          {/* Left Tab Navigation */}
-          <div className="w-48 shrink-0 border-r border-[var(--border)] p-4">
+          {/* Desktop Left Tab Navigation */}
+          <div className="hidden w-48 shrink-0 border-r border-[var(--border)] p-4 sm:block">
             <nav className="space-y-1">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
@@ -284,18 +307,18 @@ export default function SettingsPage() {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 p-8">
+          <div className="flex-1 p-4 sm:p-8">
             <div className="max-w-2xl">
               {/* Account Tab */}
               {activeTab === "account" && (
-                <div className="space-y-8">
+                <div className="space-y-6 sm:space-y-8">
                   {/* Profile Section */}
                   <section>
-                    <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+                    <h2 className="mb-3 text-base font-semibold text-[var(--text-primary)] sm:mb-4 sm:text-lg">
                       Profile
                     </h2>
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                      <div className="flex items-start gap-5">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-6">
+                      <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-start sm:gap-5 sm:text-left">
                         {user?.picture ? (
                           <img
                             src={user.picture}
@@ -308,13 +331,13 @@ export default function SettingsPage() {
                           </div>
                         )}
                         <div className="flex-1">
-                          <h3 className="text-xl font-semibold text-[var(--text-primary)]">
+                          <h3 className="text-lg font-semibold text-[var(--text-primary)] sm:text-xl">
                             {user?.name}
                           </h3>
-                          <p className="mt-1 text-sm text-[var(--text-muted)]">
+                          <p className="mt-1 break-all text-sm text-[var(--text-muted)]">
                             {user?.email}
                           </p>
-                          <div className="mt-3 flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                          <div className="mt-3 flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] sm:justify-start">
                             <Clock className="h-3.5 w-3.5" />
                             Member since{" "}
                             {user?.created_at
@@ -331,12 +354,12 @@ export default function SettingsPage() {
 
                   {/* Connected Account */}
                   <section>
-                    <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+                    <h2 className="mb-3 text-base font-semibold text-[var(--text-primary)] sm:mb-4 sm:text-lg">
                       Connected Account
                     </h2>
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-6">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3 sm:gap-4">
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white">
                             <svg className="h-5 w-5" viewBox="0 0 24 24">
                               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -349,14 +372,14 @@ export default function SettingsPage() {
                             <p className="font-medium text-[var(--text-primary)]">
                               Signed in with Google
                             </p>
-                            <p className="text-sm text-[var(--text-muted)]">
+                            <p className="break-all text-sm text-[var(--text-muted)]">
                               {user?.email}
                             </p>
                           </div>
                         </div>
                         <button
                           onClick={handleSignOut}
-                          className="flex items-center gap-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+                          className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] sm:min-h-0 sm:border-0 sm:px-2"
                         >
                           <LogOut className="h-4 w-4" />
                           Sign out
@@ -367,11 +390,11 @@ export default function SettingsPage() {
 
                   {/* Danger Zone */}
                   <section>
-                    <h2 className="mb-4 text-lg font-semibold text-red-400">
+                    <h2 className="mb-3 text-base font-semibold text-red-400 sm:mb-4 sm:text-lg">
                       Danger Zone
                     </h2>
-                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-6">
-                      <div className="flex items-center justify-between">
+                    <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4 sm:p-6">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="font-medium text-[var(--text-primary)]">
                             Delete Account
@@ -382,7 +405,7 @@ export default function SettingsPage() {
                         </div>
                         <button
                           onClick={() => setShowDeleteModal(true)}
-                          className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
+                          className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 sm:min-h-0 sm:py-2"
                         >
                           <Trash2 className="h-4 w-4" />
                           Delete account
@@ -395,65 +418,65 @@ export default function SettingsPage() {
 
               {/* Billing Tab */}
               {activeTab === "billing" && (
-                <div className="space-y-8">
+                <div className="space-y-6 sm:space-y-8">
                   {/* Current Plan */}
                   <section>
-                    <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+                    <h2 className="mb-3 text-base font-semibold text-[var(--text-primary)] sm:mb-4 sm:text-lg">
                       Current Plan
                     </h2>
                     {isProUser ? (
-                      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500">
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500">
                               <Sparkles className="h-6 w-6 text-white" />
                             </div>
                             <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">
                                   Pro Plan
                                 </h3>
                                 <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
                                   Active
                                 </span>
                               </div>
-                              <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
-                                $9<span className="text-base font-normal text-[var(--text-muted)]">/month</span>
+                              <p className="mt-1 text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
+                                $9<span className="text-sm font-normal text-[var(--text-muted)] sm:text-base">/month</span>
                               </p>
                             </div>
                           </div>
                         </div>
-                        <div className="mt-4 flex items-center gap-4 text-sm text-[var(--text-muted)]">
+                        <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)] sm:gap-4">
                           <span>Billing: Monthly</span>
-                          <span>•</span>
+                          <span className="hidden sm:inline">•</span>
                           <span>Unlimited drafts</span>
                         </div>
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--bg-elevated)]">
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--bg-elevated)]">
                               <Mail className="h-6 w-6 text-[var(--text-muted)]" />
                             </div>
                             <div>
-                              <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">
                                   Free Plan
                                 </h3>
                                 <span className="rounded-full bg-zinc-500/15 px-2.5 py-0.5 text-xs font-medium text-zinc-400">
                                   Current
                                 </span>
                               </div>
-                              <p className="mt-1 text-2xl font-bold text-[var(--text-primary)]">
-                                $0<span className="text-base font-normal text-[var(--text-muted)]">/month</span>
+                              <p className="mt-1 text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
+                                $0<span className="text-sm font-normal text-[var(--text-muted)] sm:text-base">/month</span>
                               </p>
                             </div>
                           </div>
                           <button
                             onClick={handleUpgrade}
                             disabled={upgrading}
-                            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50"
+                            className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 sm:min-h-0 sm:py-2.5"
                           >
                             {upgrading ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -472,31 +495,33 @@ export default function SettingsPage() {
 
                   {/* Usage Stats */}
                   <section>
-                    <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+                    <h2 className="mb-3 text-base font-semibold text-[var(--text-primary)] sm:mb-4 sm:text-lg">
                       Usage
                     </h2>
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                      <div className="grid gap-6 sm:grid-cols-3">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-6">
+                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
                         <div>
-                          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] sm:text-sm">
                             <Mail className="h-4 w-4" />
-                            Emails processed
+                            <span className="hidden sm:inline">Emails processed</span>
+                            <span className="sm:hidden">Processed</span>
                           </div>
-                          <p className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">
+                          <p className="mt-1 text-xl font-semibold text-[var(--text-primary)] sm:text-2xl">
                             {metrics?.totalAll || 0}
                           </p>
                           <p className="text-xs text-[var(--text-muted)]">All time</p>
                         </div>
 
                         <div>
-                          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] sm:text-sm">
                             <FileText className="h-4 w-4" />
-                            Drafts created
+                            <span className="hidden sm:inline">Drafts created</span>
+                            <span className="sm:hidden">Drafts</span>
                           </div>
-                          <p className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">
+                          <p className="mt-1 text-xl font-semibold text-[var(--text-primary)] sm:text-2xl">
                             {user?.drafts_created_count || 0}
                             {!isProUser && (
-                              <span className="text-base font-normal text-[var(--text-muted)]">
+                              <span className="text-sm font-normal text-[var(--text-muted)] sm:text-base">
                                 {" "}/ {FREE_DRAFT_LIMIT}
                               </span>
                             )}
@@ -510,12 +535,12 @@ export default function SettingsPage() {
                           )}
                         </div>
 
-                        <div>
-                          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                        <div className="col-span-2 sm:col-span-1">
+                          <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] sm:text-sm">
                             <Check className="h-4 w-4" />
                             Response rate
                           </div>
-                          <p className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">
+                          <p className="mt-1 text-xl font-semibold text-[var(--text-primary)] sm:text-2xl">
                             {metrics?.totalAll && metrics.toRespond
                               ? Math.round(((metrics.totalAll - metrics.toRespond) / metrics.totalAll) * 100)
                               : 0}%
@@ -526,7 +551,7 @@ export default function SettingsPage() {
 
                       {/* Progress bar for free users */}
                       {!isProUser && (
-                        <div className="mt-6">
+                        <div className="mt-4 sm:mt-6">
                           <div className="flex items-center justify-between text-sm">
                             <span className="text-[var(--text-muted)]">Draft usage</span>
                             <span className="text-[var(--text-primary)]">
@@ -553,13 +578,13 @@ export default function SettingsPage() {
                   {/* Payment Method - Pro users only */}
                   {isProUser && (
                     <section>
-                      <h2 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">
+                      <h2 className="mb-3 text-base font-semibold text-[var(--text-primary)] sm:mb-4 sm:text-lg">
                         Payment Method
                       </h2>
-                      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--bg-elevated)]">
+                      <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--bg-elevated)]">
                               <CreditCard className="h-5 w-5 text-[var(--text-muted)]" />
                             </div>
                             <div>
@@ -574,7 +599,7 @@ export default function SettingsPage() {
                           <button
                             onClick={handleManageSubscription}
                             disabled={managingSubscription}
-                            className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+                            className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50 sm:min-h-0 sm:py-2"
                           >
                             {managingSubscription ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -593,7 +618,7 @@ export default function SettingsPage() {
                     <section>
                       <button
                         onClick={() => setShowCancelModal(true)}
-                        className="text-sm text-[var(--text-muted)] transition-colors hover:text-red-400"
+                        className="min-h-[44px] text-sm text-[var(--text-muted)] transition-colors hover:text-red-400 sm:min-h-0"
                       >
                         Cancel subscription
                       </button>
@@ -604,11 +629,11 @@ export default function SettingsPage() {
 
               {/* Integrations Tab */}
               {activeTab === "integrations" && (
-                <div className="space-y-8">
+                <div className="space-y-6 sm:space-y-8">
                   {/* Email Section */}
                   <section>
-                    <div className="mb-4">
-                      <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    <div className="mb-3 sm:mb-4">
+                      <h2 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">
                         Email
                       </h2>
                       <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -617,10 +642,10 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Gmail Card */}
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white">
                             <svg className="h-6 w-6" viewBox="0 0 24 24">
                               <path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
                             </svg>
@@ -633,10 +658,10 @@ export default function SettingsPage() {
                       </div>
 
                       {/* Connected account details */}
-                      <div className="mt-4 flex items-center justify-between rounded-lg bg-[var(--bg-elevated)] p-3">
+                      <div className="mt-3 flex flex-col gap-2 rounded-lg bg-[var(--bg-elevated)] p-3 sm:mt-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-2">
-                          <Check className="h-4 w-4 text-emerald-500" />
-                          <span className="text-sm text-[var(--text-secondary)]">{user?.email}</span>
+                          <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                          <span className="break-all text-sm text-[var(--text-secondary)]">{user?.email}</span>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-[var(--text-muted)]">
@@ -652,10 +677,10 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Outlook Card - Coming Soon */}
-                    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
+                    <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 opacity-60 sm:mt-4 sm:p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0078D4]">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#0078D4]">
                             <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
                               <path d="M24 7.387v10.478c0 .23-.08.424-.238.576-.16.154-.352.229-.576.229h-8.547v-6.959l1.602 1.18a.39.39 0 0 0 .264.094.39.39 0 0 0 .264-.094l.023-.02 6.078-4.456a.762.762 0 0 0 .27-.325.858.858 0 0 0 .086-.373v-.33h.774zM15.59 17.33v-5.207L24 4.669v1.668l-7.348 5.41v5.582h-1.062zm-1.062-5.996v6.336H7.387A1.387 1.387 0 0 1 6 16.283V7.717c0-.383.136-.712.407-.984.272-.271.6-.407.98-.407h6.14v4.008z"/>
                             </svg>
@@ -667,7 +692,7 @@ export default function SettingsPage() {
                         </div>
                         <button
                           disabled
-                          className="rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)]"
+                          className="min-h-[44px] rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
                         >
                           Connect
                         </button>
@@ -677,8 +702,8 @@ export default function SettingsPage() {
 
                   {/* Calendar Section */}
                   <section>
-                    <div className="mb-4">
-                      <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                    <div className="mb-3 sm:mb-4">
+                      <h2 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">
                         Calendar
                       </h2>
                       <p className="mt-1 text-sm text-[var(--text-muted)]">
@@ -687,10 +712,10 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Google Calendar Card - Coming Soon */}
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 opacity-60 sm:p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white">
                             <Calendar className="h-5 w-5 text-blue-500" />
                           </div>
                           <div>
@@ -700,7 +725,7 @@ export default function SettingsPage() {
                         </div>
                         <button
                           disabled
-                          className="rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)]"
+                          className="min-h-[44px] rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
                         >
                           Connect
                         </button>
@@ -708,10 +733,10 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Outlook Calendar Card - Coming Soon */}
-                    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
+                    <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 opacity-60 sm:mt-4 sm:p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0078D4]">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#0078D4]">
                             <Calendar className="h-5 w-5 text-white" />
                           </div>
                           <div>
@@ -721,7 +746,7 @@ export default function SettingsPage() {
                         </div>
                         <button
                           disabled
-                          className="rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)]"
+                          className="min-h-[44px] rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
                         >
                           Connect
                         </button>
@@ -737,8 +762,8 @@ export default function SettingsPage() {
 
       {/* Cancel Subscription Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-md rounded-t-2xl border-t border-[var(--border)] bg-[var(--bg-primary)] p-4 shadow-2xl sm:mx-4 sm:rounded-2xl sm:border sm:p-6">
             <div className="flex items-center gap-3 text-red-400">
               <AlertTriangle className="h-6 w-6" />
               <h3 className="text-lg font-semibold">Cancel Subscription</h3>
@@ -749,11 +774,11 @@ export default function SettingsPage() {
             </p>
             <ul className="mt-3 space-y-2 text-sm text-[var(--text-muted)]">
               <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-400" />
                 Unlimited AI-generated drafts
               </li>
               <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-400" />
                 Priority email processing
               </li>
             </ul>
@@ -761,17 +786,17 @@ export default function SettingsPage() {
               Your subscription will remain active until the end of your current
               billing period.
             </p>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <button
                 onClick={() => setShowCancelModal(false)}
-                className="flex-1 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)]"
+                className="min-h-[48px] flex-1 rounded-lg border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] sm:min-h-0 sm:py-2.5"
               >
                 Keep subscription
               </button>
               <button
                 onClick={handleCancelSubscription}
                 disabled={cancelling}
-                className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                className="min-h-[48px] flex-1 rounded-lg bg-red-500 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50 sm:min-h-0 sm:py-2.5"
               >
                 {cancelling ? "Cancelling..." : "Cancel subscription"}
               </button>
@@ -782,8 +807,8 @@ export default function SettingsPage() {
 
       {/* Delete Account Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)] p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-md rounded-t-2xl border-t border-[var(--border)] bg-[var(--bg-primary)] p-4 shadow-2xl sm:mx-4 sm:rounded-2xl sm:border sm:p-6">
             <div className="flex items-center gap-3 text-red-400">
               <AlertTriangle className="h-6 w-6" />
               <h3 className="text-lg font-semibold">Delete Account</h3>
@@ -794,29 +819,29 @@ export default function SettingsPage() {
             </p>
             <ul className="mt-3 space-y-2 text-sm text-[var(--text-muted)]">
               <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-400" />
                 All your data will be permanently deleted
               </li>
               <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-400" />
                 Your email labels will remain in Gmail
               </li>
               <li className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-red-400" />
                 Any active subscription will be cancelled
               </li>
             </ul>
-            <div className="mt-6 flex gap-3">
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:gap-3">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 rounded-lg border border-[var(--border)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)]"
+                className="min-h-[48px] flex-1 rounded-lg border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] sm:min-h-0 sm:py-2.5"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
                 disabled={deleting}
-                className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+                className="min-h-[48px] flex-1 rounded-lg bg-red-500 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50 sm:min-h-0 sm:py-2.5"
               >
                 {deleting ? "Deleting..." : "Delete account"}
               </button>

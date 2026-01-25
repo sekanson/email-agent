@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import StatsCard from "@/components/StatsCard";
+import OnboardingModal from "@/components/OnboardingModal";
 import {
   Mail,
   CheckCircle,
@@ -169,6 +170,8 @@ export default function Dashboard() {
   const [userDraftCount, setUserDraftCount] = useState(0);
   const [expandedEmails, setExpandedEmails] = useState<Set<string>>(new Set());
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [userName, setUserName] = useState("");
 
   const toggleEmailExpanded = (emailId: string) => {
     setExpandedEmails((prev) => {
@@ -235,6 +238,17 @@ export default function Dashboard() {
 
       const userLabelsCreated = settingsData.user?.labels_created || false;
       setLabelsCreated(userLabelsCreated);
+
+      // Set user name for onboarding
+      if (settingsData.user?.name) {
+        setUserName(settingsData.user.name);
+      }
+
+      // Check if onboarding should be shown (new user who hasn't completed onboarding)
+      const onboardingCompleted = settingsData.user?.onboarding_completed || false;
+      if (!onboardingCompleted && !userLabelsCreated) {
+        setShowOnboarding(true);
+      }
 
       // Get subscription status and draft count
       if (settingsData.user?.subscription_status) {
@@ -354,6 +368,25 @@ export default function Dashboard() {
     }
   }
 
+  function handleOnboardingComplete() {
+    setShowOnboarding(false);
+    // Refresh data to get updated labels_created status
+    fetchData();
+  }
+
+  function handleOnboardingSkip() {
+    setShowOnboarding(false);
+    // Mark onboarding as completed even if skipped
+    fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userEmail,
+        onboarding_completed: true,
+      }),
+    }).catch(console.error);
+  }
+
   async function toggleAutoPolling() {
     const newValue = !autoPolling;
     setAutoPolling(newValue);
@@ -425,7 +458,7 @@ export default function Dashboard() {
     };
     return (
       <span
-        className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium"
+        className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium sm:gap-2 sm:px-3 sm:py-1.5"
         style={{
           backgroundColor: `${config.color}15`,
           color: config.color,
@@ -435,7 +468,8 @@ export default function Dashboard() {
           className="h-1.5 w-1.5 rounded-full"
           style={{ backgroundColor: config.color }}
         />
-        {config.name}
+        <span className="hidden sm:inline">{config.name}</span>
+        <span className="sm:hidden">{config.name.split(":")[0]}</span>
       </span>
     );
   }
@@ -448,13 +482,15 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl" />
-              <Loader2 className="relative h-8 w-8 animate-spin text-blue-500" />
+        <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
+          <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center lg:min-h-screen">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl" />
+                <Loader2 className="relative h-8 w-8 animate-spin text-blue-500" />
+              </div>
+              <p className="text-sm text-[var(--text-muted)]">Loading dashboard...</p>
             </div>
-            <p className="text-sm text-[var(--text-muted)]">Loading dashboard...</p>
           </div>
         </main>
       </div>
@@ -465,23 +501,25 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-card)]">
-              <Mail className="h-8 w-8 text-[var(--text-muted)]" />
+        <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
+          <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center lg:min-h-screen">
+            <div className="text-center px-4">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-card)]">
+                <Mail className="h-8 w-8 text-[var(--text-muted)]" />
+              </div>
+              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+                Not signed in
+              </h2>
+              <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                Please sign in to access the dashboard.
+              </p>
+              <a
+                href="/"
+                className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/15"
+              >
+                Go to Home
+              </a>
             </div>
-            <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-              Not signed in
-            </h2>
-            <p className="mt-2 text-sm text-[var(--text-secondary)]">
-              Please sign in to access the dashboard.
-            </p>
-            <a
-              href="/"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/15"
-            >
-              Go to Home
-            </a>
           </div>
         </main>
       </div>
@@ -492,86 +530,100 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="ml-60 min-h-screen overflow-auto">
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <OnboardingModal
+          userEmail={userEmail}
+          userName={userName}
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingSkip}
+        />
+      )}
+
+      <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0 overflow-auto">
         {/* Header */}
         <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
-          <div className="flex items-center justify-between px-8 py-5">
-            <div>
-              <h1 className="text-xl font-semibold text-[var(--text-primary)]">
-                Dashboard
-              </h1>
-              <p className="mt-0.5 text-sm text-[var(--text-muted)]">
-                {dateRange === "all"
-                  ? "Overview of your email activity"
-                  : `Email activity ${
-                      dateRange === "today"
-                        ? "today"
-                        : dateRange === "week"
-                        ? "this week"
-                        : "this month"
-                    }`}
-              </p>
-            </div>
-
-            {/* Controls */}
-            <div className="flex items-center gap-3">
-              {/* Date Range Filter */}
-              <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1">
-                {DATE_RANGES.map((range) => (
-                  <button
-                    key={range.value}
-                    onClick={() => setDateRange(range.value as typeof dateRange)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
-                      dateRange === range.value
-                        ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
-                        : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                    }`}
-                  >
-                    {range.label}
-                  </button>
-                ))}
+          <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-lg font-semibold text-[var(--text-primary)] sm:text-xl">
+                  Dashboard
+                </h1>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">
+                  {dateRange === "all"
+                    ? "Overview of your email activity"
+                    : `Email activity ${
+                        dateRange === "today"
+                          ? "today"
+                          : dateRange === "week"
+                          ? "this week"
+                          : "this month"
+                      }`}
+                </p>
               </div>
 
-              {/* Upgrade Button - show if not on active pro */}
-              {subscriptionStatus !== "active" && (
-                <button
-                  onClick={handleUpgrade}
-                  disabled={upgrading}
-                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-2 text-sm font-medium text-white transition-all hover:from-blue-600 hover:to-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50"
-                >
-                  {upgrading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  Upgrade
-                </button>
-              )}
+              {/* Controls */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Date Range Filter - Scrollable on mobile */}
+                <div className="-mx-4 flex-1 overflow-x-auto px-4 sm:mx-0 sm:flex-none sm:overflow-visible sm:px-0">
+                  <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1">
+                    {DATE_RANGES.map((range) => (
+                      <button
+                        key={range.value}
+                        onClick={() => setDateRange(range.value as typeof dateRange)}
+                        className={`whitespace-nowrap rounded-lg px-2 py-1.5 text-xs font-medium transition-all duration-200 sm:px-3 sm:text-sm ${
+                          dateRange === range.value
+                            ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                            : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                        }`}
+                      >
+                        {range.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Upgrade Button - show if not on active pro */}
+                {subscriptionStatus !== "active" && (
+                  <button
+                    onClick={handleUpgrade}
+                    disabled={upgrading}
+                    className="flex min-h-[44px] items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-3 py-2 text-xs font-medium text-white transition-all hover:from-blue-600 hover:to-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50 sm:px-4 sm:text-sm"
+                  >
+                    {upgrading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">Upgrade</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {/* Agent Status Card */}
           {!labelsCreated ? (
-            <div className="glass-card mb-8 border-amber-500/30 bg-amber-500/5 p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
-                    <Tag className="h-6 w-6 text-amber-400" />
+            <div className="glass-card mb-6 border-amber-500/30 bg-amber-500/5 p-4 sm:mb-8 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 sm:h-12 sm:w-12">
+                    <Tag className="h-5 w-5 text-amber-400 sm:h-6 sm:w-6" />
                   </div>
                   <div>
                     <h2 className="font-semibold text-[var(--text-primary)]">
                       Setup Required
                     </h2>
-                    <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                    <p className="mt-0.5 text-xs text-[var(--text-secondary)] sm:text-sm">
                       Create Gmail labels before activating the email agent
                     </p>
                   </div>
                 </div>
                 <a
                   href="/categorize"
-                  className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-amber-600 hover:shadow-md hover:shadow-amber-500/15"
+                  className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-amber-600 hover:shadow-md hover:shadow-amber-500/15"
                 >
                   <Tag className="h-4 w-4" />
                   Setup Labels
@@ -580,46 +632,46 @@ export default function Dashboard() {
             </div>
           ) : (
             <div
-              className={`glass-card mb-8 p-6 transition-all ${
+              className={`glass-card mb-6 p-4 transition-all sm:mb-8 sm:p-6 ${
                 autoPolling
                   ? "border-emerald-500/30 bg-emerald-500/5"
                   : ""
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3 sm:gap-4">
                   <button
                     onClick={toggleAutoPolling}
-                    className={`group relative flex h-12 w-12 items-center justify-center rounded-xl transition-all ${
+                    className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all sm:h-12 sm:w-12 ${
                       autoPolling
                         ? "bg-emerald-500 shadow-md shadow-emerald-500/15 hover:bg-emerald-600"
                         : "bg-[var(--bg-elevated)] hover:bg-[var(--border)]"
                     }`}
                   >
                     <Power
-                      className={`h-5 w-5 transition-transform group-hover:scale-110 ${
+                      className={`h-4 w-4 transition-transform group-hover:scale-110 sm:h-5 sm:w-5 ${
                         autoPolling ? "text-white" : "text-[var(--text-muted)]"
                       }`}
                     />
                   </button>
                   <div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <h2 className="font-semibold text-[var(--text-primary)]">
                         Email Agent
                       </h2>
                       {autoPolling ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 sm:px-2.5">
                           <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
                           Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-elevated)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)]">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-elevated)] px-2 py-1 text-xs font-medium text-[var(--text-muted)] sm:px-2.5">
                           <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />
                           Paused
                         </span>
                       )}
                     </div>
-                    <p className="mt-0.5 text-sm text-[var(--text-secondary)]">
+                    <p className="mt-0.5 text-xs text-[var(--text-secondary)] sm:text-sm">
                       {autoPolling
                         ? "Monitoring Gmail, applying labels, and drafting responses"
                         : "Click the power button to start monitoring your inbox"}
@@ -628,18 +680,18 @@ export default function Dashboard() {
                 </div>
 
                 {autoPolling && (
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 sm:gap-4">
                     <div className="text-right">
-                      <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                      <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] sm:text-sm">
                         <RefreshCw className="h-3.5 w-3.5 animate-spin text-emerald-400" />
-                        <span>Checking every</span>
+                        <span className="hidden sm:inline">Checking every</span>
                         <select
                           value={pollInterval}
                           onChange={(e) => {
                             setPollInterval(Number(e.target.value));
                             localStorage.setItem("pollInterval", e.target.value);
                           }}
-                          className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                          className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-xs text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none sm:text-sm"
                         >
                           <option value={60}>1 min</option>
                           <option value={120}>2 min</option>
@@ -661,9 +713,9 @@ export default function Dashboard() {
 
           {/* Draft Limit Warning - Reached */}
           {draftLimitReached && subscriptionStatus !== "active" && (
-            <div className="mb-6 flex items-center justify-between rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+            <div className="mb-6 flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-red-400" />
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-400" />
                 <div>
                   <span className="text-sm font-medium text-red-300">
                     Draft limit reached
@@ -676,7 +728,7 @@ export default function Dashboard() {
               <button
                 onClick={handleUpgrade}
                 disabled={upgrading}
-                className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-600 disabled:opacity-50"
+                className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-600 disabled:opacity-50"
               >
                 <Sparkles className="h-4 w-4" />
                 Upgrade
@@ -686,9 +738,9 @@ export default function Dashboard() {
 
           {/* Draft Limit Warning - Approaching (>7 but not reached) */}
           {!draftLimitReached && userDraftCount > 7 && subscriptionStatus !== "active" && (
-            <div className="mb-6 flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+            <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-400" />
+                <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-400" />
                 <div>
                   <span className="text-sm font-medium text-amber-300">
                     Approaching draft limit
@@ -701,7 +753,7 @@ export default function Dashboard() {
               <button
                 onClick={handleUpgrade}
                 disabled={upgrading}
-                className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-300 transition-all hover:bg-amber-500/20 disabled:opacity-50"
+                className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-300 transition-all hover:bg-amber-500/20 disabled:opacity-50"
               >
                 <Sparkles className="h-4 w-4" />
                 Upgrade
@@ -711,7 +763,7 @@ export default function Dashboard() {
 
           {processResult && (
             <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-              <CheckCircle className="h-5 w-5 text-emerald-400" />
+              <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-400" />
               <span className="text-sm text-emerald-300">
                 Processed {processResult.processed} new emails
                 {processResult.skipped > 0 &&
@@ -720,8 +772,8 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Stats Grid */}
-          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Stats Grid - 1 column on mobile, 2 on sm, 4 on lg */}
+          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:mb-8">
             <StatsCard
               title="Total Processed"
               value={metrics.totalProcessed}
@@ -749,9 +801,9 @@ export default function Dashboard() {
           </div>
 
           {/* Category Breakdown */}
-          <div className="glass-card mb-8 p-6">
+          <div className="glass-card mb-6 p-4 sm:mb-8 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] sm:text-sm">
                 By Category
               </h2>
               {categoryFilter !== null && (
@@ -763,7 +815,8 @@ export default function Dashboard() {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {/* 2 columns on mobile, 4 on sm+ */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
               {Object.entries(categories).map(([num, config]) => {
                 const categoryNum = parseInt(num);
                 const isSelected = categoryFilter === categoryNum;
@@ -772,26 +825,27 @@ export default function Dashboard() {
                   <button
                     key={num}
                     onClick={() => setCategoryFilter(isSelected ? null : categoryNum)}
-                    className={`group flex items-center justify-between rounded-xl border p-3 transition-all text-left ${
+                    className={`group flex items-center justify-between rounded-xl border p-2 transition-all text-left sm:p-3 ${
                       isSelected
                         ? "border-[var(--accent)] bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20"
                         : "border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-card-hover)]"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2 sm:gap-2.5">
                       <div
-                        className={`h-2.5 w-2.5 rounded-full transition-transform ${isSelected ? "scale-125" : ""}`}
+                        className={`h-2 w-2 rounded-full transition-transform sm:h-2.5 sm:w-2.5 ${isSelected ? "scale-125" : ""}`}
                         style={{ backgroundColor: config.color }}
                       />
-                      <span className={`text-sm ${
+                      <span className={`text-xs sm:text-sm ${
                         isSelected
                           ? "text-[var(--accent)] font-medium"
                           : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
                       }`}>
-                        {config.name}
+                        <span className="sm:hidden">{config.name.split(":")[0]}</span>
+                        <span className="hidden sm:inline">{config.name}</span>
                       </span>
                     </div>
-                    <span className={`text-sm font-semibold ${
+                    <span className={`text-xs font-semibold sm:text-sm ${
                       isSelected ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
                     }`}>
                       {count}
@@ -804,20 +858,20 @@ export default function Dashboard() {
 
           {/* Recent Emails */}
           <div className="glass-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
-              <div className="flex items-center gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            <div className="flex flex-col gap-2 border-b border-[var(--border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] sm:text-sm">
                   Recent Emails
                 </h2>
                 {categoryFilter !== null && (
                   <span
-                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium sm:gap-1.5 sm:px-2.5 sm:py-1"
                     style={{
                       backgroundColor: `${categories[categoryFilter.toString()]?.color}15`,
                       color: categories[categoryFilter.toString()]?.color,
                     }}
                   >
-                    Filtered: {categories[categoryFilter.toString()]?.name}
+                    <span className="truncate max-w-[100px] sm:max-w-none">{categories[categoryFilter.toString()]?.name}</span>
                     <button
                       onClick={() => setCategoryFilter(null)}
                       className="ml-1 hover:opacity-70"
@@ -830,7 +884,7 @@ export default function Dashboard() {
               {metrics.totalAll > 0 && (
                 <button
                   onClick={handleResetMetrics}
-                  className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] transition-colors hover:text-red-400"
+                  className="flex items-center gap-1.5 self-start text-xs text-[var(--text-muted)] transition-colors hover:text-red-400"
                 >
                   <RotateCcw className="h-3 w-3" />
                   Reset metrics
@@ -839,9 +893,9 @@ export default function Dashboard() {
             </div>
 
             {emails.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-elevated)]">
-                  <Mail className="h-6 w-6 text-[var(--text-muted)]" />
+              <div className="flex flex-col items-center justify-center py-12 sm:py-16">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-elevated)] sm:h-14 sm:w-14">
+                  <Mail className="h-5 w-5 text-[var(--text-muted)] sm:h-6 sm:w-6" />
                 </div>
                 {categoryFilter !== null && emails.length > 0 ? (
                   <>
@@ -877,13 +931,32 @@ export default function Dashboard() {
                       <div key={email.id}>
                         <button
                           onClick={() => toggleEmailExpanded(email.id)}
-                          className="group flex w-full items-center justify-between px-6 py-4 text-left transition-all hover:bg-[var(--bg-card-hover)]"
+                          className="group flex w-full items-start gap-2 px-4 py-3 text-left transition-all hover:bg-[var(--bg-card-hover)] sm:items-center sm:gap-3 sm:px-6 sm:py-4"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}>
-                              <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
+                          <div className={`mt-1 transition-transform sm:mt-0 ${isExpanded ? "rotate-90" : ""}`}>
+                            <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            {/* Mobile layout */}
+                            <div className="sm:hidden">
+                              <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
+                                {email.subject || "(No subject)"}
+                              </p>
+                              <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
+                                {email.from}
+                              </p>
+                              <div className="mt-2 flex items-center gap-2">
+                                {getCategoryBadge(email.category)}
+                                {email.draft_id && (
+                                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                                    <FileText className="h-3 w-3" />
+                                    Draft
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="min-w-0 flex-1">
+                            {/* Desktop layout */}
+                            <div className="hidden sm:block">
                               <div className="flex items-center gap-3">
                                 <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
                                   {email.subject || "(No subject)"}
@@ -900,8 +973,8 @@ export default function Dashboard() {
                               </p>
                             </div>
                           </div>
-                          <div className="ml-4 flex items-center gap-4">
-                            {getCategoryBadge(email.category)}
+                          <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
+                            <span className="hidden sm:inline">{getCategoryBadge(email.category)}</span>
                             <span className="text-xs text-[var(--text-muted)]">
                               {new Date(email.processed_at).toLocaleDateString()}
                             </span>
@@ -910,11 +983,11 @@ export default function Dashboard() {
 
                         {/* Expanded Classification Details */}
                         {isExpanded && (
-                          <div className="border-t border-[var(--border)] bg-[var(--bg-elevated)] px-6 py-4">
-                            <div className="ml-7 space-y-3">
+                          <div className="border-t border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 sm:px-6 sm:py-4">
+                            <div className="ml-6 space-y-3 sm:ml-7">
                               {/* AI Reasoning */}
                               {email.classification_reasoning ? (
-                                <div className="flex gap-3">
+                                <div className="flex gap-2 sm:gap-3">
                                   <Brain className="mt-0.5 h-4 w-4 flex-shrink-0 text-purple-400" />
                                   <div>
                                     <p className="text-xs font-medium text-[var(--text-secondary)]">AI Classification Reasoning</p>
@@ -924,7 +997,7 @@ export default function Dashboard() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex gap-3">
+                                <div className="flex gap-2 sm:gap-3">
                                   <Brain className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--text-muted)]" />
                                   <p className="text-sm text-[var(--text-muted)] italic">
                                     No classification reasoning available (processed before enhancement)
@@ -935,18 +1008,18 @@ export default function Dashboard() {
                               {/* Metadata badges */}
                               <div className="flex flex-wrap items-center gap-2">
                                 {email.classification_confidence !== undefined && (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs text-[var(--text-secondary)]">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-card)] px-2 py-1 text-xs text-[var(--text-secondary)] sm:px-2.5">
                                     Confidence: {Math.round(email.classification_confidence * 100)}%
                                   </span>
                                 )}
                                 {email.is_thread && (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 text-xs text-blue-400">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2 py-1 text-xs text-blue-400 sm:px-2.5">
                                     <GitBranch className="h-3 w-3" />
                                     Thread
                                   </span>
                                 )}
                                 {email.sender_known && (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-400 sm:px-2.5">
                                     <User className="h-3 w-3" />
                                     Known Sender
                                   </span>
@@ -965,7 +1038,7 @@ export default function Dashboard() {
                   <div className="border-t border-[var(--border)] p-4 text-center">
                     <button
                       onClick={() => setDisplayLimit((prev) => Math.min(prev + 25, 100))}
-                      className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+                      className="inline-flex min-h-[44px] items-center gap-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
                     >
                       <ChevronDown className="h-4 w-4" />
                       Load more ({Math.min(emails.length - displayLimit, 25)} remaining)
