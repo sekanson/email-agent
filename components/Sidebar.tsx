@@ -89,6 +89,14 @@ export default function Sidebar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Sync theme state with actual DOM on mount
+  useEffect(() => {
+    const actualTheme = document.documentElement.getAttribute("data-theme") as "dark" | "light";
+    if (actualTheme && actualTheme !== theme) {
+      setTheme(actualTheme);
+    }
+  }, []);
+
   useEffect(() => {
     const userEmail = localStorage.getItem("userEmail");
 
@@ -399,10 +407,7 @@ export default function Sidebar() {
                 </div>
 
                 {/* Theme Toggle */}
-                <button
-                  onClick={toggleTheme}
-                  className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
-                >
+                <div className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]">
                   <div className="flex items-center gap-3">
                     {theme === "dark" ? (
                       <Moon className="h-4 w-4 text-[var(--text-muted)]" />
@@ -411,19 +416,21 @@ export default function Sidebar() {
                     )}
                     <span>Theme</span>
                   </div>
-                  {/* Toggle Switch */}
-                  <div
+                  {/* Toggle Switch - only this is clickable */}
+                  <button
+                    onClick={toggleTheme}
                     className={`relative h-5 w-9 rounded-full transition-colors ${
                       theme === "dark" ? "bg-blue-600" : "bg-[var(--text-muted)]"
                     }`}
+                    aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
                   >
                     <div
                       className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
                         theme === "dark" ? "translate-x-4" : "translate-x-0.5"
                       }`}
                     />
-                  </div>
-                </button>
+                  </button>
+                </div>
               </div>
 
               {/* Section 4: Upgrade CTA - only for free users */}
