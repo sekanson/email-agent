@@ -281,7 +281,7 @@ export default function Sidebar() {
                 {userRole !== "user" ? (
                   getRoleBadge()
                 ) : isProUser ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500/20 to-orange-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-emerald-500/20 to-teal-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
                     <Sparkles className="h-2.5 w-2.5" />
                     PRO
                   </span>
@@ -306,7 +306,7 @@ export default function Sidebar() {
               <div className="border-b border-[var(--border)] px-2 py-2">
                 <div className="flex items-center justify-between rounded-lg px-3 py-2">
                   {isProUser ? (
-                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-amber-400">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-400">
                       <Sparkles className="h-3.5 w-3.5" />
                       Pro Plan
                     </span>
