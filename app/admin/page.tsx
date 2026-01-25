@@ -401,6 +401,27 @@ export default function AdminPage() {
   }
 
   async function handleRoleChange(userId: string, newRole: string) {
+    // Confirmation for primary_owner transfer
+    if (newRole === "primary_owner") {
+      const targetUser = users.find((u) => u.id === userId);
+      const confirmed = window.confirm(
+        `⚠️ TRANSFER PRIMARY OWNERSHIP\n\nYou are about to transfer Primary Owner to:\n${targetUser?.name || targetUser?.email}\n\nThis will:\n• Demote you from Primary Owner to Owner\n• Transfer all primary owner privileges to this user\n• This action can only be reversed by the new Primary Owner\n\nAre you absolutely sure?`
+      );
+      if (!confirmed) return;
+
+      // Double confirmation
+      const doubleConfirmed = window.confirm(
+        `FINAL CONFIRMATION\n\nType "TRANSFER" in the next prompt to confirm transferring Primary Owner to ${targetUser?.name || targetUser?.email}.`
+      );
+      if (!doubleConfirmed) return;
+
+      const typed = window.prompt('Type "TRANSFER" to confirm:');
+      if (typed !== "TRANSFER") {
+        alert("Transfer cancelled. You must type TRANSFER exactly.");
+        return;
+      }
+    }
+
     setActionLoading("role");
     try {
       const res = await fetch("/api/admin/update-role", {
