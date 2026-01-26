@@ -313,27 +313,89 @@ async function executeDraftReply(
 
 /**
  * Execute send email action
+ * Handles both direct sends (with to/body) and smart sends (with recipient name/message intent)
  */
 async function executeSendEmail(action: Action, user: any): Promise<any> {
   const payload = action.payload;
 
-  if (!payload.to || !payload.body) {
-    return { success: false, message: "Missing required fields: to, body" };
+  let recipientEmail = payload.to;
+  let emailBody = payload.body;
+  let emailSubject = payload.subject || `Re: ${action.email_subject || "Following up"}`;
+
+  // If we have a recipient name but no email, try to resolve it
+  if (!recipientEmail && payload.recipient) {
+    // Search recent emails for this recipient
+    const recentEmails = await getEmails(
+      user.access_token,
+      user.refresh_token,
+      50,
+      `from:${payload.recipient} OR to:${payload.recipient}`
+    );
+
+    // Find email address from matching sender/recipient
+    for (const email of recentEmails) {
+      const recipientLower = payload.recipient.toLowerCase();
+      if (email.from.toLowerCase().includes(recipientLower)) {
+        const match = email.from.match(/<([^>]+)>/);
+        recipientEmail = match ? match[1] : email.fromEmail;
+        break;
+      }
+    }
+
+    if (!recipientEmail) {
+      return { 
+        success: false, 
+        message: `Could not find email address for "${payload.recipient}". Try specifying the full email.` 
+      };
+    }
   }
 
-  await sendEmail(
+  // If we have message intent but no full body, generate it
+  if (!emailBody && (payload.message || payload.points_to_address || action.user_instruction)) {
+    const messageIntent = payload.message || 
+      (payload.points_to_address ? payload.points_to_address.join(", ") : "") ||
+      action.user_instruction;
+
+    // Get user settings for writing style
+    const supabase = createClient();
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("signature, writing_style")
+      .eq("user_email", user.email)
+      .single();
+
+    const signature = settings?.signature || "";
+    
+    // Generate professional email body
+    emailBody = `Hi ${payload.recipient || "there"},
+
+${messageIntent}
+
+Please let me know if you have any questions.
+
+${signature}`.trim();
+  }
+
+  if (!recipientEmail || !emailBody) {
+    return { success: false, message: "Could not determine recipient email or message body" };
+  }
+
+  // For safety, create a draft instead of sending directly
+  // User can review and send from Gmail
+  const draftId = await createDraft(
     user.access_token,
     user.refresh_token,
-    payload.to,
-    payload.subject || `Re: ${action.email_subject}`,
-    payload.body,
-    action.thread_id
+    recipientEmail,
+    emailSubject,
+    emailBody,
+    action.thread_id || ""
   );
 
   return {
     success: true,
-    message: "Email sent successfully",
-    sent_at: new Date().toISOString(),
+    message: `Draft created for ${recipientEmail} (review and send from Gmail)`,
+    draft_id: draftId,
+    to: recipientEmail,
   };
 }
 
