@@ -7,11 +7,14 @@ import {
   generateUrgentNotification,
 } from "@/lib/zeno-digest";
 
+// Zeno's email account for sending digests
+const ZENO_EMAIL = process.env.ZENO_EMAIL || "zenoemailagent@xix3d.com";
+
 /**
  * POST /api/zeno/digest
  * 
  * Sends a digest email to the user with important emails.
- * Can send either a full digest or urgent single-email notification.
+ * Sends FROM Zeno's email account so replies go to Zeno.
  * 
  * Body: { 
  *   userEmail: string, 
@@ -44,6 +47,21 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createClient();
+
+    // Get Zeno's credentials for sending
+    const { data: zenoAccount, error: zenoError } = await supabase
+      .from("users")
+      .select("access_token, refresh_token")
+      .eq("email", ZENO_EMAIL)
+      .single();
+
+    if (zenoError || !zenoAccount) {
+      console.error("Zeno account not found:", zenoError);
+      return NextResponse.json(
+        { error: "Zeno email account not configured" },
+        { status: 500 }
+      );
+    }
 
     // Get user from database
     const { data: user, error: userError } = await supabase
@@ -116,11 +134,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Send the email to the user (from themselves)
+    // Send the email FROM Zeno TO the user
+    // This way, when the user replies, it goes to Zeno's inbox
     await sendEmail(
-      user.access_token,
-      user.refresh_token,
-      userEmail, // Send to self
+      zenoAccount.access_token,
+      zenoAccount.refresh_token,
+      userEmail, // Send TO the user
       emailContent.subject,
       emailContent.html // Send HTML version
     );
@@ -149,6 +168,8 @@ export async function POST(request: NextRequest) {
       digestType,
       emailsSent: emails.length,
       subject: emailContent.subject,
+      from: ZENO_EMAIL,
+      to: userEmail,
     });
   } catch (error) {
     console.error("Error sending digest:", error);
