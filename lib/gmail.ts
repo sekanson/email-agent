@@ -538,10 +538,14 @@ export async function sendEmail(
   const auth = getOAuth2Client(accessToken, refreshToken);
   const gmail = google.gmail({ version: "v1", auth });
 
+  // Auto-detect HTML content
+  const isHtml = /<[^>]+>/.test(body);
+  const contentType = isHtml ? "text/html; charset=utf-8" : "text/plain; charset=utf-8";
+
   const message = [
     `To: ${to}`,
     `Subject: ${subject}`,
-    "Content-Type: text/plain; charset=utf-8",
+    `Content-Type: ${contentType}`,
     "",
     body,
   ].join("\n");
