@@ -1,3 +1,27 @@
+# Zeno Email Agent
+
+AI-powered email assistant that classifies, drafts, and takes action on your behalf.
+
+**Live:** https://zenoagent.xix3d.com
+
+## Features
+
+- 📬 **Smart Classification** — AI categorizes emails (Respond, Update, Calendar, etc.)
+- ✍️ **Auto-Draft Replies** — Generates draft responses for important emails
+- 📅 **Calendar Integration** — Book meetings, check availability, respond to invites
+- 🤖 **Proactive Assistant** — Zeno surfaces important emails and asks for instructions
+- 📧 **Digest Notifications** — Daily/realtime email summaries with quick actions
+
+## Tech Stack
+
+- Next.js 16 + React 19 + TypeScript
+- Supabase (auth + database)
+- Stripe (payments)
+- Gmail API + Google Calendar API
+- Claude API (Anthropic)
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
