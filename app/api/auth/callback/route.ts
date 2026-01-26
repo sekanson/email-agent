@@ -11,9 +11,15 @@ const oauth2Client = new google.auth.OAuth2(
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const code = searchParams.get("code");
+  const state = searchParams.get("state");
+  
+  // Determine if this is login-only or full access
+  const isLoginOnly = state === "login_only";
 
   // If no code, redirect to Google OAuth
   if (!code) {
+    // Default: request all scopes for backward compatibility
+    // New users should use /api/auth/login for minimal scopes
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: [
@@ -54,23 +60,41 @@ export async function GET(request: NextRequest) {
       .eq("email", userInfo.email)
       .single();
 
+    // Build user data based on auth type
+    const userData: Record<string, unknown> = {
+      email: userInfo.email,
+      name: userInfo.name,
+      picture: userInfo.picture,
+      updated_at: new Date().toISOString(),
+    };
+
+    // For login-only, don't store integration tokens
+    // For full access (legacy or explicit), store tokens and mark integrations as connected
+    if (!isLoginOnly) {
+      userData.access_token = tokens.access_token;
+      userData.refresh_token = tokens.refresh_token;
+      userData.token_expiry = tokens.expiry_date;
+      userData.gmail_connected = true;
+      userData.gmail_connected_at = new Date().toISOString();
+      userData.calendar_connected = true;
+      userData.calendar_connected_at = new Date().toISOString();
+    }
+
+    // Initialize new users with defaults
+    if (!existingUser) {
+      userData.subscription_status = "trial";
+      userData.subscription_tier = "free";
+      userData.drafts_created_count = 0;
+      userData.created_at = new Date().toISOString();
+      // New users start with integrations disconnected if login-only
+      if (isLoginOnly) {
+        userData.gmail_connected = false;
+        userData.calendar_connected = false;
+      }
+    }
+
     const { error } = await supabase.from("users").upsert(
-      {
-        email: userInfo.email,
-        name: userInfo.name,
-        picture: userInfo.picture,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        token_expiry: tokens.expiry_date,
-        updated_at: new Date().toISOString(),
-        // Initialize new users with defaults
-        ...(existingUser ? {} : {
-          subscription_status: "trial",
-          subscription_tier: "free",
-          drafts_created_count: 0,
-          created_at: new Date().toISOString(),
-        }),
-      },
+      userData,
       { onConflict: "email" }
     );
 

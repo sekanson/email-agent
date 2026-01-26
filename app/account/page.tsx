@@ -36,6 +36,11 @@ interface UserData {
     quiet_hours_start?: string;
     quiet_hours_end?: string;
   };
+  // Integration status
+  gmail_connected?: boolean;
+  gmail_connected_at?: string;
+  calendar_connected?: boolean;
+  calendar_connected_at?: string;
 }
 
 interface Metrics {
@@ -660,39 +665,69 @@ export default function SettingsPage() {
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">Gmail</p>
-                            <p className="flex items-center gap-1.5 text-sm text-emerald-500">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                              1 account connected
-                            </p>
+                            {user?.gmail_connected !== false ? (
+                              <p className="flex items-center gap-1.5 text-sm text-emerald-500">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                1 account connected
+                              </p>
+                            ) : (
+                              <p className="text-sm text-[var(--text-muted)]">Not connected</p>
+                            )}
                           </div>
                         </div>
+                        {user?.gmail_connected === false && (
+                          <a
+                            href="/api/integrations/gmail"
+                            className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] sm:min-h-0"
+                          >
+                            Connect
+                          </a>
+                        )}
                       </div>
 
-                      {/* Connected account details */}
-                      <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
-                        <div className="flex items-center gap-3">
-                          <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                          <div>
-                            <p className="text-sm font-medium text-[var(--text-primary)]">{user?.email}</p>
-                            <p className="text-xs text-[var(--text-muted)]">
-                              Connected {user?.created_at
-                                ? new Date(user.created_at).toLocaleDateString("en-US", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })
-                                : ""}
-                            </p>
+                      {/* Connected account details - only show if connected */}
+                      {user?.gmail_connected !== false && (
+                        <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
+                          <div className="flex items-center gap-3">
+                            <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                            <div>
+                              <p className="text-sm font-medium text-[var(--text-primary)]">{user?.email}</p>
+                              <p className="text-xs text-[var(--text-muted)]">
+                                Connected {user?.gmail_connected_at
+                                  ? new Date(user.gmail_connected_at).toLocaleDateString("en-US", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    })
+                                  : user?.created_at
+                                  ? new Date(user.created_at).toLocaleDateString("en-US", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    })
+                                  : ""}
+                              </p>
+                            </div>
                           </div>
+                          <button
+                            onClick={() => setShowDeleteModal(true)}
+                            className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                            title="Disconnect account"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => setShowDeleteModal(true)}
-                          className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
-                          title="Disconnect account"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+                      )}
+
+                      {/* Trust messaging for non-connected state */}
+                      {user?.gmail_connected === false && (
+                        <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
+                          <p className="text-xs text-[var(--text-muted)]">
+                            <span className="font-medium text-[var(--text-secondary)]">🔒 Your data is safe:</span>{" "}
+                            Zeno drafts emails but never sends without your approval. Your data is never used to train AI models.
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Outlook Card - Coming Soon */}
@@ -735,7 +770,7 @@ export default function SettingsPage() {
                       </p>
                     </div>
 
-                    {/* Google Calendar Card - Connected via OAuth */}
+                    {/* Google Calendar Card */}
                     <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -752,39 +787,59 @@ export default function SettingsPage() {
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">Google Calendar</p>
-                            <p className="flex items-center gap-1.5 text-sm text-emerald-500">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                              1 account connected
-                            </p>
+                            {user?.calendar_connected !== false ? (
+                              <p className="flex items-center gap-1.5 text-sm text-emerald-500">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                                1 account connected
+                              </p>
+                            ) : (
+                              <p className="text-sm text-[var(--text-muted)]">Not connected</p>
+                            )}
                           </div>
                         </div>
+                        {user?.calendar_connected === false && (
+                          <a
+                            href="/api/integrations/calendar"
+                            className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] sm:min-h-0"
+                          >
+                            Connect
+                          </a>
+                        )}
                       </div>
 
-                      {/* Connected account details */}
-                      <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
-                        <div className="flex items-center gap-3">
-                          <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                          <div>
-                            <p className="text-sm font-medium text-[var(--text-primary)]">{user?.email}</p>
-                            <p className="text-xs text-[var(--text-muted)]">
-                              Connected {user?.created_at
-                                ? new Date(user.created_at).toLocaleDateString("en-US", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })
-                                : ""}
-                            </p>
+                      {/* Connected account details - only show if connected */}
+                      {user?.calendar_connected !== false && (
+                        <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
+                          <div className="flex items-center gap-3">
+                            <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                            <div>
+                              <p className="text-sm font-medium text-[var(--text-primary)]">{user?.email}</p>
+                              <p className="text-xs text-[var(--text-muted)]">
+                                Connected {user?.calendar_connected_at
+                                  ? new Date(user.calendar_connected_at).toLocaleDateString("en-US", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    })
+                                  : user?.created_at
+                                  ? new Date(user.created_at).toLocaleDateString("en-US", {
+                                      day: "numeric",
+                                      month: "short",
+                                      year: "numeric",
+                                    })
+                                  : ""}
+                              </p>
+                            </div>
                           </div>
+                          <button
+                            onClick={() => setShowDeleteModal(true)}
+                            className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                            title="Disconnect calendar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
-                        <button
-                          onClick={() => setShowDeleteModal(true)}
-                          className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
-                          title="Disconnect calendar"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
+                      )}
                     </div>
 
                     {/* Timezone Setting */}
