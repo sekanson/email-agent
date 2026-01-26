@@ -37,11 +37,13 @@ export interface ActionPayload {
   tone?: "formal" | "casual" | "friendly" | "professional";
   points_to_address?: string[];
 
-  // send_email
+  // send_email (enhanced)
   to?: string;
   subject?: string;
   body?: string;
   cc?: string[];
+  recipient?: string;  // Name to resolve to email
+  message?: string;    // Message intent to generate body from
 
   // book_meeting
   title?: string;

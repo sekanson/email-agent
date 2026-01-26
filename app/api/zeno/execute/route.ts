@@ -324,7 +324,8 @@ async function executeSendEmail(action: Action, user: any): Promise<any> {
 
   // If we have a recipient name but no email, try to resolve it
   if (!recipientEmail && payload.recipient) {
-    recipientEmail = await resolveNameToEmail(payload.recipient, user.access_token, user.refresh_token);
+    const resolved = await resolveNameToEmail(payload.recipient, user.access_token, user.refresh_token);
+    recipientEmail = resolved || undefined;
     
     if (!recipientEmail) {
       return { 
