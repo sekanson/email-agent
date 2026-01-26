@@ -13,7 +13,7 @@ const anthropic = new Anthropic({
 });
 
 interface ParsedInstruction {
-  emailIndex: number;
+  emailIndex: number | null;  // null for standalone actions like calendar bookings
   emailId?: string;
   actionType: ActionType;
   payload: ActionPayload;
@@ -60,28 +60,40 @@ export async function POST(request: NextRequest) {
       .join("\n\n");
 
     // Use Claude to parse the instructions
-    const prompt = `You are parsing a user's reply to an email digest. Extract the action instructions for each email mentioned.
+    const prompt = `You are parsing a user's reply to an email digest. Extract ALL action instructions - both email-related AND standalone (like calendar bookings).
 
-DIGEST EMAILS:
+DIGEST EMAILS (for context):
 ${emailContext}
 
 USER'S REPLY:
 ${replyContent}
 
-Parse the user's instructions and return a JSON array of actions. Each action should have:
-- emailIndex: which email (1-indexed, matching the digest)
+Parse ALL instructions and return a JSON array. Each action should have:
+- emailIndex: which email (1-indexed) OR null for standalone actions (like calendar bookings)
 - actionType: one of "draft_reply", "send_email", "book_meeting", "accept_meeting", "decline_meeting", "follow_up", "archive", "forward"
-- payload: relevant details extracted from the instruction
+- payload: relevant details (see examples below)
 - rawInstruction: the original instruction text
 - confidence: 0.0 to 1.0
 
-Examples of how to parse:
-- "#1: draft a polite decline" → actionType: "draft_reply", payload: { tone: "polite", points_to_address: ["decline"] }
-- "#2: accept" → actionType: "accept_meeting"
-- "#3: book a call for next Tuesday at 2pm" → actionType: "book_meeting", payload: { proposed_times: ["next Tuesday at 2pm"] }
-- "#1: say I'll get back to them next week" → actionType: "draft_reply", payload: { points_to_address: ["will get back next week"] }
+IMPORTANT: Look for ALL types of requests:
+1. EMAIL ACTIONS (tied to digest emails):
+   - "#1: draft a polite decline" → emailIndex: 1, actionType: "draft_reply", payload: { tone: "polite", points_to_address: ["decline"] }
+   - "Tell Tony we'll have answers Wednesday" → find Tony's email, actionType: "draft_reply" or "send_email"
 
-Respond with ONLY valid JSON, no markdown, no explanation:
+2. CALENDAR ACTIONS (standalone, emailIndex: null):
+   - "book me time on Tuesday for an hour with Aamir" → emailIndex: null, actionType: "book_meeting", payload: { 
+       proposed_times: ["Tuesday"], 
+       duration_minutes: 60, 
+       attendees: ["Aamir"],
+       title: "Review meeting"
+     }
+   - "schedule a call next week" → emailIndex: null, actionType: "book_meeting", payload: { proposed_times: ["next week"] }
+
+3. MULTIPLE ACTIONS: Users often request multiple things. Parse EACH one separately!
+   Example: "Tell Tony we'll respond Wednesday, and book a meeting with Aamir Tuesday"
+   → Returns 2 actions: one draft_reply + one book_meeting
+
+Respond with ONLY valid JSON array, no markdown, no explanation:
 [{ "emailIndex": 1, "actionType": "...", "payload": {...}, "rawInstruction": "...", "confidence": 0.95 }]
 
 If no valid instructions found, return an empty array: []`;
@@ -111,44 +123,52 @@ If no valid instructions found, return an empty array: []`;
       });
     }
 
-    // Validate and enrich with email IDs
+    // Validate instructions - allow null emailIndex for standalone actions (calendar)
     const validInstructions = parsedInstructions.filter((inst) => {
-      const index = inst.emailIndex - 1; // Convert to 0-indexed
+      // Standalone actions (like calendar bookings) have null emailIndex
+      if (inst.emailIndex === null) return true;
+      // Email-related actions must reference a valid email
+      const index = inst.emailIndex - 1;
       return index >= 0 && index < digestEmails.length;
     });
 
-    // Map email IDs
+    // Enrich with email IDs where applicable
     validInstructions.forEach((inst) => {
-      const email = digestEmails[inst.emailIndex - 1];
-      if (email) {
-        inst.emailId = email.id;
+      if (inst.emailIndex !== null) {
+        const email = digestEmails[inst.emailIndex - 1];
+        if (email) {
+          inst.emailId = email.id;
+        }
       }
     });
 
     // Create actions in the queue
     const createdActions = [];
     for (const instruction of validInstructions) {
-      const email = digestEmails[instruction.emailIndex - 1];
-      
-      if (!email) continue;
+      const email = instruction.emailIndex !== null 
+        ? digestEmails[instruction.emailIndex - 1] 
+        : null;
 
       try {
+        // Determine if action requires approval
+        const requiresApproval = ["send_email", "book_meeting"].includes(instruction.actionType);
+        
         const action = await createAction({
           user_email: userEmail,
           action_type: instruction.actionType,
           payload: instruction.payload,
-          email_id: instruction.emailId,
-          email_subject: email.subject,
-          email_from: email.from,
+          email_id: instruction.emailId || undefined,
+          email_subject: email?.subject || (instruction.actionType === "book_meeting" ? "Calendar Booking" : undefined),
+          email_from: email?.from || undefined,
           user_instruction: instruction.rawInstruction,
-          requires_approval: instruction.actionType === "send_email", // Auto-approve drafts
-          priority: instruction.actionType === "send_email" ? 3 : 5,
+          requires_approval: requiresApproval,
+          priority: requiresApproval ? 3 : 5,
         });
 
         createdActions.push({
           actionId: action.id,
           emailIndex: instruction.emailIndex,
-          emailSubject: email.subject,
+          emailSubject: email?.subject || "Standalone Action",
           actionType: instruction.actionType,
           status: action.status,
           confidence: instruction.confidence,
