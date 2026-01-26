@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const handleGoogleSignIn = () => {
-    window.location.href = "/api/auth/callback";
+    window.location.href = "/api/auth/login";
   };
 
   return (
