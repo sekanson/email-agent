@@ -2,7 +2,7 @@
 
 AI-powered email assistant that classifies, drafts, and takes action on your behalf.
 
-**Live:** https://zenoagent.xix3d.com
+**Live:** https://zenoemail.xix3d.com
 
 ## Features
 
