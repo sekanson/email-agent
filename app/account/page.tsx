@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import {
@@ -53,10 +54,19 @@ const FREE_DRAFT_LIMIT = 10;
 type Tab = "account" | "billing" | "integrations";
 
 export default function SettingsPage() {
+  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("account");
+
+  // Read tab from URL query params (e.g., ?tab=integrations)
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["account", "billing", "integrations"].includes(tabParam)) {
+      setActiveTab(tabParam as Tab);
+    }
+  }, [searchParams]);
   const [managingSubscription, setManagingSubscription] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
