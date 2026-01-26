@@ -647,57 +647,72 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Gmail Card */}
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white">
-                            <svg className="h-6 w-6" viewBox="0 0 24 24">
-                              <path fill="#EA4335" d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                            <svg className="h-7 w-7" viewBox="0 0 24 24">
+                              <path fill="#4285F4" d="M22.288 21H1.712C.768 21 0 20.232 0 19.288V4.712C0 3.768.768 3 1.712 3h20.576C23.232 3 24 3.768 24 4.712v14.576c0 .944-.768 1.712-1.712 1.712z"/>
+                              <path fill="#FFFFFF" d="M5.89 8.65l6.11 4.32 6.11-4.32v-1.9L12 11.07 5.89 6.75z"/>
+                              <path fill="#EA4335" d="M23.04 5.25L12 13.47.96 5.25C.35 5.81 0 6.6 0 7.5v9c0 1.93 1.57 3.5 3.5 3.5h17c1.93 0 3.5-1.57 3.5-3.5v-9c0-.9-.35-1.69-.96-2.25z" opacity="0"/>
+                              <path fill="#EA4335" d="M5.89 8.65l6.11 4.32 6.11-4.32v-1.9L12 11.07 5.89 6.75z"/>
                             </svg>
                           </div>
                           <div>
-                            <p className="font-medium text-[var(--text-primary)]">Gmail</p>
-                            <p className="text-sm text-[var(--text-muted)]">1 account connected</p>
+                            <p className="font-semibold text-[var(--text-primary)]">Gmail</p>
+                            <p className="flex items-center gap-1.5 text-sm text-emerald-500">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                              1 account connected
+                            </p>
                           </div>
                         </div>
                       </div>
 
                       {/* Connected account details */}
-                      <div className="mt-3 flex flex-col gap-2 rounded-lg bg-[var(--bg-elevated)] p-3 sm:mt-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex items-center gap-2">
-                          <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
-                          <span className="break-all text-sm text-[var(--text-secondary)]">{user?.email}</span>
-                        </div>
+                      <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
                         <div className="flex items-center gap-3">
-                          <span className="text-xs text-[var(--text-muted)]">
-                            Connected {user?.created_at
-                              ? new Date(user.created_at).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  year: "numeric",
-                                })
-                              : ""}
-                          </span>
+                          <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                          <div>
+                            <p className="text-sm font-medium text-[var(--text-primary)]">{user?.email}</p>
+                            <p className="text-xs text-[var(--text-muted)]">
+                              Connected {user?.created_at
+                                ? new Date(user.created_at).toLocaleDateString("en-US", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : ""}
+                            </p>
+                          </div>
                         </div>
+                        <button
+                          onClick={() => setShowDeleteModal(true)}
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                          title="Disconnect account"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
 
                     {/* Outlook Card - Coming Soon */}
-                    <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 opacity-60 sm:mt-4 sm:p-4">
+                    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#0078D4]">
-                            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M24 7.387v10.478c0 .23-.08.424-.238.576-.16.154-.352.229-.576.229h-8.547v-6.959l1.602 1.18a.39.39 0 0 0 .264.094.39.39 0 0 0 .264-.094l.023-.02 6.078-4.456a.762.762 0 0 0 .27-.325.858.858 0 0 0 .086-.373v-.33h.774zM15.59 17.33v-5.207L24 4.669v1.668l-7.348 5.41v5.582h-1.062zm-1.062-5.996v6.336H7.387A1.387 1.387 0 0 1 6 16.283V7.717c0-.383.136-.712.407-.984.272-.271.6-.407.98-.407h6.14v4.008z"/>
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#0078D4] shadow-sm">
+                            <svg className="h-7 w-7" viewBox="0 0 24 24">
+                              <path fill="#FFFFFF" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                              <path fill="#0078D4" d="M0 0h24v24H0z" opacity="0"/>
                             </svg>
                           </div>
                           <div>
-                            <p className="font-medium text-[var(--text-primary)]">Outlook</p>
+                            <p className="font-semibold text-[var(--text-primary)]">Outlook</p>
                             <p className="text-sm text-[var(--text-muted)]">Coming soon</p>
                           </div>
                         </div>
                         <button
                           disabled
-                          className="min-h-[44px] rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
+                          className="min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
                         >
                           Connect
                         </button>
@@ -717,22 +732,30 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Google Calendar Card - Connected via OAuth */}
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white">
-                            <Calendar className="h-5 w-5 text-blue-500" />
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                            <svg className="h-7 w-7" viewBox="0 0 24 24">
+                              <path fill="#4285F4" d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10z" opacity="0.1"/>
+                              <path fill="#4285F4" d="M19.5 4.5H4.5v15h15v-15z" opacity="0"/>
+                              <path fill="#1A73E8" d="M19 4H5c-.55 0-1 .45-1 1v14c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1zm-1 14H6V8h12v10z"/>
+                              <path fill="#EA4335" d="M11 10h2v6h-2z"/>
+                              <path fill="#FBBC04" d="M8 13h2v3H8z"/>
+                              <path fill="#34A853" d="M14 11h2v5h-2z"/>
+                              <path fill="#1A73E8" d="M6 6h12v2H6z"/>
+                            </svg>
                           </div>
                           <div>
-                            <p className="font-medium text-[var(--text-primary)]">Google Calendar</p>
-                            <p className="flex items-center gap-1.5 text-sm text-green-500">
-                              <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                            <p className="font-semibold text-[var(--text-primary)]">Google Calendar</p>
+                            <p className="flex items-center gap-1.5 text-sm text-emerald-500">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                               Connected
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                          <Check className="h-4 w-4 text-green-500" />
+                        <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-500">
+                          <Check className="h-4 w-4" />
                           <span>Auto-synced</span>
                         </div>
                       </div>
@@ -788,14 +811,17 @@ export default function SettingsPage() {
                     </div>
 
                     {/* Outlook Calendar Card - Coming Soon */}
-                    <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 opacity-60 sm:mt-4 sm:p-4">
+                    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[#0078D4]">
-                            <Calendar className="h-5 w-5 text-white" />
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#0078D4] shadow-sm">
+                            <svg className="h-7 w-7" viewBox="0 0 24 24">
+                              <path fill="#FFFFFF" d="M19 4H5c-.55 0-1 .45-1 1v14c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1zm-1 14H6V8h12v10z"/>
+                              <path fill="#FFFFFF" d="M11 10h2v6h-2zM8 13h2v3H8zM14 11h2v5h-2zM6 6h12v2H6z" opacity="0.7"/>
+                            </svg>
                           </div>
                           <div>
-                            <p className="font-medium text-[var(--text-primary)]">Outlook Calendar</p>
+                            <p className="font-semibold text-[var(--text-primary)]">Outlook Calendar</p>
                             <p className="text-sm text-[var(--text-muted)]">Coming soon</p>
                           </div>
                         </div>
