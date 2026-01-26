@@ -711,8 +711,8 @@ export default function SettingsPage() {
                       </p>
                     </div>
 
-                    {/* Google Calendar Card - Coming Soon */}
-                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 opacity-60 sm:p-4">
+                    {/* Google Calendar Card - Connected via OAuth */}
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-white">
@@ -720,15 +720,16 @@ export default function SettingsPage() {
                           </div>
                           <div>
                             <p className="font-medium text-[var(--text-primary)]">Google Calendar</p>
-                            <p className="text-sm text-[var(--text-muted)]">Coming soon</p>
+                            <p className="flex items-center gap-1.5 text-sm text-green-500">
+                              <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                              Connected
+                            </p>
                           </div>
                         </div>
-                        <button
-                          disabled
-                          className="min-h-[44px] rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
-                        >
-                          Connect
-                        </button>
+                        <div className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                          <Check className="h-4 w-4 text-green-500" />
+                          <span>Auto-synced</span>
+                        </div>
                       </div>
                     </div>
 
