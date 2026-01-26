@@ -324,24 +324,8 @@ async function executeSendEmail(action: Action, user: any): Promise<any> {
 
   // If we have a recipient name but no email, try to resolve it
   if (!recipientEmail && payload.recipient) {
-    // Search recent emails for this recipient
-    const recentEmails = await getEmails(
-      user.access_token,
-      user.refresh_token,
-      50,
-      `from:${payload.recipient} OR to:${payload.recipient}`
-    );
-
-    // Find email address from matching sender/recipient
-    for (const email of recentEmails) {
-      const recipientLower = payload.recipient.toLowerCase();
-      if (email.from.toLowerCase().includes(recipientLower)) {
-        const match = email.from.match(/<([^>]+)>/);
-        recipientEmail = match ? match[1] : email.fromEmail;
-        break;
-      }
-    }
-
+    recipientEmail = await resolveNameToEmail(payload.recipient, user.access_token, user.refresh_token);
+    
     if (!recipientEmail) {
       return { 
         success: false, 
@@ -400,6 +384,42 @@ ${signature}`.trim();
 }
 
 /**
+ * Helper: Resolve a name to an email address by searching recent emails
+ */
+async function resolveNameToEmail(
+  name: string,
+  accessToken: string,
+  refreshToken: string
+): Promise<string | null> {
+  // If it already looks like an email, return it
+  if (name.includes("@")) return name;
+
+  try {
+    const recentEmails = await getEmails(
+      accessToken,
+      refreshToken,
+      50,
+      `from:${name} OR to:${name}`
+    );
+
+    for (const email of recentEmails) {
+      const nameLower = name.toLowerCase();
+      if (email.from.toLowerCase().includes(nameLower)) {
+        const match = email.from.match(/<([^>]+)>/);
+        return match ? match[1] : email.fromEmail;
+      }
+      if (email.to?.toLowerCase().includes(nameLower)) {
+        const match = email.to.match(/<([^>]+)>/);
+        if (match) return match[1];
+      }
+    }
+  } catch (e) {
+    console.error(`Failed to resolve name "${name}":`, e);
+  }
+  return null;
+}
+
+/**
  * Execute book meeting action
  */
 async function executeBookMeeting(
@@ -438,15 +458,34 @@ async function executeBookMeeting(
   const durationMinutes = payload.duration_minutes || 30;
   const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
 
+  // Resolve attendee names to email addresses
+  let attendeeEmails: string[] = [];
+  if (payload.attendees && payload.attendees.length > 0) {
+    for (const attendee of payload.attendees) {
+      const email = await resolveNameToEmail(attendee, user.access_token, user.refresh_token);
+      if (email) {
+        attendeeEmails.push(email);
+      } else {
+        console.log(`Could not resolve attendee "${attendee}" to email`);
+      }
+    }
+  }
+
+  // Fallback to email from action if no attendees resolved
+  if (attendeeEmails.length === 0 && action.email_from) {
+    const match = action.email_from.match(/<([^>]+)>/);
+    if (match) attendeeEmails.push(match[1]);
+  }
+
   // Create the event
   const event = await createEvent(user.access_token, user.refresh_token, {
-    summary: payload.title || `Meeting: ${action.email_subject}`,
+    summary: payload.title || `Meeting: ${action.email_subject || "Discussion"}`,
     description: action.user_instruction,
     start: startTime,
     end: endTime,
-    attendees: payload.attendees || [action.email_from?.match(/<([^>]+)>/)?.[1] || action.email_from || ""],
+    attendees: attendeeEmails.length > 0 ? attendeeEmails : undefined,
     addMeetLink: payload.add_meet_link !== false,
-    sendInvites: true,
+    sendInvites: attendeeEmails.length > 0,
   });
 
   return {
@@ -454,7 +493,8 @@ async function executeBookMeeting(
     event_id: event.id,
     event_link: event.meetLink,
     scheduled_time: startTime.toISOString(),
-    message: `Meeting booked for ${startTime.toLocaleString()}`,
+    attendees_invited: attendeeEmails,
+    message: `Meeting booked for ${startTime.toLocaleString()}${attendeeEmails.length > 0 ? ` with ${attendeeEmails.join(", ")}` : ""}`,
   };
 }
 
