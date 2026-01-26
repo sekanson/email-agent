@@ -31,6 +31,11 @@ interface UserData {
   emails_processed?: number;
   created_at: string;
   stripe_customer_id: string | null;
+  notification_preferences?: {
+    timezone?: string;
+    quiet_hours_start?: string;
+    quiet_hours_end?: string;
+  };
 }
 
 interface Metrics {
@@ -730,6 +735,55 @@ export default function SettingsPage() {
                           <Check className="h-4 w-4 text-green-500" />
                           <span>Auto-synced</span>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Timezone Setting */}
+                    <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:mt-4 sm:p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--bg-elevated)]">
+                            <Clock className="h-5 w-5 text-[var(--accent)]" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-[var(--text-primary)]">Timezone</p>
+                            <p className="text-sm text-[var(--text-muted)]">Used for scheduling meetings</p>
+                          </div>
+                        </div>
+                        <select
+                          value={user?.notification_preferences?.timezone || "America/New_York"}
+                          onChange={async (e) => {
+                            const newTimezone = e.target.value;
+                            try {
+                              await fetch("/api/user/preferences", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ timezone: newTimezone }),
+                              });
+                              setUser((prev: any) => prev ? {
+                                ...prev,
+                                notification_preferences: {
+                                  ...prev.notification_preferences,
+                                  timezone: newTimezone,
+                                },
+                              } : null);
+                            } catch (error) {
+                              console.error("Failed to update timezone:", error);
+                            }
+                          }}
+                          className="min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0"
+                        >
+                          <option value="America/New_York">Eastern (EST/EDT)</option>
+                          <option value="America/Chicago">Central (CST/CDT)</option>
+                          <option value="America/Denver">Mountain (MST/MDT)</option>
+                          <option value="America/Los_Angeles">Pacific (PST/PDT)</option>
+                          <option value="America/Toronto">Toronto (EST/EDT)</option>
+                          <option value="Europe/London">London (GMT/BST)</option>
+                          <option value="Europe/Paris">Paris (CET/CEST)</option>
+                          <option value="Asia/Tokyo">Tokyo (JST)</option>
+                          <option value="Asia/Dubai">Dubai (GST)</option>
+                          <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
+                        </select>
                       </div>
                     </div>
 
