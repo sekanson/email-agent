@@ -17,10 +17,15 @@ export async function GET(request: NextRequest) {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: "offline",
       scope: [
+        // Gmail scopes
         "https://www.googleapis.com/auth/gmail.readonly",
         "https://www.googleapis.com/auth/gmail.send",
         "https://www.googleapis.com/auth/gmail.modify",
         "https://www.googleapis.com/auth/gmail.labels",
+        // Calendar scopes
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/calendar.events",
+        // User info scopes
         "https://www.googleapis.com/auth/userinfo.email",
         "https://www.googleapis.com/auth/userinfo.profile",
       ],
