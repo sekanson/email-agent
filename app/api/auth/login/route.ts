@@ -21,7 +21,7 @@ export async function GET() {
       "https://www.googleapis.com/auth/userinfo.email",
       "https://www.googleapis.com/auth/userinfo.profile",
     ],
-    prompt: "consent",
+    prompt: "select_account",
     // Pass state to indicate this is login-only
     state: "login_only",
   });
