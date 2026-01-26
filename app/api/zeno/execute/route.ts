@@ -430,10 +430,30 @@ async function executeBookMeeting(
 ): Promise<any> {
   const payload = action.payload;
 
+  // Get user's timezone preference (default EST)
+  const supabase = createClient();
+  const { data: userPrefs } = await supabase
+    .from("users")
+    .select("notification_preferences")
+    .eq("email", userEmail)
+    .single();
+  
+  const userTimezone = userPrefs?.notification_preferences?.timezone || "America/New_York";
+  
+  // Calculate timezone offset (EST = UTC-5, EDT = UTC-4)
+  // For simplicity, assume EST (-5 hours = -300 minutes)
+  const tzOffsetMinutes = userTimezone.includes("New_York") ? -300 : 0;
+  
   // Parse proposed times
   let startTime: Date | null = null;
   if (payload.proposed_times && payload.proposed_times.length > 0) {
     startTime = parseTimeExpression(payload.proposed_times[0]);
+    
+    // Adjust for timezone: server is UTC, user wants local time
+    // If user says "10 AM", they mean 10 AM EST = 3 PM UTC
+    if (startTime) {
+      startTime = new Date(startTime.getTime() - tzOffsetMinutes * 60 * 1000);
+    }
   }
 
   // If no valid time, find available slots

@@ -437,16 +437,39 @@ export function parseTimeExpression(
     return date;
   }
 
-  // Handle "next [weekday]"
+  // Handle "[next] [weekday]" or just "[weekday]"
   const weekdays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const nextMatch = lower.match(/next\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/i);
-  if (nextMatch) {
-    const targetDay = weekdays.indexOf(nextMatch[1].toLowerCase());
+  const weekdayMatch = lower.match(/(?:next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/i);
+  if (weekdayMatch) {
+    const targetDay = weekdays.indexOf(weekdayMatch[1].toLowerCase());
     const date = new Date(referenceDate);
     const currentDay = date.getDay();
-    const daysUntil = ((targetDay - currentDay + 7) % 7) || 7;
+    
+    // Calculate days until target day
+    let daysUntil = (targetDay - currentDay + 7) % 7;
+    // If it's the same day or "next" was specified, go to next week
+    if (daysUntil === 0 || lower.includes("next")) {
+      daysUntil = 7;
+    }
+    
     date.setDate(date.getDate() + daysUntil);
-    date.setHours(9, 0, 0, 0); // Default to 9 AM
+    
+    // Parse time if specified, otherwise default to 10 AM (reasonable meeting time)
+    const timeMatch = lower.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1]);
+      const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+      const meridiem = timeMatch[3]?.toLowerCase();
+      
+      if (meridiem === "pm" && hours < 12) hours += 12;
+      if (meridiem === "am" && hours === 12) hours = 0;
+      if (!meridiem && hours < 8) hours += 12; // Assume PM for times like "2" or "3"
+      
+      date.setHours(hours, minutes, 0, 0);
+    } else {
+      date.setHours(10, 0, 0, 0); // Default to 10 AM local time
+    }
+    
     return date;
   }
 
