@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { createClient } from "@/lib/supabase";
-import { cookies } from "next/headers";
 
 /**
  * GET /api/integrations/gmail
@@ -40,10 +39,10 @@ export async function GET() {
  * 
  * Disconnects Gmail integration
  */
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const userEmail = cookieStore.get("user_email")?.value;
+    const searchParams = request.nextUrl.searchParams;
+    const userEmail = searchParams.get("userEmail");
 
     if (!userEmail) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });

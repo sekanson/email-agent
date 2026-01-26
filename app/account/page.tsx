@@ -61,8 +61,10 @@ export default function SettingsPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState<"gmail" | "calendar" | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
 
   const userEmail =
     typeof window !== "undefined"
@@ -178,6 +180,33 @@ export default function SettingsPage() {
       console.error("Failed to delete account:", error);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleDisconnect(type: "gmail" | "calendar") {
+    setDisconnecting(true);
+    try {
+      const endpoint = type === "gmail" ? "/api/integrations/gmail" : "/api/integrations/calendar";
+      const res = await fetch(`${endpoint}?userEmail=${userEmail}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        // Update local state
+        setUser((prev: any) => prev ? {
+          ...prev,
+          [`${type}_connected`]: false,
+          [`${type}_connected_at`]: null,
+        } : prev);
+        setShowDisconnectModal(null);
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to disconnect");
+      }
+    } catch (error) {
+      console.error(`Failed to disconnect ${type}:`, error);
+      alert("Failed to disconnect. Please try again.");
+    } finally {
+      setDisconnecting(false);
     }
   }
 
@@ -710,9 +739,9 @@ export default function SettingsPage() {
                             </div>
                           </div>
                           <button
-                            onClick={() => setShowDeleteModal(true)}
+                            onClick={() => setShowDisconnectModal("gmail")}
                             className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
-                            title="Disconnect account"
+                            title="Disconnect Gmail"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -832,7 +861,7 @@ export default function SettingsPage() {
                             </div>
                           </div>
                           <button
-                            onClick={() => setShowDeleteModal(true)}
+                            onClick={() => setShowDisconnectModal("calendar")}
                             className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
                             title="Disconnect calendar"
                           >
@@ -1060,6 +1089,54 @@ export default function SettingsPage() {
                 className="min-h-[48px] flex-1 rounded-lg bg-red-500 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-red-600 disabled:opacity-50 sm:min-h-0 sm:py-2.5"
               >
                 {cancelling ? "Cancelling..." : "Cancel subscription"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Disconnect Integration Modal */}
+      {showDisconnectModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center">
+          <div className="w-full max-w-md rounded-t-2xl border-t border-[var(--border)] bg-[var(--bg-primary)] p-4 shadow-2xl sm:mx-4 sm:rounded-2xl sm:border sm:p-6">
+            <div className="flex items-center gap-3 text-amber-400">
+              <AlertTriangle className="h-6 w-6" />
+              <h3 className="text-lg font-semibold">
+                Disconnect {showDisconnectModal === "gmail" ? "Gmail" : "Calendar"}
+              </h3>
+            </div>
+            <p className="mt-4 text-sm text-[var(--text-secondary)]">
+              Are you sure you want to disconnect your {showDisconnectModal === "gmail" ? "Gmail" : "Google Calendar"} integration?
+            </p>
+            <ul className="mt-3 space-y-2 text-sm text-[var(--text-muted)]">
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-amber-400" />
+                {showDisconnectModal === "gmail" 
+                  ? "Zeno will no longer be able to read or draft emails"
+                  : "Zeno will no longer be able to book meetings"}
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />
+                Your account and other integrations will remain active
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-emerald-400" />
+                You can reconnect at any time
+              </li>
+            </ul>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:gap-3">
+              <button
+                onClick={() => setShowDisconnectModal(null)}
+                className="min-h-[48px] flex-1 rounded-lg border border-[var(--border)] px-4 py-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] sm:min-h-0 sm:py-2.5"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDisconnect(showDisconnectModal)}
+                disabled={disconnecting}
+                className="min-h-[48px] flex-1 rounded-lg bg-amber-500 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-amber-600 disabled:opacity-50 sm:min-h-0 sm:py-2.5"
+              >
+                {disconnecting ? "Disconnecting..." : "Disconnect"}
               </button>
             </div>
           </div>
