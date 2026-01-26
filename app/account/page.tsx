@@ -699,10 +699,14 @@ export default function SettingsPage() {
                     <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#0078D4] shadow-sm">
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                            {/* Official Outlook Logo */}
                             <svg className="h-7 w-7" viewBox="0 0 24 24">
-                              <path fill="#FFFFFF" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-                              <path fill="#0078D4" d="M0 0h24v24H0z" opacity="0"/>
+                              <path fill="#0A2767" d="M22.62 4.83L12 11.45 1.38 4.83A.5.5 0 0 1 1.85 4h20.3a.5.5 0 0 1 .47.83z"/>
+                              <path fill="#0078D4" d="M22.5 4H1.5A1.5 1.5 0 0 0 0 5.5v13A1.5 1.5 0 0 0 1.5 20h21a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 22.5 4z"/>
+                              <path fill="#28A8EA" d="M12 13L1.38 6.17A1.5 1.5 0 0 1 1.5 4h21a1.5 1.5 0 0 1 .12 2.17L12 13z"/>
+                              <path fill="#0078D4" d="M8.5 18a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z"/>
+                              <path fill="#FFFFFF" d="M8.5 10.5c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 5c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
                             </svg>
                           </div>
                           <div>
@@ -750,14 +754,36 @@ export default function SettingsPage() {
                             <p className="font-semibold text-[var(--text-primary)]">Google Calendar</p>
                             <p className="flex items-center gap-1.5 text-sm text-emerald-500">
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                              Connected
+                              1 account connected
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-500">
-                          <Check className="h-4 w-4" />
-                          <span>Auto-synced</span>
+                      </div>
+
+                      {/* Connected account details */}
+                      <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
+                        <div className="flex items-center gap-3">
+                          <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
+                          <div>
+                            <p className="text-sm font-medium text-[var(--text-primary)]">{user?.email}</p>
+                            <p className="text-xs text-[var(--text-muted)]">
+                              Connected {user?.created_at
+                                ? new Date(user.created_at).toLocaleDateString("en-US", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : ""}
+                            </p>
+                          </div>
                         </div>
+                        <button
+                          onClick={() => setShowDeleteModal(true)}
+                          className="rounded-lg p-2 text-[var(--text-muted)] transition-colors hover:bg-red-500/10 hover:text-red-500"
+                          title="Disconnect calendar"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </div>
 
@@ -828,6 +854,105 @@ export default function SettingsPage() {
                         <button
                           disabled
                           className="min-h-[44px] rounded-lg bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
+                        >
+                          Connect
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* CRM Section */}
+                  <section>
+                    <div className="mb-3 sm:mb-4">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">
+                          CRM
+                        </h2>
+                        <span className="rounded-full bg-[var(--accent)]/10 px-2 py-0.5 text-xs font-medium text-[var(--accent)]">
+                          Beta
+                        </span>
+                      </div>
+                      <p className="mt-1 text-sm text-[var(--text-muted)]">
+                        Connect your CRM to sync contacts and log email activity.
+                      </p>
+                    </div>
+
+                    {/* Monday.com Card - Coming Soon */}
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                            {/* Monday.com Logo */}
+                            <svg className="h-7 w-7" viewBox="0 0 24 24">
+                              <circle fill="#FF3D57" cx="5" cy="12" r="3"/>
+                              <circle fill="#FFCB00" cx="12" cy="12" r="3"/>
+                              <circle fill="#00CA72" cx="19" cy="12" r="3"/>
+                              <circle fill="#FF3D57" cx="5" cy="5" r="2"/>
+                              <circle fill="#FFCB00" cx="12" cy="5" r="2"/>
+                              <circle fill="#00CA72" cx="19" cy="5" r="2"/>
+                              <circle fill="#FF3D57" cx="5" cy="19" r="2"/>
+                              <circle fill="#FFCB00" cx="12" cy="19" r="2"/>
+                              <circle fill="#00CA72" cx="19" cy="19" r="2"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[var(--text-primary)]">Monday.com</p>
+                            <p className="text-sm text-[var(--text-muted)]">Coming soon</p>
+                          </div>
+                        </div>
+                        <button
+                          disabled
+                          className="min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
+                        >
+                          Connect
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* HubSpot Card - Coming Soon */}
+                    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#FF7A59] shadow-sm">
+                            {/* HubSpot Logo */}
+                            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#FFFFFF">
+                              <path d="M18.16 7.58v3.24c-.46-.27-.99-.43-1.56-.43-1.73 0-3.13 1.47-3.13 3.28 0 1.81 1.4 3.28 3.13 3.28.57 0 1.1-.16 1.56-.43v.38c0 .21.17.38.38.38h1.49c.21 0 .38-.17.38-.38V7.58c0-.21-.17-.38-.38-.38h-1.49c-.21 0-.38.17-.38.38zm-1.56 7.75c-.96 0-1.74-.82-1.74-1.83 0-1.01.78-1.83 1.74-1.83s1.74.82 1.74 1.83c0 1.01-.78 1.83-1.74 1.83z"/>
+                              <circle cx="8.5" cy="13.5" r="3"/>
+                              <path d="M8.5 8.5v2M8.5 16.5v2"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[var(--text-primary)]">HubSpot</p>
+                            <p className="text-sm text-[var(--text-muted)]">Coming soon</p>
+                          </div>
+                        </div>
+                        <button
+                          disabled
+                          className="min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
+                        >
+                          Connect
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Salesforce Card - Coming Soon */}
+                    <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#00A1E0] shadow-sm">
+                            {/* Salesforce Logo */}
+                            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#FFFFFF">
+                              <path d="M10.5 5.5c1.1-.7 2.4-1 3.8-1 2.2 0 4.1 1 5.4 2.5.9-.4 1.9-.6 2.9-.6 3.6 0 6.4 2.9 6.4 6.4 0 3.6-2.9 6.4-6.4 6.4-.5 0-1-.1-1.5-.2-.9 1.5-2.5 2.5-4.4 2.5-1.2 0-2.3-.4-3.2-1.1-.9 1.1-2.3 1.8-3.8 1.8-2.8 0-5-2.2-5-5 0-1.1.4-2.2 1-3-.6-.8-1-1.8-1-2.9 0-2.8 2.2-5 5-5 1.1 0 2.1.3 2.9.9z"/>
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="font-semibold text-[var(--text-primary)]">Salesforce</p>
+                            <p className="text-sm text-[var(--text-muted)]">Coming soon</p>
+                          </div>
+                        </div>
+                        <button
+                          disabled
+                          className="min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--text-muted)] sm:min-h-0"
                         >
                           Connect
                         </button>
