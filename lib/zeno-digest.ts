@@ -224,8 +224,11 @@ export function generateDigestEmail(
   const calendarCount = emails.filter((e) => e.classification.category === 5).length;
   const totalCount = emails.length;
 
-  // Generate subject
-  let subject = `📬 Zeno: `;
+  // Count pending too
+  const pendingCount = emails.filter((e) => e.classification.category === 6).length;
+
+  // Generate subject (avoid emoji in subject line - email encoding issues)
+  let subject = `Zeno: `;
   if (respondCount > 0) {
     subject += `${respondCount} email${respondCount > 1 ? "s" : ""} need${respondCount === 1 ? "s" : ""} your attention`;
   } else if (calendarCount > 0) {
@@ -260,22 +263,27 @@ export function generateDigestEmail(
       </p>
     </div>
 
-    <!-- Summary Bar -->
-    <div style="background: #FFFFFF; border-radius: 12px; padding: 16px; 
-                margin-bottom: 20px; display: flex; justify-content: space-around; text-align: center;">
-      <div>
-        <div style="font-size: 24px; font-weight: 700; color: #EF4444;">${respondCount}</div>
-        <div style="font-size: 12px; color: #6B7280;">Need Response</div>
-      </div>
-      <div>
-        <div style="font-size: 24px; font-weight: 700; color: #A855F7;">${calendarCount}</div>
-        <div style="font-size: 12px; color: #6B7280;">Calendar</div>
-      </div>
-      <div>
-        <div style="font-size: 24px; font-weight: 700; color: #3B82F6;">${totalCount}</div>
-        <div style="font-size: 12px; color: #6B7280;">Total</div>
-      </div>
-    </div>
+    <!-- Summary Bar (table for email compatibility) -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="background: #FFFFFF; border-radius: 12px; margin-bottom: 20px;">
+      <tr>
+        <td style="padding: 16px; text-align: center; width: 25%;">
+          <div style="font-size: 24px; font-weight: 700; color: #EF4444;">${respondCount}</div>
+          <div style="font-size: 12px; color: #6B7280;">Respond</div>
+        </td>
+        <td style="padding: 16px; text-align: center; width: 25%;">
+          <div style="font-size: 24px; font-weight: 700; color: #60A5FA;">${pendingCount}</div>
+          <div style="font-size: 12px; color: #6B7280;">Pending</div>
+        </td>
+        <td style="padding: 16px; text-align: center; width: 25%;">
+          <div style="font-size: 24px; font-weight: 700; color: #A855F7;">${calendarCount}</div>
+          <div style="font-size: 12px; color: #6B7280;">Calendar</div>
+        </td>
+        <td style="padding: 16px; text-align: center; width: 25%;">
+          <div style="font-size: 24px; font-weight: 700; color: #3B82F6;">${totalCount}</div>
+          <div style="font-size: 12px; color: #6B7280;">Total</div>
+        </td>
+      </tr>
+    </table>
 
     <!-- Quick Reply Instructions -->
     <div style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; 
