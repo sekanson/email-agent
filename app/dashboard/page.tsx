@@ -26,6 +26,8 @@ import {
   Inbox,
   Filter,
   X,
+  Calendar,
+  Trash2,
 } from "lucide-react";
 
 interface ProcessedEmail {
@@ -448,11 +450,40 @@ export default function Dashboard() {
 
   // Calculate actionable metrics
   const needsAttention = (metrics.byCategory[1] || 0) + (metrics.byCategory[6] || 0);
-  const draftsReady = emails.filter(e => e.draft_id).length;
-  const timeSavedMinutes = metrics.totalProcessed * 2;
-  const timeSavedDisplay = timeSavedMinutes >= 60 
-    ? `${Math.floor(timeSavedMinutes / 60)}h ${timeSavedMinutes % 60}m`
-    : `${timeSavedMinutes}m`;
+  const calendarInvites = metrics.byCategory[5] || 0; // Category 5 is Meeting/Calendar
+  const spamCleared = metrics.byCategory[8] || 0; // Category 8 is Marketing/Spam
+  
+  // Weekly time saved calculation - variable time based on email types
+  // More realistic: spam=30s, notifications=45s, FYI=1min, responses=3min, meetings=2min
+  const calculateWeeklyTimeSaved = () => {
+    const timePerCategory: Record<number, number> = {
+      1: 3,    // To Respond - 3 min (reading + drafting)
+      2: 1,    // FYI - 1 min
+      3: 1.5,  // Comment - 1.5 min
+      4: 0.75, // Notification - 45 sec
+      5: 2,    // Meeting - 2 min
+      6: 1.5,  // Awaiting Reply - 1.5 min
+      7: 0.5,  // Actioned - 30 sec
+      8: 0.5,  // Marketing/Spam - 30 sec
+    };
+    
+    let totalMinutes = 0;
+    Object.entries(metrics.byCategory).forEach(([cat, count]) => {
+      const catNum = parseInt(cat);
+      const timePerEmail = timePerCategory[catNum] || 1;
+      totalMinutes += count * timePerEmail;
+    });
+    
+    // Add 20% efficiency bonus for batch processing
+    totalMinutes = Math.round(totalMinutes * 1.2);
+    
+    return totalMinutes;
+  };
+  
+  const weeklyTimeSavedMinutes = calculateWeeklyTimeSaved();
+  const timeSavedDisplay = weeklyTimeSavedMinutes >= 60 
+    ? `${Math.floor(weeklyTimeSavedMinutes / 60)}h ${weeklyTimeSavedMinutes % 60}m`
+    : `${weeklyTimeSavedMinutes}m`;
 
   function getCategoryColor(category: number): string {
     return categories[category.toString()]?.color || "#6b7280";
@@ -528,22 +559,33 @@ export default function Dashboard() {
                   </h1>
                 </div>
                 
-                {/* Compact Agent Status */}
+                {/* Agent Status with Toggle */}
                 {labelsCreated && (
-                  <button
-                    onClick={toggleAutoPolling}
-                    className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                      autoPolling
-                        ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
-                        : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--border)]"
-                    }`}
-                  >
-                    <span className={`h-2 w-2 rounded-full ${autoPolling ? "bg-emerald-400 animate-pulse" : "bg-[var(--text-muted)]"}`} />
-                    {autoPolling ? "Active" : "Paused"}
-                    {autoPolling && nextPollIn !== null && (
-                      <span className="text-emerald-400/70">• {nextPollIn}s</span>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${autoPolling ? "bg-emerald-400 animate-pulse" : "bg-[var(--text-muted)]"}`} />
+                      <span className="text-xs font-medium text-[var(--text-secondary)]">
+                        {autoPolling ? "Active" : "Paused"}
+                      </span>
+                      {autoPolling && nextPollIn !== null && (
+                        <span className="text-xs text-[var(--text-muted)]">• {nextPollIn}s</span>
+                      )}
+                    </div>
+                    {/* Toggle Switch */}
+                    <button
+                      onClick={toggleAutoPolling}
+                      className={`relative h-5 w-9 rounded-full transition-colors ${
+                        autoPolling ? "bg-emerald-500" : "bg-[var(--bg-elevated)]"
+                      }`}
+                      aria-label={autoPolling ? "Pause agent" : "Start agent"}
+                    >
+                      <div
+                        className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                          autoPolling ? "translate-x-4" : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -671,53 +713,59 @@ export default function Dashboard() {
               </div>
             </button>
 
-            {/* Drafts Ready */}
-            <Link
-              href="/drafts"
-              className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left transition-all hover:border-emerald-500/30 hover:shadow-lg sm:p-5"
+            {/* Calendar Invites */}
+            <button
+              onClick={() => setCategoryFilter(categoryFilter === 5 ? null : 5)}
+              className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all hover:shadow-lg sm:p-5 ${
+                categoryFilter === 5
+                  ? "border-purple-500/50 bg-purple-500/10"
+                  : "border-[var(--border)] bg-[var(--bg-card)] hover:border-purple-500/30"
+              }`}
+            >
+              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-purple-500/10 blur-2xl transition-all group-hover:bg-purple-500/20" />
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 sm:h-11 sm:w-11">
+                  <Calendar className="h-5 w-5 text-purple-400" />
+                </div>
+                <p className="mt-3 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
+                  {calendarInvites}
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">Calendar Invites</p>
+              </div>
+            </button>
+
+            {/* Spam Cleared */}
+            <button
+              onClick={() => setCategoryFilter(categoryFilter === 8 ? null : 8)}
+              className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all hover:shadow-lg sm:p-5 ${
+                categoryFilter === 8
+                  ? "border-emerald-500/50 bg-emerald-500/10"
+                  : "border-[var(--border)] bg-[var(--bg-card)] hover:border-emerald-500/30"
+              }`}
             >
               <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20" />
               <div className="relative">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 sm:h-11 sm:w-11">
-                  <FileText className="h-5 w-5 text-emerald-400" />
+                  <Trash2 className="h-5 w-5 text-emerald-400" />
                 </div>
                 <p className="mt-3 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
-                  {draftsReady}
+                  {spamCleared}
                 </p>
-                <p className="mt-0.5 flex items-center gap-1 text-xs text-[var(--text-muted)] sm:text-sm">
-                  Drafts Ready
-                  <ArrowRight className="h-3 w-3 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
-                </p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">Spam Cleared</p>
               </div>
-            </Link>
+            </button>
 
-            {/* Processed */}
+            {/* Time Saved Weekly */}
             <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5">
-              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
+              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-amber-500/10 blur-2xl" />
               <div className="relative">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 sm:h-11 sm:w-11">
-                  <Inbox className="h-5 w-5 text-blue-400" />
-                </div>
-                <p className="mt-3 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
-                  {metrics.totalProcessed}
-                </p>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">
-                  {dateRange === "all" ? "Total Processed" : dateRange === "today" ? "Today" : dateRange === "week" ? "This Week" : "This Month"}
-                </p>
-              </div>
-            </div>
-
-            {/* Time Saved */}
-            <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5">
-              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-purple-500/10 blur-2xl" />
-              <div className="relative">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 sm:h-11 sm:w-11">
-                  <Clock className="h-5 w-5 text-purple-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 sm:h-11 sm:w-11">
+                  <Clock className="h-5 w-5 text-amber-400" />
                 </div>
                 <p className="mt-3 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
                   {timeSavedDisplay}
                 </p>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">Time Saved</p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">Time Saved Weekly</p>
               </div>
             </div>
           </div>
