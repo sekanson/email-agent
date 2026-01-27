@@ -575,6 +575,62 @@ export async function sendEmail(
   return response.data;
 }
 
+/**
+ * Get all participants (To, CC, From) from a thread for reply-all functionality
+ * Returns unique emails excluding the user's own email
+ */
+export async function getThreadParticipants(
+  accessToken: string,
+  refreshToken: string,
+  threadId: string,
+  userEmail: string
+): Promise<{ to: string[]; cc: string[] }> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  const response = await gmail.users.threads.get({
+    userId: "me",
+    id: threadId,
+    format: "metadata",
+    metadataHeaders: ["From", "To", "Cc"],
+  });
+
+  const messages = response.data.messages || [];
+  const allParticipants = new Set<string>();
+  const userEmailLower = userEmail.toLowerCase();
+
+  for (const msg of messages) {
+    const headers = msg.payload?.headers || [];
+    
+    for (const header of headers) {
+      if (["from", "to", "cc"].includes(header.name?.toLowerCase() || "")) {
+        const value = header.value || "";
+        // Parse multiple addresses (comma-separated)
+        const addresses = value.split(",").map(addr => {
+          const email = extractEmailAddress(addr.trim());
+          return email.toLowerCase();
+        }).filter(email => email && email !== userEmailLower);
+        
+        addresses.forEach(addr => allParticipants.add(addr));
+      }
+    }
+  }
+
+  // Get the most recent message to determine primary recipient
+  const lastMsg = messages[messages.length - 1];
+  const lastHeaders = lastMsg?.payload?.headers || [];
+  const lastFrom = extractEmailAddress(
+    lastHeaders.find(h => h.name?.toLowerCase() === "from")?.value || ""
+  ).toLowerCase();
+
+  // Primary "To" is whoever sent the last message (we're replying to them)
+  // Everyone else goes to CC
+  const to = lastFrom && lastFrom !== userEmailLower ? [lastFrom] : [];
+  const cc = Array.from(allParticipants).filter(addr => !to.includes(addr));
+
+  return { to, cc };
+}
+
 export async function markAsRead(
   accessToken: string,
   refreshToken: string,

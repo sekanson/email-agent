@@ -151,6 +151,177 @@ export async function getFreeBusy(
   return { busy, free };
 }
 
+export interface MultiCalendarResult {
+  userBusy: TimeSlot[];
+  attendeeBusy: { [email: string]: TimeSlot[] };
+  attendeeErrors: { [email: string]: string };
+  combinedBusy: TimeSlot[];
+  suggestedSlots: TimeSlot[];
+}
+
+/**
+ * Check availability for user AND attendees (with graceful fallback for external users)
+ */
+export async function checkMultipleCalendars(
+  accessToken: string,
+  refreshToken: string,
+  startTime: Date,
+  endTime: Date,
+  userEmail: string,
+  attendeeEmails: string[],
+  durationMinutes: number = 30
+): Promise<MultiCalendarResult> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const calendar = google.calendar({ version: "v3", auth });
+
+  // Query all calendars at once
+  const allEmails = [userEmail, ...attendeeEmails];
+  
+  const response = await calendar.freebusy.query({
+    requestBody: {
+      timeMin: startTime.toISOString(),
+      timeMax: endTime.toISOString(),
+      items: allEmails.map(email => ({ id: email })),
+    },
+  });
+
+  const calendars = response.data.calendars || {};
+  
+  // Extract user's busy times
+  const userBusy: TimeSlot[] = (calendars[userEmail]?.busy || []).map(slot => ({
+    start: new Date(slot.start!),
+    end: new Date(slot.end!),
+  }));
+
+  // Extract attendee busy times (with error handling for external users)
+  const attendeeBusy: { [email: string]: TimeSlot[] } = {};
+  const attendeeErrors: { [email: string]: string } = {};
+
+  for (const email of attendeeEmails) {
+    const calData = calendars[email];
+    if (calData?.errors && calData.errors.length > 0) {
+      // External user or no access
+      attendeeErrors[email] = calData.errors[0].reason || "Unable to check calendar";
+    } else {
+      attendeeBusy[email] = (calData?.busy || []).map(slot => ({
+        start: new Date(slot.start!),
+        end: new Date(slot.end!),
+      }));
+    }
+  }
+
+  // Combine all busy times
+  const allBusySlots: TimeSlot[] = [
+    ...userBusy,
+    ...Object.values(attendeeBusy).flat(),
+  ];
+
+  // Sort and merge overlapping busy slots
+  const combinedBusy = mergeOverlappingSlots(allBusySlots);
+
+  // Find available slots
+  const suggestedSlots = findFreeSlots(startTime, endTime, combinedBusy, durationMinutes);
+
+  return {
+    userBusy,
+    attendeeBusy,
+    attendeeErrors,
+    combinedBusy,
+    suggestedSlots,
+  };
+}
+
+/**
+ * Merge overlapping time slots
+ */
+function mergeOverlappingSlots(slots: TimeSlot[]): TimeSlot[] {
+  if (slots.length === 0) return [];
+
+  // Sort by start time
+  const sorted = [...slots].sort((a, b) => a.start.getTime() - b.start.getTime());
+  
+  const merged: TimeSlot[] = [sorted[0]];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const current = sorted[i];
+    const last = merged[merged.length - 1];
+
+    if (current.start.getTime() <= last.end.getTime()) {
+      // Overlapping - extend the end time if needed
+      if (current.end.getTime() > last.end.getTime()) {
+        last.end = current.end;
+      }
+    } else {
+      // No overlap - add new slot
+      merged.push(current);
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * Find free slots of given duration within a time range
+ */
+function findFreeSlots(
+  startTime: Date,
+  endTime: Date,
+  busySlots: TimeSlot[],
+  durationMinutes: number,
+  workingHoursStart: number = 9,
+  workingHoursEnd: number = 17
+): TimeSlot[] {
+  const freeSlots: TimeSlot[] = [];
+  const durationMs = durationMinutes * 60 * 1000;
+  
+  let currentStart = new Date(startTime);
+
+  for (const busy of busySlots) {
+    // Check gap before this busy slot
+    while (currentStart.getTime() + durationMs <= busy.start.getTime()) {
+      const hour = currentStart.getHours();
+      
+      // Only during working hours
+      if (hour >= workingHoursStart && hour < workingHoursEnd) {
+        const slotEnd = new Date(currentStart.getTime() + durationMs);
+        if (slotEnd.getHours() <= workingHoursEnd) {
+          freeSlots.push({
+            start: new Date(currentStart),
+            end: slotEnd,
+          });
+        }
+      }
+      
+      // Move to next 30-min slot
+      currentStart = new Date(currentStart.getTime() + 30 * 60 * 1000);
+    }
+    
+    // Skip past this busy slot
+    if (busy.end.getTime() > currentStart.getTime()) {
+      currentStart = new Date(busy.end);
+    }
+  }
+
+  // Check remaining time after last busy slot
+  while (currentStart.getTime() + durationMs <= endTime.getTime() && freeSlots.length < 5) {
+    const hour = currentStart.getHours();
+    
+    if (hour >= workingHoursStart && hour < workingHoursEnd) {
+      const slotEnd = new Date(currentStart.getTime() + durationMs);
+      if (slotEnd.getHours() <= workingHoursEnd) {
+        freeSlots.push({
+          start: new Date(currentStart),
+          end: slotEnd,
+        });
+      }
+    }
+    
+    currentStart = new Date(currentStart.getTime() + 30 * 60 * 1000);
+  }
+
+  return freeSlots.slice(0, 5); // Return top 5 suggestions
+}
+
 /**
  * Find available slots for a meeting of given duration
  */

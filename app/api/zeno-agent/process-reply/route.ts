@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
-import { createDraft, sendEmail } from "@/lib/gmail";
+import { createDraft, sendEmail, getThreadParticipants } from "@/lib/gmail";
 import { sendActionConfirmation } from "@/lib/zeno-mailer";
+import { checkMultipleCalendars, createEvent, parseTimeExpression, formatAvailableSlots } from "@/lib/calendar";
 import Anthropic from "@anthropic-ai/sdk";
 
 // Force Node.js runtime (not Edge) for nodemailer compatibility
@@ -141,7 +142,7 @@ async function executeAction(
   
   switch (action.type) {
     case "reply": {
-      // Quick reply to a numbered email
+      // Quick reply to a numbered email (REPLY-ALL by default)
       if (!action.replyNumber || action.replyNumber > recentEmails.length) {
         return { success: false, result: `Invalid reply number: ${action.replyNumber}` };
       }
@@ -152,19 +153,41 @@ async function executeAction(
       }
 
       try {
+        // Get all thread participants for reply-all
+        let ccRecipients: string | undefined;
+        if (targetEmail.thread_id) {
+          try {
+            const participants = await getThreadParticipants(
+              user.access_token,
+              user.refresh_token,
+              targetEmail.thread_id,
+              user.email
+            );
+            // Add CC recipients if there are others in the thread
+            if (participants.cc.length > 0) {
+              ccRecipients = participants.cc.join(", ");
+            }
+          } catch (e) {
+            // If we can't get participants, just reply to sender
+            console.log("Could not get thread participants, replying to sender only");
+          }
+        }
+
         await createDraft(
           user.access_token,
           user.refresh_token,
           targetEmail.from_email,
-          targetEmail.subject,
+          targetEmail.subject.startsWith("Re:") ? targetEmail.subject : `Re: ${targetEmail.subject}`,
           action.message || "",
           targetEmail.thread_id || targetEmail.gmail_id,
-          undefined,
+          ccRecipients,
           user.email
         );
+        
+        const ccNote = ccRecipients ? ` (CC: ${ccRecipients.split(",").length} others)` : "";
         return { 
           success: true, 
-          result: `Created draft reply to ${targetEmail.from}: "${action.message?.slice(0, 50)}..."` 
+          result: `✅ Draft created to ${targetEmail.from}${ccNote}: "${action.message?.slice(0, 50)}..."` 
         };
       } catch (error: any) {
         return { success: false, result: `Failed to create draft: ${error.message}` };
@@ -234,7 +257,7 @@ async function executeAction(
     }
 
     case "schedule": {
-      // Schedule a meeting (requires calendar integration)
+      // Schedule a meeting with REAL calendar integration
       const details = action.meetingDetails;
       if (!details || !details.attendees?.length) {
         return { 
@@ -243,37 +266,115 @@ async function executeAction(
         };
       }
 
-      // For now, create a calendar invite email draft
-      // Full calendar integration would use Google Calendar API
       const attendeeList = details.attendees.join(", ");
-      const meetingBody = `Hi,
+      const durationMinutes = details.duration || 30;
+
+      try {
+        // Parse the requested time
+        const requestedTime = parseTimeExpression(`${details.date} ${details.time}`);
+        
+        if (!requestedTime) {
+          return {
+            success: false,
+            result: `Could not parse the meeting time "${details.date} ${details.time}". Try something like "tomorrow at 2pm" or "next Monday at 10am".`
+          };
+        }
+
+        // Calculate time range to check (around the requested time)
+        const startCheck = new Date(requestedTime);
+        startCheck.setHours(startCheck.getHours() - 2); // Check 2 hours before
+        const endCheck = new Date(requestedTime);
+        endCheck.setDate(endCheck.getDate() + 2); // Check 2 days ahead for alternatives
+
+        // Check both user's AND attendees' calendars
+        const availability = await checkMultipleCalendars(
+          user.access_token,
+          user.refresh_token,
+          startCheck,
+          endCheck,
+          user.email,
+          details.attendees,
+          durationMinutes
+        );
+
+        // Check if requested time works for everyone
+        const requestedEnd = new Date(requestedTime.getTime() + durationMinutes * 60 * 1000);
+        const hasConflict = availability.combinedBusy.some(busy => 
+          (requestedTime >= busy.start && requestedTime < busy.end) ||
+          (requestedEnd > busy.start && requestedEnd <= busy.end)
+        );
+
+        // Build status message about attendee calendars
+        const externalAttendees = Object.keys(availability.attendeeErrors);
+        let attendeeNote = "";
+        if (externalAttendees.length > 0) {
+          attendeeNote = `\n\n⚠️ Note: Could not check calendar for: ${externalAttendees.join(", ")} (external or private calendars)`;
+        }
+
+        if (hasConflict) {
+          // Conflict found - suggest alternatives
+          const alternatives = availability.suggestedSlots.slice(0, 3);
+          const altText = alternatives.length > 0
+            ? `\n\nSuggested times when everyone is free:\n${formatAvailableSlots(alternatives)}`
+            : "\n\nNo common free slots found in the next 2 days.";
+
+          return {
+            success: false,
+            result: `⚠️ Calendar conflict detected for ${details.date} at ${details.time}.${altText}${attendeeNote}\n\nReply with a different time to try again.`
+          };
+        }
+
+        // No conflict - create the calendar event!
+        const event = await createEvent(
+          user.access_token,
+          user.refresh_token,
+          {
+            summary: details.subject || `Meeting with ${attendeeList}`,
+            description: `Scheduled by Zeno Email Agent`,
+            start: requestedTime,
+            end: requestedEnd,
+            attendees: details.attendees,
+            addMeetLink: true, // Add Google Meet link
+            sendInvites: true, // Send calendar invites to attendees
+          }
+        );
+
+        return { 
+          success: true, 
+          result: `✅ Meeting booked!\n\n📅 ${details.subject || "Meeting"} with ${attendeeList}\n🕐 ${requestedTime.toLocaleString()}\n⏱️ ${durationMinutes} minutes\n${event.meetLink ? `🔗 ${event.meetLink}` : ""}\n\nCalendar invites sent to all attendees.${attendeeNote}` 
+        };
+      } catch (error: any) {
+        // Fallback: create draft if calendar fails
+        console.error("Calendar error, falling back to draft:", error);
+        const meetingBody = `Hi,
 
 I'd like to schedule a meeting:
 
 Date: ${details.date}
 Time: ${details.time}
-Duration: ${details.duration || 30} minutes
+Duration: ${durationMinutes} minutes
 ${details.subject ? `Topic: ${details.subject}` : ""}
 
 Please let me know if this works for you.`;
 
-      try {
-        await createDraft(
-          user.access_token,
-          user.refresh_token,
-          details.attendees[0],
-          details.subject || `Meeting Request - ${details.date} at ${details.time}`,
-          meetingBody,
-          "",
-          details.attendees.length > 1 ? details.attendees.slice(1).join(", ") : undefined,
-          user.email
-        );
-        return { 
-          success: true, 
-          result: `Created meeting request draft for ${attendeeList} on ${details.date} at ${details.time}. Review and send from Gmail to create calendar invite.` 
-        };
-      } catch (error: any) {
-        return { success: false, result: `Failed to create meeting request: ${error.message}` };
+        try {
+          await createDraft(
+            user.access_token,
+            user.refresh_token,
+            details.attendees[0],
+            details.subject || `Meeting Request - ${details.date} at ${details.time}`,
+            meetingBody,
+            "",
+            details.attendees.length > 1 ? details.attendees.slice(1).join(", ") : undefined,
+            user.email
+          );
+          return { 
+            success: true, 
+            result: `⚠️ Could not access calendar directly. Created meeting request draft for ${attendeeList}. Review and send from Gmail.` 
+          };
+        } catch (draftError: any) {
+          return { success: false, result: `Failed to schedule meeting: ${error.message}` };
+        }
       }
     }
 
