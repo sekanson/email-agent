@@ -29,6 +29,7 @@ import {
   Calendar,
   Trash2,
 } from "lucide-react";
+import { DEFAULT_CATEGORIES, getCategoryColor, getCategoryName, type CategoryConfig } from "@/lib/categories";
 
 interface ProcessedEmail {
   id: string;
@@ -53,93 +54,6 @@ interface Metrics {
   byCategory: Record<number, number>;
   totalAll: number;
 }
-
-interface CategoryConfig {
-  name: string;
-  color: string;
-  enabled: boolean;
-  required?: boolean;
-  description: string;
-  rules?: string;
-  drafts?: boolean;
-  order: number;
-}
-
-const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": {
-    name: "To Respond",
-    color: "#F87171",
-    enabled: true,
-    required: true,
-    description: "Requires your reply or action",
-    rules: "",
-    drafts: true,
-    order: 1,
-  },
-  "2": {
-    name: "FYI",
-    color: "#FB923C",
-    enabled: true,
-    description: "Worth knowing, no response required",
-    rules: "",
-    drafts: false,
-    order: 2,
-  },
-  "3": {
-    name: "Comment",
-    color: "#22D3EE",
-    enabled: true,
-    description: "Mentions from docs, threads & chats",
-    rules: "",
-    drafts: false,
-    order: 3,
-  },
-  "4": {
-    name: "Notification",
-    color: "#4ADE80",
-    enabled: true,
-    description: "Automated alerts & confirmations",
-    rules: "",
-    drafts: false,
-    order: 4,
-  },
-  "5": {
-    name: "Meeting",
-    color: "#A855F7",
-    enabled: true,
-    description: "Meetings, invites & calendar events",
-    rules: "",
-    drafts: false,
-    order: 5,
-  },
-  "6": {
-    name: "Awaiting Reply",
-    color: "#60A5FA",
-    enabled: true,
-    description: "Waiting on someone else's response",
-    rules: "",
-    drafts: false,
-    order: 6,
-  },
-  "7": {
-    name: "Actioned",
-    color: "#2DD4BF",
-    enabled: true,
-    description: "Resolved or finished conversations",
-    rules: "",
-    drafts: false,
-    order: 7,
-  },
-  "8": {
-    name: "Marketing",
-    color: "#F472B6",
-    enabled: true,
-    description: "Newsletters, sales & promotional",
-    rules: "",
-    drafts: false,
-    order: 8,
-  },
-};
 
 const DATE_RANGES = [
   { value: "all", label: "All Time" },
@@ -485,13 +399,9 @@ export default function Dashboard() {
     ? `${Math.floor(weeklyTimeSavedMinutes / 60)}h ${weeklyTimeSavedMinutes % 60}m`
     : `${weeklyTimeSavedMinutes}m`;
 
-  function getCategoryColor(category: number): string {
-    return categories[category.toString()]?.color || "#6b7280";
-  }
-
-  function getCategoryName(category: number): string {
-    return categories[category.toString()]?.name || `Category ${category}`;
-  }
+  // Use shared category helpers
+  const getCatColor = (category: number) => getCategoryColor(categories, category);
+  const getCatName = (category: number) => getCategoryName(categories, category);
 
   const displayedEmails = emails.slice(0, displayLimit);
   const hasMore = emails.length > displayLimit;
@@ -768,11 +678,11 @@ export default function Dashboard() {
                       onClick={() => setCategoryFilter(null)}
                       className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
                       style={{
-                        backgroundColor: `${getCategoryColor(categoryFilter)}15`,
-                        color: getCategoryColor(categoryFilter),
+                        backgroundColor: `${getCatColor(categoryFilter)}15`,
+                        color: getCatColor(categoryFilter),
                       }}
                     >
-                      {getCategoryName(categoryFilter)}
+                      {getCatName(categoryFilter)}
                       <X className="h-3 w-3" />
                     </button>
                   )}
@@ -854,7 +764,7 @@ export default function Dashboard() {
                 <div className="divide-y divide-[var(--border)]">
                   {displayedEmails.map((email) => {
                     const isExpanded = expandedEmails.has(email.id);
-                    const categoryColor = getCategoryColor(email.category);
+                    const categoryColor = getCatColor(email.category);
                     
                     return (
                       <div key={email.id} className="relative">
@@ -895,7 +805,7 @@ export default function Dashboard() {
                                 color: categoryColor,
                               }}
                             >
-                              {getCategoryName(email.category)}
+                              {getCatName(email.category)}
                             </span>
                             <span className="text-xs text-[var(--text-muted)]">
                               {new Date(email.processed_at).toLocaleDateString()}
@@ -916,7 +826,7 @@ export default function Dashboard() {
                                     color: categoryColor,
                                   }}
                                 >
-                                  {getCategoryName(email.category)}
+                                  {getCatName(email.category)}
                                 </span>
                               </div>
                               

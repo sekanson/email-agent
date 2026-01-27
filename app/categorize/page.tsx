@@ -2,18 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
-import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Lock, RotateCcw } from "lucide-react";
-
-interface CategoryConfig {
-  name: string;
-  color: string;
-  enabled: boolean;
-  required?: boolean;
-  description: string;
-  rules?: string;
-  drafts?: boolean;
-  order: number;
-}
+import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Lock, RotateCcw, AlertTriangle } from "lucide-react";
+import { DEFAULT_CATEGORIES as SHARED_DEFAULTS, COLOR_PRESETS, type CategoryConfig } from "@/lib/categories";
 
 interface Settings {
   temperature: number;
@@ -46,84 +36,17 @@ function isOtherCategory(name: string): boolean {
 }
 
 function isRespondCategory(name: string): boolean {
-  return getDisplayName(name) === "Respond";
+  const displayName = getDisplayName(name);
+  return displayName === "To Respond" || displayName === "Respond";
 }
 
-const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": {
-    name: "1: Respond",
-    color: "#F87171",
-    enabled: true,
-    required: true,
-    description: "Requires your reply or action",
-    rules: "",
-    drafts: true,
-    order: 1,
-  },
-  "2": {
-    name: "2: Update",
-    color: "#FB923C",
-    enabled: true,
-    description: "Worth knowing, no response required",
-    rules: "",
-    drafts: false,
-    order: 2,
-  },
-  "3": {
-    name: "3: Comment",
-    color: "#22D3EE",
-    enabled: true,
-    description: "Mentions from docs, threads & chats",
-    rules: "",
-    drafts: false,
-    order: 3,
-  },
-  "4": {
-    name: "4: Notification",
-    color: "#4ADE80",
-    enabled: true,
-    description: "Automated alerts & confirmations",
-    rules: "",
-    drafts: false,
-    order: 4,
-  },
-  "5": {
-    name: "5: Calendar",
-    color: "#A855F7",
-    enabled: true,
-    description: "Meetings, invites & calendar events",
-    rules: "",
-    drafts: false,
-    order: 5,
-  },
-  "6": {
-    name: "6: Pending",
-    color: "#60A5FA",
-    enabled: true,
-    description: "Waiting on someone else's response",
-    rules: "",
-    drafts: false,
-    order: 6,
-  },
-  "7": {
-    name: "7: Complete",
-    color: "#2DD4BF",
-    enabled: true,
-    description: "Resolved or finished conversations",
-    rules: "",
-    drafts: false,
-    order: 7,
-  },
-  "8": {
-    name: "8: Marketing/Spam",
-    color: "#F472B6",
-    enabled: true,
-    description: "Newsletters, sales & promotional",
-    rules: "",
-    drafts: false,
-    order: 8,
-  },
-};
+// Build DEFAULT_CATEGORIES from shared defaults (adds number prefixes)
+const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = Object.fromEntries(
+  Object.entries(SHARED_DEFAULTS).map(([key, config]) => [
+    key,
+    { ...config, name: `${key}: ${config.name}` }
+  ])
+);
 
 const OTHER_CATEGORY: CategoryConfig = {
   name: "Other",
@@ -136,7 +59,8 @@ const OTHER_CATEGORY: CategoryConfig = {
   order: 99,
 };
 
-const DEFAULT_DISPLAY_NAMES = ["Respond", "Update", "Comment", "Notification", "Calendar", "Pending", "Complete", "Marketing/Spam"];
+// Get display names from shared defaults
+const DEFAULT_DISPLAY_NAMES = Object.values(SHARED_DEFAULTS).map(c => c.name);
 
 function hasAllDefaults(categories: Record<string, CategoryConfig>): boolean {
   const currentDisplayNames = Object.values(categories)
@@ -211,6 +135,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [setupLoading, setSetupLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [needsSync, setNeedsSync] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
@@ -267,7 +193,9 @@ export default function SettingsPage() {
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Settings saved successfully!" });
+        setMessage({ type: "success", text: "Settings saved! Sync labels to update Gmail." });
+        setHasUnsavedChanges(false);
+        setNeedsSync(true);
       } else {
         setMessage({ type: "error", text: "Failed to save settings" });
       }
@@ -309,6 +237,8 @@ export default function SettingsPage() {
           text: statusText.trim(),
         });
         setUser((prev) => (prev ? { ...prev, labels_created: true } : null));
+        setHasUnsavedChanges(false);
+        setNeedsSync(false);
       } else {
         setMessage({ type: "error", text: data.error || "Failed to sync labels" });
       }
@@ -324,6 +254,7 @@ export default function SettingsPage() {
     field: keyof CategoryConfig,
     value: string | boolean | number
   ) {
+    setHasUnsavedChanges(true);
     setSettings((prev) => {
       const category = prev.categories[num];
       if (!category) return prev;
@@ -352,6 +283,7 @@ export default function SettingsPage() {
   function addCategory() {
     const nonOtherCount = Object.values(settings.categories).filter(c => !isOtherCategory(c.name)).length;
     if (nonOtherCount >= 8) return;
+    setHasUnsavedChanges(true);
 
     const entries = Object.entries(settings.categories);
     const otherIndex = entries.findIndex(([, c]) => isOtherCategory(c.name));
@@ -409,6 +341,7 @@ export default function SettingsPage() {
     const nonOtherCount = Object.values(settings.categories).filter(c => !isOtherCategory(c.name)).length;
     if (nonOtherCount <= 2) return;
 
+    setHasUnsavedChanges(true);
     setSettings((prev) => {
       const newCategories = { ...prev.categories };
       delete newCategories[num];
@@ -422,6 +355,7 @@ export default function SettingsPage() {
 
   function restoreDefaults() {
     if (confirm("Reset all categories to defaults? This will remove any custom categories.")) {
+      setHasUnsavedChanges(true);
       setSettings((prev) => ({
         ...prev,
         categories: { ...DEFAULT_CATEGORIES },
@@ -508,16 +442,26 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
-                  {user?.labels_created && (
+                  {user?.labels_created && !needsSync && !hasUnsavedChanges && (
                     <span className="flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
                       <span className="pulse-dot h-2 w-2 rounded-full bg-emerald-500" />
-                      Active
+                      Synced
+                    </span>
+                  )}
+                  {(needsSync || hasUnsavedChanges) && user?.labels_created && (
+                    <span className="flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400">
+                      <AlertTriangle className="h-3 w-3" />
+                      {hasUnsavedChanges ? "Unsaved" : "Out of Sync"}
                     </span>
                   )}
                   <button
                     onClick={handleSyncLabels}
                     disabled={setupLoading}
-                    className="flex min-h-[44px] items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/10 disabled:opacity-50 sm:min-h-0 sm:py-2"
+                    className={`flex min-h-[44px] items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all hover:shadow-md disabled:opacity-50 sm:min-h-0 sm:py-2 ${
+                      needsSync || hasUnsavedChanges
+                        ? "bg-amber-500 hover:bg-amber-600 hover:shadow-amber-500/10"
+                        : "bg-[var(--accent)] hover:bg-[var(--accent-hover)] hover:shadow-blue-500/10"
+                    }`}
                   >
                     {setupLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

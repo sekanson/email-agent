@@ -37,6 +37,7 @@ import {
   Area,
   Legend,
 } from "recharts";
+import { DEFAULT_CATEGORIES, getCategoryName, getCategoryColor } from "@/lib/categories";
 
 interface AnalyticsData {
   overview: {
@@ -51,17 +52,6 @@ interface AnalyticsData {
   draftsUsed: number;
   isProUser: boolean;
 }
-
-const DEFAULT_CATEGORIES: Record<string, { name: string; color: string }> = {
-  "1": { name: "To Respond", color: "#ef4444" },
-  "2": { name: "FYI", color: "#f59e0b" },
-  "3": { name: "Comment", color: "#8b5cf6" },
-  "4": { name: "Notification", color: "#3b82f6" },
-  "5": { name: "Meeting Update", color: "#6366f1" },
-  "6": { name: "Marketing", color: "#f97316" },
-  "7": { name: "Awaiting Reply", color: "#06b6d4" },
-  "8": { name: "Actioned", color: "#22c55e" },
-};
 
 const FREE_DRAFT_LIMIT = 10;
 
