@@ -5,6 +5,9 @@ import { createDraft } from "@/lib/gmail";
 import { sendActionConfirmation } from "@/lib/zeno-mailer";
 import Anthropic from "@anthropic-ai/sdk";
 
+// Force Node.js runtime (not Edge) for IMAP/nodemailer compatibility
+export const runtime = "nodejs";
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });

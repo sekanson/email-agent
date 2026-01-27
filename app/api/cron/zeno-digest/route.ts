@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { sendDigestEmail, DigestEmail } from "@/lib/zeno-mailer";
 
+// Force Node.js runtime (not Edge) for nodemailer compatibility
+export const runtime = "nodejs";
+
 // Cron endpoint to send digests to all users
 // Called by Vercel cron: /api/cron/zeno-digest?type=morning|eod|weekly
 

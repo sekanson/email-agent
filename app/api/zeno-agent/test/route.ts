@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { testConnection, sendDigestEmail } from "@/lib/zeno-mailer";
 
+// Force Node.js runtime (not Edge) for nodemailer compatibility
+export const runtime = "nodejs";
+
 // Test endpoint to verify SMTP and send a test digest
 export async function POST(request: NextRequest) {
   try {

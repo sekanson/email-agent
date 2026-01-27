@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { sendDigestEmail, DigestEmail } from "@/lib/zeno-mailer";
+
+// Force Node.js runtime (not Edge) for nodemailer compatibility
+export const runtime = "nodejs";
 import { generateDraftResponse } from "@/lib/claude";
 
 // Generate 2-3 suggested quick replies for an email
