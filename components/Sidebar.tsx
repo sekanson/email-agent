@@ -228,7 +228,7 @@ export default function Sidebar() {
       {/* Desktop Sidebar - Hidden on mobile */}
       <aside className="sidebar-bg fixed left-0 top-0 z-40 hidden h-screen w-60 flex-col overflow-y-auto border-r border-[var(--border)] lg:flex">
         {/* Logo */}
-        <div className="flex items-center px-4 py-5 mb-2">
+        <div className="flex items-center px-6 py-5 mb-4">
           <Logo />
         </div>
 
