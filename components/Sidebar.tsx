@@ -26,6 +26,7 @@ import SupportChat from "./SupportChat";
 // Clean nav - just the core items
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/assistant", label: "Assistant", icon: Sparkles },
   { href: "/declutter", label: "Declutter", icon: Inbox },
   { href: "/categorize", label: "Categorize", icon: Tag },
   { href: "/drafts", label: "Drafts", icon: Mail },
