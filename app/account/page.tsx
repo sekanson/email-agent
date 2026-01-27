@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -53,7 +53,7 @@ const FREE_DRAFT_LIMIT = 10;
 
 type Tab = "account" | "billing" | "integrations";
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<UserData | null>(null);
@@ -1198,5 +1198,22 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--bg-primary)]">
+        <Sidebar />
+        <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
+          <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center lg:min-h-screen">
+            <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
+          </div>
+        </main>
+      </div>
+    }>
+      <SettingsPageContent />
+    </Suspense>
   );
 }
