@@ -19,6 +19,7 @@ import {
   Trash2,
   LogOut,
   Clock,
+  RefreshCw,
 } from "lucide-react";
 
 interface UserData {
@@ -679,6 +680,58 @@ function SettingsPageContent() {
               {/* Integrations Tab */}
               {activeTab === "integrations" && (
                 <div className="space-y-6 sm:space-y-8">
+                  {/* Agent Settings Section */}
+                  <section>
+                    <div className="mb-3 sm:mb-4">
+                      <h2 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">
+                        Agent Settings
+                      </h2>
+                      <p className="mt-1 text-sm text-[var(--text-muted)]">
+                        Configure how the email agent monitors your inbox.
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-[var(--bg-elevated)]">
+                            <RefreshCw className="h-5 w-5 text-[var(--accent)]" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-[var(--text-primary)]">Check Interval</p>
+                            <p className="text-sm text-[var(--text-muted)]">How often to check for new emails</p>
+                          </div>
+                        </div>
+                        <select
+                          defaultValue={typeof window !== "undefined" ? localStorage.getItem("pollInterval") || "120" : "120"}
+                          onChange={async (e) => {
+                            const newInterval = e.target.value;
+                            localStorage.setItem("pollInterval", newInterval);
+                            // Also save to server
+                            try {
+                              await fetch("/api/settings", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  userEmail: user?.email,
+                                  settings: { auto_poll_interval: parseInt(newInterval) },
+                                }),
+                              });
+                            } catch (error) {
+                              console.error("Failed to save interval:", error);
+                            }
+                          }}
+                          className="min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none sm:min-h-0"
+                        >
+                          <option value="60">Every 1 minute</option>
+                          <option value="120">Every 2 minutes</option>
+                          <option value="300">Every 5 minutes</option>
+                          <option value="600">Every 10 minutes</option>
+                        </select>
+                      </div>
+                    </div>
+                  </section>
+
                   {/* Email Section */}
                   <section>
                     <div className="mb-3 sm:mb-4">

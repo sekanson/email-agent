@@ -591,22 +591,6 @@ export default function Dashboard() {
 
               {/* Right: Controls */}
               <div className="flex items-center gap-2">
-                {/* Poll Interval (only when active) */}
-                {autoPolling && labelsCreated && (
-                  <select
-                    value={pollInterval}
-                    onChange={(e) => {
-                      setPollInterval(Number(e.target.value));
-                      localStorage.setItem("pollInterval", e.target.value);
-                    }}
-                    className="hidden sm:block rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none"
-                  >
-                    <option value={60}>1 min</option>
-                    <option value={120}>2 min</option>
-                    <option value={300}>5 min</option>
-                  </select>
-                )}
-
                 {/* Date Range Filter */}
                 <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-0.5">
                   {DATE_RANGES.map((range) => (
