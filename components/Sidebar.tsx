@@ -13,17 +13,15 @@ import {
   Sun,
   Shield,
   BarChart3,
-  HelpCircle,
   Sparkles,
   ChevronUp,
-  ChevronRight,
   MessageSquare,
-  Calendar,
   Inbox,
   Menu,
   X,
 } from "lucide-react";
 import Logo from "./Logo";
+import SupportChat from "./SupportChat";
 
 // Clean nav - just the core items
 const navItems = [
@@ -86,14 +84,13 @@ export default function Sidebar() {
     return (localStorage.getItem("theme") as "dark" | "light") || "dark";
   });
   const [upgradeLoading, setUpgradeLoading] = useState(false);
-  const [helpMenuOpen, setHelpMenuOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // Close menu when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
-        setHelpMenuOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -366,43 +363,14 @@ export default function Sidebar() {
                     Analytics
                   </Link>
 
-                  {/* Get Help - with submenu */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setHelpMenuOpen(!helpMenuOpen)}
-                      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
-                    >
-                      <div className="flex items-center gap-3">
-                        <HelpCircle className="h-4 w-4 text-[var(--text-muted)]" />
-                        <span>Get Help</span>
-                      </div>
-                      <ChevronRight className={`h-4 w-4 text-[var(--text-muted)] transition-transform ${helpMenuOpen ? "rotate-90" : ""}`} />
-                    </button>
-
-                    {/* Help Submenu */}
-                    {helpMenuOpen && (
-                      <div className="mt-1 ml-7 space-y-1 border-l border-[var(--border)] pl-3">
-                        <a
-                          href="mailto:support@xix3d.com"
-                          onClick={() => { setMenuOpen(false); setHelpMenuOpen(false); }}
-                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-                        >
-                          <MessageSquare className="h-3.5 w-3.5" />
-                          Email Support
-                        </a>
-                        <a
-                          href="https://calendly.com/xix3d"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={() => { setMenuOpen(false); setHelpMenuOpen(false); }}
-                          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)]"
-                        >
-                          <Calendar className="h-3.5 w-3.5" />
-                          Book a Call
-                        </a>
-                      </div>
-                    )}
-                  </div>
+                  {/* Talk to Support */}
+                  <button
+                    onClick={() => { setMenuOpen(false); setChatOpen(true); }}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
+                  >
+                    <MessageSquare className="h-4 w-4 text-[var(--text-muted)]" />
+                    Talk to Support
+                  </button>
 
                   {/* Theme Toggle */}
                   <div className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-[var(--text-primary)]">
@@ -577,23 +545,13 @@ export default function Sidebar() {
                   Analytics
                 </Link>
 
-                <a
-                  href="mailto:support@xix3d.com"
-                  className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
+                <button
+                  onClick={() => { setMobileMenuOpen(false); setChatOpen(true); }}
+                  className="flex min-h-[44px] w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
                 >
                   <MessageSquare className="h-5 w-5 text-[var(--text-muted)]" />
-                  Email Support
-                </a>
-
-                <a
-                  href="https://calendly.com/xix3d"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
-                >
-                  <Calendar className="h-5 w-5 text-[var(--text-muted)]" />
-                  Book a Call
-                </a>
+                  Talk to Support
+                </button>
               </div>
 
               {/* Theme Toggle */}
@@ -647,6 +605,9 @@ export default function Sidebar() {
           </div>
         </div>
       )}
+
+      {/* Support Chat Widget */}
+      <SupportChat isOpen={chatOpen} onClose={() => setChatOpen(false)} />
     </>
   );
 }

@@ -99,7 +99,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="rounded-lg bg-white/5 p-4">
-                  <div className="text-2xl font-bold text-white">847</div>
+                  <div className="text-2xl font-bold text-white">68</div>
                   <div className="text-sm text-zinc-400">Spam Cleared</div>
                   <div className="mt-2 h-1.5 w-full rounded-full bg-white/10">
                     <div className="h-full w-full rounded-full bg-emerald-400" />
