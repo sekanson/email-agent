@@ -333,15 +333,15 @@ function SettingsPageContent() {
 
         <div className="flex">
           {/* Desktop Left Tab Navigation */}
-          <div className="hidden w-48 shrink-0 border-r border-[var(--border)] p-4 sm:block">
-            <nav className="space-y-1">
+          <div className="hidden w-36 shrink-0 border-r border-[var(--border)] p-3 sm:block">
+            <nav className="space-y-0.5">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
+                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors ${
                       activeTab === tab.id
                         ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
                         : "text-[var(--text-muted)] hover:bg-[var(--bg-elevated)]/50 hover:text-[var(--text-primary)]"
@@ -356,8 +356,8 @@ function SettingsPageContent() {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 p-4 sm:p-8">
-            <div className="max-w-2xl">
+          <div className="flex-1 p-4 sm:p-6">
+            <div className="max-w-xl">
               {/* Account Tab */}
               {activeTab === "account" && (
                 <div className="space-y-6 sm:space-y-8">
