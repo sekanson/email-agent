@@ -778,13 +778,7 @@ function SettingsPageContent() {
                         <div className="flex items-center gap-3">
                           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                             {/* Official Outlook Logo */}
-                            <svg className="h-7 w-7" viewBox="0 0 24 24">
-                              <path fill="#0A2767" d="M22.62 4.83L12 11.45 1.38 4.83A.5.5 0 0 1 1.85 4h20.3a.5.5 0 0 1 .47.83z"/>
-                              <path fill="#0078D4" d="M22.5 4H1.5A1.5 1.5 0 0 0 0 5.5v13A1.5 1.5 0 0 0 1.5 20h21a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 22.5 4z"/>
-                              <path fill="#28A8EA" d="M12 13L1.38 6.17A1.5 1.5 0 0 1 1.5 4h21a1.5 1.5 0 0 1 .12 2.17L12 13z"/>
-                              <path fill="#0078D4" d="M8.5 18a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z"/>
-                              <path fill="#FFFFFF" d="M8.5 10.5c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3zm0 5c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-                            </svg>
+                            <img src="/icons/outlook.svg" alt="Outlook" className="h-8 w-8" />
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">Outlook</p>
@@ -982,11 +976,8 @@ function SettingsPageContent() {
                     <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#0078D4] shadow-sm">
-                            <svg className="h-7 w-7" viewBox="0 0 24 24">
-                              <path fill="#FFFFFF" d="M19 4H5c-.55 0-1 .45-1 1v14c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1zm-1 14H6V8h12v10z"/>
-                              <path fill="#FFFFFF" d="M11 10h2v6h-2zM8 13h2v3H8zM14 11h2v5h-2zM6 6h12v2H6z" opacity="0.7"/>
-                            </svg>
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                            <img src="/icons/outlook.svg" alt="Outlook Calendar" className="h-8 w-8" />
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">Outlook Calendar</p>
@@ -1025,17 +1016,7 @@ function SettingsPageContent() {
                         <div className="flex items-center gap-3">
                           <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                             {/* Monday.com Logo */}
-                            <svg className="h-7 w-7" viewBox="0 0 24 24">
-                              <circle fill="#FF3D57" cx="5" cy="12" r="3"/>
-                              <circle fill="#FFCB00" cx="12" cy="12" r="3"/>
-                              <circle fill="#00CA72" cx="19" cy="12" r="3"/>
-                              <circle fill="#FF3D57" cx="5" cy="5" r="2"/>
-                              <circle fill="#FFCB00" cx="12" cy="5" r="2"/>
-                              <circle fill="#00CA72" cx="19" cy="5" r="2"/>
-                              <circle fill="#FF3D57" cx="5" cy="19" r="2"/>
-                              <circle fill="#FFCB00" cx="12" cy="19" r="2"/>
-                              <circle fill="#00CA72" cx="19" cy="19" r="2"/>
-                            </svg>
+                            <img src="/icons/monday.svg" alt="Monday.com" className="h-8 w-8" />
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">Monday.com</p>
@@ -1055,13 +1036,9 @@ function SettingsPageContent() {
                     <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#FF7A59] shadow-sm">
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                             {/* HubSpot Logo */}
-                            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#FFFFFF">
-                              <path d="M18.16 7.58v3.24c-.46-.27-.99-.43-1.56-.43-1.73 0-3.13 1.47-3.13 3.28 0 1.81 1.4 3.28 3.13 3.28.57 0 1.1-.16 1.56-.43v.38c0 .21.17.38.38.38h1.49c.21 0 .38-.17.38-.38V7.58c0-.21-.17-.38-.38-.38h-1.49c-.21 0-.38.17-.38.38zm-1.56 7.75c-.96 0-1.74-.82-1.74-1.83 0-1.01.78-1.83 1.74-1.83s1.74.82 1.74 1.83c0 1.01-.78 1.83-1.74 1.83z"/>
-                              <circle cx="8.5" cy="13.5" r="3"/>
-                              <path d="M8.5 8.5v2M8.5 16.5v2"/>
-                            </svg>
+                            <img src="/icons/hubspot.svg" alt="HubSpot" className="h-8 w-8" />
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">HubSpot</p>
@@ -1081,11 +1058,9 @@ function SettingsPageContent() {
                     <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 opacity-60">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-[#00A1E0] shadow-sm">
+                          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
                             {/* Salesforce Logo */}
-                            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#FFFFFF">
-                              <path d="M10.5 5.5c1.1-.7 2.4-1 3.8-1 2.2 0 4.1 1 5.4 2.5.9-.4 1.9-.6 2.9-.6 3.6 0 6.4 2.9 6.4 6.4 0 3.6-2.9 6.4-6.4 6.4-.5 0-1-.1-1.5-.2-.9 1.5-2.5 2.5-4.4 2.5-1.2 0-2.3-.4-3.2-1.1-.9 1.1-2.3 1.8-3.8 1.8-2.8 0-5-2.2-5-5 0-1.1.4-2.2 1-3-.6-.8-1-1.8-1-2.9 0-2.8 2.2-5 5-5 1.1 0 2.1.3 2.9.9z"/>
-                            </svg>
+                            <img src="/icons/salesforce.svg" alt="Salesforce" className="h-8 w-8" />
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">Salesforce</p>
