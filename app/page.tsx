@@ -99,8 +99,8 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="rounded-lg bg-white/5 p-4">
-                  <div className="text-2xl font-bold text-white">156</div>
-                  <div className="text-sm text-zinc-400">Processed Today</div>
+                  <div className="text-2xl font-bold text-white">847</div>
+                  <div className="text-sm text-zinc-400">Spam Cleared</div>
                   <div className="mt-2 h-1.5 w-full rounded-full bg-white/10">
                     <div className="h-full w-full rounded-full bg-emerald-400" />
                   </div>
@@ -224,6 +224,94 @@ export default function LandingPage() {
               title="Instant Processing"
               description="Process hundreds of emails in seconds. Powered by advanced AI that learns your preferences."
             />
+          </div>
+        </div>
+      </section>
+
+      {/* Declutter Section */}
+      <section className="border-t border-white/10 py-20 overflow-hidden">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <div>
+              <p className="mb-2 text-sm font-medium uppercase tracking-wider text-orange-400">Inbox Zero</p>
+              <h2 className="mb-4 text-3xl font-bold sm:text-4xl">Thousands of unread emails?</h2>
+              <p className="mb-6 text-lg text-zinc-400">
+                Years of newsletters, promotions, and forgotten threads clogging your inbox? Zeno cuts through the noise.
+              </p>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-3">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-orange-400">
+                    <Check className="h-4 w-4" />
+                  </div>
+                  <span className="text-zinc-300">Finds important emails buried in the chaos</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-orange-400">
+                    <Check className="h-4 w-4" />
+                  </div>
+                  <span className="text-zinc-300">Mass-archive newsletters and promotions</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-orange-500/20 text-orange-400">
+                    <Check className="h-4 w-4" />
+                  </div>
+                  <span className="text-zinc-300">Declutter 10,000+ emails in minutes</span>
+                </li>
+              </ul>
+              <Link
+                href="/api/auth/login"
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-medium text-white transition-all hover:bg-orange-600"
+              >
+                Declutter My Inbox
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            
+            {/* Declutter Graphic */}
+            <div className="relative">
+              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-orange-500/20 blur-[100px]" />
+              <div className="relative rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-transparent p-6">
+                {/* Inbox visualization */}
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-sm font-medium text-orange-400">Before Zeno</span>
+                  <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-xs text-red-400">12,847 unread</span>
+                </div>
+                <div className="space-y-2">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-lg bg-white/5 p-3 opacity-60">
+                      <div className="h-8 w-8 rounded-full bg-zinc-700" />
+                      <div className="flex-1">
+                        <div className="h-3 w-3/4 rounded bg-zinc-700" />
+                        <div className="mt-1 h-2 w-1/2 rounded bg-zinc-800" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="my-4 flex items-center gap-2">
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
+                  <Sparkles className="h-5 w-5 text-orange-400" />
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-orange-500/50 to-transparent" />
+                </div>
+                
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-sm font-medium text-emerald-400">After Zeno</span>
+                  <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-400">24 important</span>
+                </div>
+                <div className="space-y-2">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 rounded-lg bg-white/10 p-3 ring-1 ring-emerald-500/30">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400" />
+                      <div className="flex-1">
+                        <div className="h-3 w-3/4 rounded bg-zinc-600" />
+                        <div className="mt-1 h-2 w-1/2 rounded bg-zinc-700" />
+                      </div>
+                      <div className="rounded bg-red-500/20 px-2 py-0.5 text-xs text-red-400">Reply</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -379,45 +467,23 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/10 py-12">
         <div className="mx-auto max-w-6xl px-6">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <Image
-                src="/logo.svg"
-                alt="Zeno"
-                width={100}
-                height={32}
-                className="mb-4 h-8 w-auto"
-              />
-              <p className="text-sm text-zinc-500">
-                AI-powered email management for professionals.
-              </p>
+          <div className="flex flex-col items-center justify-between gap-6 sm:flex-row">
+            <Image
+              src="/logo.svg"
+              alt="Zeno"
+              width={100}
+              height={32}
+              className="h-8 w-auto opacity-60"
+            />
+            <div className="flex items-center gap-6 text-sm text-zinc-500">
+              <Link href="/terms" className="transition-colors hover:text-white">
+                Terms of Service
+              </Link>
+              <Link href="/privacy" className="transition-colors hover:text-white">
+                Privacy Policy
+              </Link>
+              <span>© 2026 xix3D Inc.</span>
             </div>
-            <div>
-              <h4 className="mb-3 font-semibold">Product</h4>
-              <ul className="space-y-2 text-sm text-zinc-400">
-                <li><Link href="#" className="hover:text-white">Features</Link></li>
-                <li><Link href="#" className="hover:text-white">Pricing</Link></li>
-                <li><Link href="#" className="hover:text-white">Security</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="mb-3 font-semibold">Company</h4>
-              <ul className="space-y-2 text-sm text-zinc-400">
-                <li><Link href="#" className="hover:text-white">About</Link></li>
-                <li><Link href="#" className="hover:text-white">Blog</Link></li>
-                <li><Link href="mailto:support@xix3d.com" className="hover:text-white">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="mb-3 font-semibold">Legal</h4>
-              <ul className="space-y-2 text-sm text-zinc-400">
-                <li><Link href="/terms" className="hover:text-white">Terms of Service</Link></li>
-                <li><Link href="/privacy" className="hover:text-white">Privacy Policy</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-12 border-t border-white/10 pt-8 text-center text-sm text-zinc-500">
-            © 2026 xix3D Inc. All rights reserved.
           </div>
         </div>
       </footer>
