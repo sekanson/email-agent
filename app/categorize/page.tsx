@@ -667,8 +667,8 @@ export default function SettingsPage() {
               {/* Primary action: Sync to Gmail */}
               <button
                 onClick={handleSyncLabels}
-                disabled={setupLoading}
-                className={`flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-4 text-base font-medium text-white transition-all hover:shadow-md disabled:opacity-50 sm:min-h-0 sm:py-3 ${
+                disabled={setupLoading || (user?.labels_created && !needsSync && !hasUnsavedChanges)}
+                className={`flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-4 text-base font-medium text-white transition-all hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 sm:py-3 ${
                   hasUnsavedChanges || needsSync
                     ? "bg-amber-500 hover:bg-amber-600 hover:shadow-amber-500/10"
                     : "bg-emerald-500 hover:bg-emerald-600 hover:shadow-emerald-500/10"
@@ -679,7 +679,7 @@ export default function SettingsPage() {
                 ) : (
                   <Tag className="h-5 w-5" />
                 )}
-                {hasUnsavedChanges ? "Save & Sync to Gmail" : user?.labels_created ? "Sync Labels" : "Setup Gmail Labels"}
+                {hasUnsavedChanges ? "Save & Sync to Gmail" : user?.labels_created ? (needsSync ? "Sync Labels" : "Labels Synced") : "Setup Gmail Labels"}
               </button>
               
               {/* Secondary: Save only (without sync) */}
