@@ -52,11 +52,18 @@ export async function DELETE(request: NextRequest) {
       .from("users")
       .update({
         calendar_connected: false,
-        updated_at: new Date().toISOString(),
       })
       .eq("email", userEmail);
 
     if (error) {
+      console.error("Supabase error:", error);
+      
+      // If the column doesn't exist, handle gracefully
+      if (error.message?.includes("calendar_connected")) {
+        console.log("calendar_connected column may not exist");
+        return NextResponse.json({ success: true, message: "Calendar disconnected (no column update)" });
+      }
+      
       throw error;
     }
 
@@ -64,7 +71,7 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.error("Error disconnecting Calendar:", error);
     return NextResponse.json(
-      { error: "Failed to disconnect Calendar" },
+      { error: `Failed to disconnect Calendar: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }

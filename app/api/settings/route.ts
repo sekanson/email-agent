@@ -27,11 +27,17 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
 
     // Get user info including subscription status, draft count, and integrations
-    const { data: user } = await supabase
+    // Note: gmail_connected, calendar_connected may not exist in all deployments
+    const { data: user, error: userError } = await supabase
       .from("users")
-      .select("email, name, picture, labels_created, subscription_status, subscription_tier, trial_ends_at, is_admin, role, drafts_created_count, created_at, stripe_customer_id, gmail_connected, gmail_connected_at, calendar_connected, calendar_connected_at, onboarding_completed")
+      .select("*")
       .eq("email", userEmail)
       .single();
+
+    // If specific columns are missing, they'll just be undefined which is fine
+    if (userError) {
+      console.error("Error fetching user:", userError);
+    }
 
     // Get user settings - try user_email first, then email
     let { data: settings } = await supabase

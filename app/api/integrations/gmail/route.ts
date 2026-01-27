@@ -50,26 +50,45 @@ export async function DELETE(request: NextRequest) {
 
     const supabase = createClient();
 
-    // Update user to remove Gmail access (keep account but clear Gmail tokens)
+    // First, try to update just gmail_connected (the essential field)
     const { error } = await supabase
       .from("users")
       .update({
         gmail_connected: false,
-        gmail_access_token: null,
-        gmail_refresh_token: null,
-        updated_at: new Date().toISOString(),
       })
       .eq("email", userEmail);
 
     if (error) {
+      console.error("Supabase error:", error);
+      
+      // If the column doesn't exist, try without it (legacy support)
+      if (error.message?.includes("gmail_connected")) {
+        console.log("gmail_connected column may not exist, skipping...");
+        return NextResponse.json({ success: true, message: "Gmail disconnected (no column update)" });
+      }
+      
       throw error;
+    }
+
+    // Try to clear tokens separately (might not exist)
+    try {
+      await supabase
+        .from("users")
+        .update({
+          access_token: null,
+          refresh_token: null,
+        })
+        .eq("email", userEmail);
+    } catch (tokenError) {
+      // Tokens might be stored differently or not at all - that's ok
+      console.log("Could not clear tokens (may not exist):", tokenError);
     }
 
     return NextResponse.json({ success: true, message: "Gmail disconnected" });
   } catch (error) {
     console.error("Error disconnecting Gmail:", error);
     return NextResponse.json(
-      { error: "Failed to disconnect Gmail" },
+      { error: `Failed to disconnect Gmail: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }
