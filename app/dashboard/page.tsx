@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
-import StatsCard from "@/components/StatsCard";
 import OnboardingModal from "@/components/OnboardingModal";
+import Link from "next/link";
 import {
   Mail,
   CheckCircle,
@@ -20,6 +20,12 @@ import {
   Brain,
   GitBranch,
   User,
+  Clock,
+  Send,
+  ArrowRight,
+  Inbox,
+  Filter,
+  X,
 } from "lucide-react";
 
 interface ProcessedEmail {
@@ -34,6 +40,7 @@ interface ProcessedEmail {
   classification_confidence?: number;
   is_thread?: boolean;
   sender_known?: boolean;
+  snippet?: string;
 }
 
 interface Metrics {
@@ -58,7 +65,7 @@ interface CategoryConfig {
 
 const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
   "1": {
-    name: "1: Respond",
+    name: "To Respond",
     color: "#F87171",
     enabled: true,
     required: true,
@@ -68,7 +75,7 @@ const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 1,
   },
   "2": {
-    name: "2: Update",
+    name: "FYI",
     color: "#FB923C",
     enabled: true,
     description: "Worth knowing, no response required",
@@ -77,7 +84,7 @@ const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 2,
   },
   "3": {
-    name: "3: Comment",
+    name: "Comment",
     color: "#22D3EE",
     enabled: true,
     description: "Mentions from docs, threads & chats",
@@ -86,7 +93,7 @@ const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 3,
   },
   "4": {
-    name: "4: Notification",
+    name: "Notification",
     color: "#4ADE80",
     enabled: true,
     description: "Automated alerts & confirmations",
@@ -95,7 +102,7 @@ const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 4,
   },
   "5": {
-    name: "5: Calendar",
+    name: "Meeting",
     color: "#A855F7",
     enabled: true,
     description: "Meetings, invites & calendar events",
@@ -104,7 +111,7 @@ const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 5,
   },
   "6": {
-    name: "6: Pending",
+    name: "Awaiting Reply",
     color: "#60A5FA",
     enabled: true,
     description: "Waiting on someone else's response",
@@ -113,7 +120,7 @@ const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 6,
   },
   "7": {
-    name: "7: Complete",
+    name: "Actioned",
     color: "#2DD4BF",
     enabled: true,
     description: "Resolved or finished conversations",
@@ -122,7 +129,7 @@ const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 7,
   },
   "8": {
-    name: "8: Marketing/Spam",
+    name: "Marketing",
     color: "#F472B6",
     enabled: true,
     description: "Newsletters, sales & promotional",
@@ -239,24 +246,20 @@ export default function Dashboard() {
       const userLabelsCreated = settingsData.user?.labels_created || false;
       setLabelsCreated(userLabelsCreated);
 
-      // Set user name for onboarding
       if (settingsData.user?.name) {
         setUserName(settingsData.user.name);
       }
 
-      // Check if onboarding should be shown (new user who hasn't completed onboarding)
       const onboardingCompleted = settingsData.user?.onboarding_completed || false;
       if (!onboardingCompleted && !userLabelsCreated) {
         setShowOnboarding(true);
       }
 
-      // Get subscription status and draft count
       if (settingsData.user?.subscription_status) {
         setSubscriptionStatus(settingsData.user.subscription_status);
       }
       if (settingsData.user?.drafts_created_count !== undefined) {
         setUserDraftCount(settingsData.user.drafts_created_count);
-        // Check if limit reached for non-pro users
         if (settingsData.user.subscription_status !== "active" &&
             settingsData.user.drafts_created_count >= 10) {
           setDraftLimitReached(true);
@@ -324,8 +327,6 @@ export default function Dashboard() {
 
       if (data.url) {
         window.location.href = data.url;
-      } else {
-        console.error("No checkout URL returned");
       }
     } catch (error) {
       console.error("Failed to start checkout:", error);
@@ -358,25 +359,20 @@ export default function Dashboard() {
             totalAll: 0,
           });
           setDisplayLimit(25);
-        } else {
-          alert("Failed to reset metrics");
         }
       } catch (error) {
         console.error("Failed to reset metrics:", error);
-        alert("Failed to reset metrics");
       }
     }
   }
 
   function handleOnboardingComplete() {
     setShowOnboarding(false);
-    // Refresh data to get updated labels_created status
     fetchData();
   }
 
   function handleOnboardingSkip() {
     setShowOnboarding(false);
-    // Mark onboarding as completed even if skipped
     fetch("/api/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -431,7 +427,6 @@ export default function Dashboard() {
             skipped: data.skipped,
           });
         }
-        // Update draft limit status from response
         if (data.draftLimitReached !== undefined) {
           setDraftLimitReached(data.draftLimitReached);
         }
@@ -451,30 +446,22 @@ export default function Dashboard() {
     }
   }
 
-  function getCategoryBadge(category: number) {
-    const config = categories[category.toString()] || {
-      name: `Category ${category}`,
-      color: "#6b7280",
-    };
-    return (
-      <span
-        className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium sm:gap-2 sm:px-3 sm:py-1.5"
-        style={{
-          backgroundColor: `${config.color}15`,
-          color: config.color,
-        }}
-      >
-        <span
-          className="h-1.5 w-1.5 rounded-full"
-          style={{ backgroundColor: config.color }}
-        />
-        <span className="hidden sm:inline">{config.name}</span>
-        <span className="sm:hidden">{config.name.split(":")[0]}</span>
-      </span>
-    );
+  // Calculate actionable metrics
+  const needsAttention = (metrics.byCategory[1] || 0) + (metrics.byCategory[6] || 0);
+  const draftsReady = emails.filter(e => e.draft_id).length;
+  const timeSavedMinutes = metrics.totalProcessed * 2;
+  const timeSavedDisplay = timeSavedMinutes >= 60 
+    ? `${Math.floor(timeSavedMinutes / 60)}h ${timeSavedMinutes % 60}m`
+    : `${timeSavedMinutes}m`;
+
+  function getCategoryColor(category: number): string {
+    return categories[category.toString()]?.color || "#6b7280";
   }
 
-  // Emails are now filtered server-side via API
+  function getCategoryName(category: number): string {
+    return categories[category.toString()]?.name || `Category ${category}`;
+  }
+
   const displayedEmails = emails.slice(0, displayLimit);
   const hasMore = emails.length > displayLimit;
 
@@ -485,10 +472,7 @@ export default function Dashboard() {
         <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center lg:min-h-screen">
             <div className="flex flex-col items-center gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 rounded-full bg-blue-500/20 blur-xl" />
-                <Loader2 className="relative h-8 w-8 animate-spin text-blue-500" />
-              </div>
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
               <p className="text-sm text-[var(--text-muted)]">Loading dashboard...</p>
             </div>
           </div>
@@ -504,21 +488,13 @@ export default function Dashboard() {
         <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center lg:min-h-screen">
             <div className="text-center px-4">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bg-card)]">
-                <Mail className="h-8 w-8 text-[var(--text-muted)]" />
-              </div>
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+              <Mail className="mx-auto h-12 w-12 text-[var(--text-muted)]" />
+              <h2 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">
                 Not signed in
               </h2>
               <p className="mt-2 text-sm text-[var(--text-secondary)]">
                 Please sign in to access the dashboard.
               </p>
-              <a
-                href="/"
-                className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/15"
-              >
-                Go to Home
-              </a>
             </div>
           </div>
         </main>
@@ -530,7 +506,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      {/* Onboarding Modal */}
       {showOnboarding && (
         <OnboardingModal
           userEmail={userEmail}
@@ -541,194 +516,120 @@ export default function Dashboard() {
       )}
 
       <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0 overflow-auto">
-        {/* Header */}
+        {/* Compact Header with Agent Status */}
         <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
-          <div className="px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h1 className="text-lg font-semibold text-[var(--text-primary)] sm:text-xl">
-                  Dashboard
-                </h1>
-                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">
-                  {dateRange === "all"
-                    ? "Overview of your email activity"
-                    : `Email activity ${
-                        dateRange === "today"
-                          ? "today"
-                          : dateRange === "week"
-                          ? "this week"
-                          : "this month"
-                      }`}
-                </p>
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center gap-2 sm:gap-3">
-                {/* Date Range Filter - Scrollable on mobile */}
-                <div className="-mx-4 flex-1 overflow-x-auto px-4 sm:mx-0 sm:flex-none sm:overflow-visible sm:px-0">
-                  <div className="flex items-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1">
-                    {DATE_RANGES.map((range) => (
-                      <button
-                        key={range.value}
-                        onClick={() => setDateRange(range.value as typeof dateRange)}
-                        className={`whitespace-nowrap rounded-lg px-2 py-1.5 text-xs font-medium transition-all duration-200 sm:px-3 sm:text-sm ${
-                          dateRange === range.value
-                            ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
-                            : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                        }`}
-                      >
-                        {range.label}
-                      </button>
-                    ))}
-                  </div>
+          <div className="px-4 py-3 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left: Title + Agent Status */}
+              <div className="flex items-center gap-4">
+                <div>
+                  <h1 className="text-lg font-semibold text-[var(--text-primary)] sm:text-xl">
+                    Dashboard
+                  </h1>
                 </div>
-
-                {/* Upgrade Button - show if not on active pro */}
-                {subscriptionStatus !== "active" && (
+                
+                {/* Compact Agent Status */}
+                {labelsCreated && (
                   <button
-                    onClick={handleUpgrade}
-                    disabled={upgrading}
-                    className="flex min-h-[44px] items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-3 py-2 text-xs font-medium text-white transition-all hover:from-blue-600 hover:to-purple-600 hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50 sm:px-4 sm:text-sm"
+                    onClick={toggleAutoPolling}
+                    className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                      autoPolling
+                        ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
+                        : "bg-[var(--bg-elevated)] text-[var(--text-muted)] hover:bg-[var(--border)]"
+                    }`}
                   >
-                    {upgrading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4" />
+                    <span className={`h-2 w-2 rounded-full ${autoPolling ? "bg-emerald-400 animate-pulse" : "bg-[var(--text-muted)]"}`} />
+                    {autoPolling ? "Active" : "Paused"}
+                    {autoPolling && nextPollIn !== null && (
+                      <span className="text-emerald-400/70">• {nextPollIn}s</span>
                     )}
-                    <span className="hidden sm:inline">Upgrade</span>
                   </button>
                 )}
+              </div>
+
+              {/* Right: Controls */}
+              <div className="flex items-center gap-2">
+                {/* Poll Interval (only when active) */}
+                {autoPolling && labelsCreated && (
+                  <select
+                    value={pollInterval}
+                    onChange={(e) => {
+                      setPollInterval(Number(e.target.value));
+                      localStorage.setItem("pollInterval", e.target.value);
+                    }}
+                    className="hidden sm:block rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none"
+                  >
+                    <option value={60}>1 min</option>
+                    <option value={120}>2 min</option>
+                    <option value={300}>5 min</option>
+                  </select>
+                )}
+
+                {/* Date Range Filter */}
+                <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-0.5">
+                  {DATE_RANGES.map((range) => (
+                    <button
+                      key={range.value}
+                      onClick={() => setDateRange(range.value as typeof dateRange)}
+                      className={`rounded-md px-2 py-1 text-xs font-medium transition-all sm:px-3 ${
+                        dateRange === range.value
+                          ? "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                          : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                      }`}
+                    >
+                      <span className="hidden sm:inline">{range.label}</span>
+                      <span className="sm:hidden">{range.label.replace("This ", "")}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         <div className="p-4 sm:p-6 lg:p-8">
-          {/* Agent Status Card */}
-          {!labelsCreated ? (
-            <div className="glass-card mb-6 border-amber-500/30 bg-amber-500/5 p-4 sm:mb-8 sm:p-6">
+          {/* Setup Required Banner */}
+          {!labelsCreated && (
+            <div className="mb-6 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/10 p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 sm:h-12 sm:w-12">
-                    <Tag className="h-5 w-5 text-amber-400 sm:h-6 sm:w-6" />
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/20">
+                    <Tag className="h-6 w-6 text-amber-400" />
                   </div>
                   <div>
                     <h2 className="font-semibold text-[var(--text-primary)]">
                       Setup Required
                     </h2>
-                    <p className="mt-0.5 text-xs text-[var(--text-secondary)] sm:text-sm">
-                      Create Gmail labels before activating the email agent
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      Create Gmail labels to activate the email agent
                     </p>
                   </div>
                 </div>
-                <a
+                <Link
                   href="/categorize"
-                  className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-amber-600 hover:shadow-md hover:shadow-amber-500/15"
+                  className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-amber-600"
                 >
                   <Tag className="h-4 w-4" />
                   Setup Labels
-                </a>
-              </div>
-            </div>
-          ) : (
-            <div
-              className={`glass-card mb-6 p-4 transition-all sm:mb-8 sm:p-6 ${
-                autoPolling
-                  ? "border-emerald-500/30 bg-emerald-500/5"
-                  : ""
-              }`}
-            >
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <button
-                    onClick={toggleAutoPolling}
-                    className={`group relative flex h-10 w-10 items-center justify-center rounded-xl transition-all sm:h-12 sm:w-12 ${
-                      autoPolling
-                        ? "bg-emerald-500 shadow-md shadow-emerald-500/15 hover:bg-emerald-600"
-                        : "bg-[var(--bg-elevated)] hover:bg-[var(--border)]"
-                    }`}
-                  >
-                    <Power
-                      className={`h-4 w-4 transition-transform group-hover:scale-110 sm:h-5 sm:w-5 ${
-                        autoPolling ? "text-white" : "text-[var(--text-muted)]"
-                      }`}
-                    />
-                  </button>
-                  <div>
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <h2 className="font-semibold text-[var(--text-primary)]">
-                        Email Agent
-                      </h2>
-                      {autoPolling ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400 sm:px-2.5">
-                          <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                          Active
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-elevated)] px-2 py-1 text-xs font-medium text-[var(--text-muted)] sm:px-2.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-[var(--text-muted)]" />
-                          Paused
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-0.5 text-xs text-[var(--text-secondary)] sm:text-sm">
-                      {autoPolling
-                        ? "Monitoring Gmail, applying labels, and drafting responses"
-                        : "Click the power button to start monitoring your inbox"}
-                    </p>
-                  </div>
-                </div>
-
-                {autoPolling && (
-                  <div className="flex items-center gap-2 sm:gap-4">
-                    <div className="text-right">
-                      <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] sm:text-sm">
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin text-emerald-400" />
-                        <span className="hidden sm:inline">Checking every</span>
-                        <select
-                          value={pollInterval}
-                          onChange={(e) => {
-                            setPollInterval(Number(e.target.value));
-                            localStorage.setItem("pollInterval", e.target.value);
-                          }}
-                          className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-2 py-1 text-xs text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none sm:text-sm"
-                        >
-                          <option value={60}>1 min</option>
-                          <option value={120}>2 min</option>
-                          <option value={180}>3 min</option>
-                          <option value={300}>5 min</option>
-                        </select>
-                      </div>
-                      {nextPollIn !== null && (
-                        <p className="mt-1 text-xs text-[var(--text-muted)]">
-                          Next check in {nextPollIn}s
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
+                </Link>
               </div>
             </div>
           )}
 
-          {/* Draft Limit Warning - Reached */}
+          {/* Draft Limit Warning */}
           {draftLimitReached && subscriptionStatus !== "active" && (
             <div className="mb-6 flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-400" />
+                <AlertTriangle className="h-5 w-5 text-red-400" />
                 <div>
-                  <span className="text-sm font-medium text-red-300">
-                    Draft limit reached
-                  </span>
-                  <p className="text-xs text-red-400/80">
-                    You've used all 10 free drafts. Upgrade to Pro for unlimited AI-generated drafts.
-                  </p>
+                  <p className="text-sm font-medium text-red-300">Draft limit reached</p>
+                  <p className="text-xs text-red-400/80">Upgrade to Pro for unlimited AI-generated drafts</p>
                 </div>
               </div>
               <button
                 onClick={handleUpgrade}
                 disabled={upgrading}
-                className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-red-600 disabled:opacity-50"
+                className="flex items-center gap-2 rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
               >
                 <Sparkles className="h-4 w-4" />
                 Upgrade
@@ -736,290 +637,287 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Draft Limit Warning - Approaching (>7 but not reached) */}
-          {!draftLimitReached && userDraftCount > 7 && subscriptionStatus !== "active" && (
-            <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-400" />
-                <div>
-                  <span className="text-sm font-medium text-amber-300">
-                    Approaching draft limit
-                  </span>
-                  <p className="text-xs text-amber-400/70">
-                    You've used {userDraftCount} of 10 free drafts. Upgrade for unlimited.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={handleUpgrade}
-                disabled={upgrading}
-                className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-medium text-amber-300 transition-all hover:bg-amber-500/20 disabled:opacity-50"
-              >
-                <Sparkles className="h-4 w-4" />
-                Upgrade
-              </button>
-            </div>
-          )}
-
+          {/* Process Result Toast */}
           {processResult && (
             <div className="mb-6 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-              <CheckCircle className="h-5 w-5 flex-shrink-0 text-emerald-400" />
+              <CheckCircle className="h-5 w-5 text-emerald-400" />
               <span className="text-sm text-emerald-300">
                 Processed {processResult.processed} new emails
-                {processResult.skipped > 0 &&
-                  ` (${processResult.skipped} already processed)`}
+                {processResult.skipped > 0 && ` (${processResult.skipped} already processed)`}
               </span>
             </div>
           )}
 
-          {/* Stats Grid - 1 column on mobile, 2 on sm, 4 on lg */}
-          <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 lg:mb-8">
-            <StatsCard
-              title="Total Processed"
-              value={metrics.totalProcessed}
-              icon={<Mail className="h-5 w-5" />}
-              color="blue"
-            />
-            <StatsCard
-              title="To Respond"
-              value={metrics.toRespond}
-              icon={<AlertTriangle className="h-5 w-5" />}
-              color="red"
-            />
-            <StatsCard
-              title="Drafts Created"
-              value={metrics.draftsCreated}
-              icon={<FileText className="h-5 w-5" />}
-              color="green"
-            />
-            <StatsCard
-              title="Other"
-              value={metrics.other}
-              icon={<CheckCircle className="h-5 w-5" />}
-              color="cyan"
-            />
-          </div>
-
-          {/* Category Breakdown */}
-          <div className="glass-card mb-6 p-4 sm:mb-8 sm:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] sm:text-sm">
-                By Category
-              </h2>
-              {categoryFilter !== null && (
-                <button
-                  onClick={() => setCategoryFilter(null)}
-                  className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
-                >
-                  Clear filter
-                </button>
-              )}
-            </div>
-            {/* 2 columns on mobile, 4 on sm+ */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-              {Object.entries(categories).map(([num, config]) => {
-                const categoryNum = parseInt(num);
-                const isSelected = categoryFilter === categoryNum;
-                const count = metrics.byCategory[categoryNum] || 0;
-                return (
-                  <button
-                    key={num}
-                    onClick={() => setCategoryFilter(isSelected ? null : categoryNum)}
-                    className={`group flex items-center justify-between rounded-xl border p-2 transition-all text-left sm:p-3 ${
-                      isSelected
-                        ? "border-[var(--accent)] bg-[var(--accent-muted)] ring-1 ring-[var(--accent)]/20"
-                        : "border-[var(--border)] bg-[var(--bg-card)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-card-hover)]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 sm:gap-2.5">
-                      <div
-                        className={`h-2 w-2 rounded-full transition-transform sm:h-2.5 sm:w-2.5 ${isSelected ? "scale-125" : ""}`}
-                        style={{ backgroundColor: config.color }}
-                      />
-                      <span className={`text-xs sm:text-sm ${
-                        isSelected
-                          ? "text-[var(--accent)] font-medium"
-                          : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
-                      }`}>
-                        <span className="sm:hidden">{config.name.split(":")[0]}</span>
-                        <span className="hidden sm:inline">{config.name}</span>
-                      </span>
-                    </div>
-                    <span className={`text-xs font-semibold sm:text-sm ${
-                      isSelected ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Recent Emails */}
-          <div className="glass-card overflow-hidden">
-            <div className="flex flex-col gap-2 border-b border-[var(--border)] px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] sm:text-sm">
-                  Recent Emails
-                </h2>
-                {categoryFilter !== null && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium sm:gap-1.5 sm:px-2.5 sm:py-1"
-                    style={{
-                      backgroundColor: `${categories[categoryFilter.toString()]?.color}15`,
-                      color: categories[categoryFilter.toString()]?.color,
-                    }}
-                  >
-                    <span className="truncate max-w-[100px] sm:max-w-none">{categories[categoryFilter.toString()]?.name}</span>
-                    <button
-                      onClick={() => setCategoryFilter(null)}
-                      className="ml-1 hover:opacity-70"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-              </div>
-              {metrics.totalAll > 0 && (
-                <button
-                  onClick={handleResetMetrics}
-                  className="flex items-center gap-1.5 self-start text-xs text-[var(--text-muted)] transition-colors hover:text-red-400"
-                >
-                  <RotateCcw className="h-3 w-3" />
-                  Reset metrics
-                </button>
-              )}
-            </div>
-
-            {emails.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 sm:py-16">
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--bg-elevated)] sm:h-14 sm:w-14">
-                  <Mail className="h-5 w-5 text-[var(--text-muted)] sm:h-6 sm:w-6" />
+          {/* Action Cards Row */}
+          <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            {/* Needs Attention */}
+            <button
+              onClick={() => setCategoryFilter(categoryFilter === 1 ? null : 1)}
+              className={`group relative overflow-hidden rounded-2xl border p-4 text-left transition-all hover:shadow-lg sm:p-5 ${
+                categoryFilter === 1
+                  ? "border-red-500/50 bg-red-500/10"
+                  : "border-[var(--border)] bg-[var(--bg-card)] hover:border-red-500/30"
+              }`}
+            >
+              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-red-500/10 blur-2xl transition-all group-hover:bg-red-500/20" />
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 sm:h-11 sm:w-11">
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
                 </div>
-                {categoryFilter !== null && emails.length > 0 ? (
-                  <>
-                    <p className="text-sm text-[var(--text-secondary)]">
-                      No emails in this category
-                    </p>
+                <p className="mt-3 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
+                  {needsAttention}
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">Needs Attention</p>
+              </div>
+            </button>
+
+            {/* Drafts Ready */}
+            <Link
+              href="/drafts"
+              className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 text-left transition-all hover:border-emerald-500/30 hover:shadow-lg sm:p-5"
+            >
+              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-emerald-500/10 blur-2xl transition-all group-hover:bg-emerald-500/20" />
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 sm:h-11 sm:w-11">
+                  <FileText className="h-5 w-5 text-emerald-400" />
+                </div>
+                <p className="mt-3 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
+                  {draftsReady}
+                </p>
+                <p className="mt-0.5 flex items-center gap-1 text-xs text-[var(--text-muted)] sm:text-sm">
+                  Drafts Ready
+                  <ArrowRight className="h-3 w-3 opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100" />
+                </p>
+              </div>
+            </Link>
+
+            {/* Processed */}
+            <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5">
+              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-blue-500/10 blur-2xl" />
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 sm:h-11 sm:w-11">
+                  <Inbox className="h-5 w-5 text-blue-400" />
+                </div>
+                <p className="mt-3 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
+                  {metrics.totalProcessed}
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">
+                  {dateRange === "all" ? "Total Processed" : dateRange === "today" ? "Today" : dateRange === "week" ? "This Week" : "This Month"}
+                </p>
+              </div>
+            </div>
+
+            {/* Time Saved */}
+            <div className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-4 sm:p-5">
+              <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-purple-500/10 blur-2xl" />
+              <div className="relative">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 sm:h-11 sm:w-11">
+                  <Clock className="h-5 w-5 text-purple-400" />
+                </div>
+                <p className="mt-3 text-2xl font-bold text-[var(--text-primary)] sm:text-3xl">
+                  {timeSavedDisplay}
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--text-muted)] sm:text-sm">Time Saved</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Email List Section */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden">
+            {/* List Header with Category Filters */}
+            <div className="border-b border-[var(--border)] p-4 sm:px-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+                    Recent Emails
+                  </h2>
+                  {categoryFilter !== null && (
                     <button
                       onClick={() => setCategoryFilter(null)}
-                      className="mt-2 text-xs text-[var(--accent)] hover:text-[var(--accent-hover)]"
+                      className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors"
+                      style={{
+                        backgroundColor: `${getCategoryColor(categoryFilter)}15`,
+                        color: getCategoryColor(categoryFilter),
+                      }}
                     >
-                      Clear filter to see all emails
+                      {getCategoryName(categoryFilter)}
+                      <X className="h-3 w-3" />
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-[var(--text-secondary)]">
-                      No emails processed yet
-                    </p>
-                    <p className="mt-1 text-xs text-[var(--text-muted)]">
-                      {labelsCreated
-                        ? "Turn on the Email Agent to start processing"
-                        : 'Click "Setup Labels" to get started'}
-                    </p>
-                  </>
-                )}
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  {/* Category Filter Dropdown */}
+                  <div className="relative">
+                    <button
+                      className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--border)]"
+                      onClick={() => {
+                        const dropdown = document.getElementById('category-dropdown');
+                        dropdown?.classList.toggle('hidden');
+                      }}
+                    >
+                      <Filter className="h-3.5 w-3.5" />
+                      Filter
+                    </button>
+                    <div
+                      id="category-dropdown"
+                      className="hidden absolute right-0 top-full z-20 mt-1 w-48 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-2 shadow-xl"
+                    >
+                      {Object.entries(categories).map(([num, config]) => (
+                        <button
+                          key={num}
+                          onClick={() => {
+                            setCategoryFilter(categoryFilter === parseInt(num) ? null : parseInt(num));
+                            document.getElementById('category-dropdown')?.classList.add('hidden');
+                          }}
+                          className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                            categoryFilter === parseInt(num)
+                              ? "bg-[var(--bg-elevated)]"
+                              : "hover:bg-[var(--bg-elevated)]"
+                          }`}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: config.color }}
+                          />
+                          <span className="text-[var(--text-secondary)]">{config.name}</span>
+                          <span className="ml-auto text-xs text-[var(--text-muted)]">
+                            {metrics.byCategory[parseInt(num)] || 0}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {metrics.totalAll > 0 && (
+                    <button
+                      onClick={handleResetMetrics}
+                      className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] transition-colors hover:text-red-400"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      Reset
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Email List */}
+            {emails.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--bg-elevated)]">
+                  <Mail className="h-6 w-6 text-[var(--text-muted)]" />
+                </div>
+                <p className="text-sm text-[var(--text-secondary)]">
+                  {categoryFilter !== null ? "No emails in this category" : "No emails processed yet"}
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {labelsCreated
+                    ? "Turn on the agent to start processing"
+                    : 'Click "Setup Labels" to get started'}
+                </p>
               </div>
             ) : (
               <>
                 <div className="divide-y divide-[var(--border)]">
                   {displayedEmails.map((email) => {
                     const isExpanded = expandedEmails.has(email.id);
+                    const categoryColor = getCategoryColor(email.category);
+                    
                     return (
-                      <div key={email.id}>
+                      <div key={email.id} className="relative">
+                        {/* Priority indicator bar */}
+                        <div
+                          className="absolute left-0 top-0 bottom-0 w-1"
+                          style={{ backgroundColor: email.category === 1 ? categoryColor : 'transparent' }}
+                        />
+                        
                         <button
                           onClick={() => toggleEmailExpanded(email.id)}
-                          className="group flex w-full items-start gap-2 px-4 py-3 text-left transition-all hover:bg-[var(--bg-card-hover)] sm:items-center sm:gap-3 sm:px-6 sm:py-4"
+                          className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-all hover:bg-[var(--bg-elevated)] sm:items-center sm:px-6 sm:py-4"
                         >
-                          <div className={`mt-1 transition-transform sm:mt-0 ${isExpanded ? "rotate-90" : ""}`}>
-                            <ChevronRight className="h-4 w-4 text-[var(--text-muted)]" />
-                          </div>
+                          <ChevronRight className={`mt-0.5 h-4 w-4 text-[var(--text-muted)] transition-transform sm:mt-0 ${isExpanded ? "rotate-90" : ""}`} />
+                          
                           <div className="min-w-0 flex-1">
-                            {/* Mobile layout */}
-                            <div className="sm:hidden">
+                            <div className="flex items-start gap-2 sm:items-center">
                               <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
                                 {email.subject || "(No subject)"}
                               </p>
-                              <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-                                {email.from}
-                              </p>
-                              <div className="mt-2 flex items-center gap-2">
-                                {getCategoryBadge(email.category)}
-                                {email.draft_id && (
-                                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                                    <FileText className="h-3 w-3" />
-                                    Draft
-                                  </span>
-                                )}
-                              </div>
+                              {email.draft_id && (
+                                <span className="flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
+                                  <FileText className="h-3 w-3" />
+                                  <span className="hidden sm:inline">Draft</span>
+                                </span>
+                              )}
                             </div>
-                            {/* Desktop layout */}
-                            <div className="hidden sm:block">
-                              <div className="flex items-center gap-3">
-                                <p className="truncate text-sm font-medium text-[var(--text-primary)] group-hover:text-[var(--accent)]">
-                                  {email.subject || "(No subject)"}
-                                </p>
-                                {email.draft_id && (
-                                  <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-400">
-                                    <FileText className="h-3 w-3" />
-                                    Draft
-                                  </span>
-                                )}
-                              </div>
-                              <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-                                {email.from}
-                              </p>
-                            </div>
+                            <p className="mt-0.5 truncate text-xs text-[var(--text-muted)]">
+                              {email.from}
+                            </p>
                           </div>
-                          <div className="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-4">
-                            <span className="hidden sm:inline">{getCategoryBadge(email.category)}</span>
+                          
+                          <div className="flex items-center gap-3">
+                            <span
+                              className="hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex"
+                              style={{
+                                backgroundColor: `${categoryColor}15`,
+                                color: categoryColor,
+                              }}
+                            >
+                              {getCategoryName(email.category)}
+                            </span>
                             <span className="text-xs text-[var(--text-muted)]">
                               {new Date(email.processed_at).toLocaleDateString()}
                             </span>
                           </div>
                         </button>
 
-                        {/* Expanded Classification Details */}
+                        {/* Expanded Details */}
                         {isExpanded && (
-                          <div className="border-t border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-3 sm:px-6 sm:py-4">
-                            <div className="ml-6 space-y-3 sm:ml-7">
-                              {/* AI Reasoning */}
+                          <div className="border-t border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-4 sm:px-6">
+                            <div className="ml-7 space-y-3">
+                              {/* Mobile category badge */}
+                              <div className="sm:hidden">
+                                <span
+                                  className="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                                  style={{
+                                    backgroundColor: `${categoryColor}15`,
+                                    color: categoryColor,
+                                  }}
+                                >
+                                  {getCategoryName(email.category)}
+                                </span>
+                              </div>
+                              
                               {email.classification_reasoning ? (
-                                <div className="flex gap-2 sm:gap-3">
+                                <div className="flex gap-3">
                                   <Brain className="mt-0.5 h-4 w-4 flex-shrink-0 text-purple-400" />
                                   <div>
-                                    <p className="text-xs font-medium text-[var(--text-secondary)]">AI Classification Reasoning</p>
+                                    <p className="text-xs font-medium text-[var(--text-secondary)]">AI Reasoning</p>
                                     <p className="mt-1 text-sm text-[var(--text-primary)]">
                                       {email.classification_reasoning}
                                     </p>
                                   </div>
                                 </div>
                               ) : (
-                                <div className="flex gap-2 sm:gap-3">
-                                  <Brain className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--text-muted)]" />
-                                  <p className="text-sm text-[var(--text-muted)] italic">
-                                    No classification reasoning available (processed before enhancement)
-                                  </p>
-                                </div>
+                                <p className="text-sm text-[var(--text-muted)] italic">
+                                  No AI reasoning available
+                                </p>
                               )}
 
-                              {/* Metadata badges */}
-                              <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex flex-wrap gap-2">
                                 {email.classification_confidence !== undefined && (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-card)] px-2 py-1 text-xs text-[var(--text-secondary)] sm:px-2.5">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--bg-card)] px-2.5 py-1 text-xs text-[var(--text-secondary)]">
                                     Confidence: {Math.round(email.classification_confidence * 100)}%
                                   </span>
                                 )}
                                 {email.is_thread && (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2 py-1 text-xs text-blue-400 sm:px-2.5">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 text-xs text-blue-400">
                                     <GitBranch className="h-3 w-3" />
                                     Thread
                                   </span>
                                 )}
                                 {email.sender_known && (
-                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-400 sm:px-2.5">
+                                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400">
                                     <User className="h-3 w-3" />
                                     Known Sender
                                   </span>
@@ -1033,24 +931,15 @@ export default function Dashboard() {
                   })}
                 </div>
 
-                {/* Load More */}
                 {hasMore && (
                   <div className="border-t border-[var(--border)] p-4 text-center">
                     <button
                       onClick={() => setDisplayLimit((prev) => Math.min(prev + 25, 100))}
-                      className="inline-flex min-h-[44px] items-center gap-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+                      className="inline-flex items-center gap-2 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
                     >
                       <ChevronDown className="h-4 w-4" />
-                      Load more ({Math.min(emails.length - displayLimit, 25)} remaining)
+                      Load more
                     </button>
-                  </div>
-                )}
-
-                {displayLimit >= 100 && emails.length >= 100 && (
-                  <div className="border-t border-[var(--border)] p-4 text-center">
-                    <p className="text-xs text-[var(--text-muted)]">
-                      Showing last 100 emails
-                    </p>
                   </div>
                 )}
               </>
