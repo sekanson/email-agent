@@ -248,14 +248,18 @@ export async function POST(request: NextRequest) {
     const result = await sendDigestEmail(digestData);
 
     if (result.success) {
-      // Log the digest send
-      await supabase.from("zeno_digest_logs").insert({
-        user_email: userEmail,
-        digest_type: digestData.digestType,
-        emails_included: digestData.needsAttention.length,
-        sent_at: new Date().toISOString(),
-        message_id: result.messageId,
-      }).catch(() => {}); // Ignore if table doesn't exist yet
+      // Log the digest send (ignore errors if table doesn't exist yet)
+      try {
+        await supabase.from("zeno_digest_logs").insert({
+          user_email: userEmail,
+          digest_type: digestData.digestType,
+          emails_included: digestData.needsAttention.length,
+          sent_at: new Date().toISOString(),
+          message_id: result.messageId,
+        });
+      } catch {
+        // Table might not exist yet
+      }
     }
 
     return NextResponse.json({
