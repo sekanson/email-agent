@@ -3,6 +3,22 @@
     {
       "path": "/api/cron/process-emails",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/zeno-agent/poll-replies",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/zeno-digest?type=morning",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/zeno-digest?type=eod",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/zeno-digest?type=weekly",
+      "schedule": "0 14 * * 1"
     }
   ]
 }
