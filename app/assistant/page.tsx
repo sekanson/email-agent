@@ -19,6 +19,7 @@ import {
   Sparkles,
   Send,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 
 interface ZenoSettings {
@@ -30,6 +31,7 @@ interface ZenoSettings {
   focus_mode_enabled: boolean;
   focus_mode_until: string | null;
   timezone: string;
+  zeno_confirmations?: boolean;
 }
 
 const TIMEZONES = [
@@ -476,88 +478,276 @@ export default function AssistantPage() {
               )}
             </section>
 
-            {/* VIP Senders */}
+            {/* Urgent Alerts */}
             <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20">
-                  <Star className="h-5 w-5 text-amber-400" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/20">
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">VIP Senders</h2>
-                  <p className="text-sm text-[var(--text-muted)]">Always get alerts for these people</p>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Urgent Alerts</h2>
+                  <p className="text-sm text-[var(--text-muted)]">Get notified immediately for time-sensitive emails</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                {/* Add VIP input */}
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    value={newVip}
-                    onChange={(e) => setNewVip(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addVipSender()}
-                    placeholder="email@example.com"
-                    className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                  />
-                  <button
-                    onClick={addVipSender}
-                    className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)]"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add
-                  </button>
-                </div>
-
-                {/* VIP list */}
-                {settings.vip_senders.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {settings.vip_senders.map((email) => (
-                      <span
-                        key={email}
-                        className="flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1.5 text-sm text-amber-300"
-                      >
-                        <Star className="h-3 w-3 text-amber-400" />
-                        {email}
-                        <button
-                          onClick={() => removeVipSender(email)}
-                          className="ml-1 rounded-full p-0.5 hover:bg-amber-500/20"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </span>
-                    ))}
+              {/* AI Detection Note */}
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <Sparkles className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="text-blue-300 font-medium">AI-Powered Urgency Detection</p>
+                    <p className="text-blue-300/80 mt-1">
+                      Zeno automatically detects urgent matters like deadlines, meeting confirmations, 
+                      personal requests (school pickups, RSVPs), and time-sensitive business emails. 
+                      It's about <strong>90% accurate</strong> — occasionally something might slip through 
+                      or get flagged incorrectly, but it catches most important things.
+                    </p>
                   </div>
-                ) : (
-                  <p className="text-sm text-[var(--text-muted)] italic">
-                    No VIP senders yet. Add your boss, key clients, or family.
-                  </p>
-                )}
+                </div>
+              </div>
+
+              {/* VIP Senders */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Star className="h-4 w-4 text-amber-400" />
+                  <h3 className="font-medium text-[var(--text-primary)]">VIP Senders</h3>
+                  <span className="text-xs text-[var(--text-muted)]">— always alert, no AI needed</span>
+                </div>
+                
+                <div className="space-y-3">
+                  {/* Add VIP input */}
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={newVip}
+                      onChange={(e) => setNewVip(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addVipSender()}
+                      placeholder="boss@company.com, partner@example.com"
+                      className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                    />
+                    <button
+                      onClick={addVipSender}
+                      className="flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-amber-600"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </button>
+                  </div>
+
+                  {/* VIP list */}
+                  {settings.vip_senders.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {settings.vip_senders.map((email) => (
+                        <span
+                          key={email}
+                          className="flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1.5 text-sm text-amber-300"
+                        >
+                          <Star className="h-3 w-3 text-amber-400" />
+                          {email}
+                          <button
+                            onClick={() => removeVipSender(email)}
+                            className="ml-1 rounded-full p-0.5 hover:bg-amber-500/20"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-[var(--text-muted)] italic">
+                      Add your boss, key clients, investors, or family members.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* What triggers urgent alerts */}
+              <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
+                <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-2">What triggers urgent alerts:</p>
+                <div className="grid grid-cols-2 gap-2 text-sm text-[var(--text-secondary)]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-400">⭐</span> VIP sender emails
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-red-400">⏰</span> Deadline mentions
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-blue-400">📅</span> Meeting confirmations
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-purple-400">👨‍👩‍👧</span> Personal/family requests
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400">💼</span> Client escalations
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-pink-400">💒</span> Event RSVPs
+                  </div>
+                </div>
               </div>
             </section>
 
-            {/* Timezone */}
+            {/* Schedule & Timing */}
             <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-elevated)]">
                   <Clock className="h-5 w-5 text-[var(--text-muted)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Timezone</h2>
-                  <p className="text-sm text-[var(--text-muted)]">For scheduling digests</p>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Schedule & Timing</h2>
+                  <p className="text-sm text-[var(--text-muted)]">When should Zeno check in with you?</p>
                 </div>
               </div>
 
-              <select
-                value={settings.timezone}
-                onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-              >
-                {TIMEZONES.map((tz) => (
-                  <option key={tz.value} value={tz.value}>
-                    {tz.label}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-4">
+                {/* Timezone */}
+                <div>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Timezone</label>
+                  <select
+                    value={settings.timezone}
+                    onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                  >
+                    {TIMEZONES.map((tz) => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Custom times */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      🌅 Morning Brief
+                    </label>
+                    <input
+                      type="time"
+                      value={settings.zeno_morning_time}
+                      onChange={(e) => setSettings({ ...settings, zeno_morning_time: e.target.value })}
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                      🌙 End of Day
+                    </label>
+                    <input
+                      type="time"
+                      value={settings.zeno_eod_time}
+                      onChange={(e) => setSettings({ ...settings, zeno_eod_time: e.target.value })}
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Reply Behavior */}
+            <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/20">
+                  <Mail className="h-5 w-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Reply Behavior</h2>
+                  <p className="text-sm text-[var(--text-muted)]">How Zeno handles your email instructions</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* Draft vs Send */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-[var(--bg-elevated)]">
+                  <div>
+                    <p className="font-medium text-[var(--text-primary)]">Safe Mode</p>
+                    <p className="text-sm text-[var(--text-muted)]">Create drafts instead of sending directly</p>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      disabled
+                      className="peer sr-only"
+                    />
+                    <div className="h-6 w-11 rounded-full bg-emerald-500 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:translate-x-full"></div>
+                  </label>
+                </div>
+                <p className="text-xs text-[var(--text-muted)] italic px-1">
+                  🔒 For safety, Zeno always creates drafts. You review and hit send in Gmail.
+                </p>
+
+                {/* Confirmation emails */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-[var(--bg-elevated)]">
+                  <div>
+                    <p className="font-medium text-[var(--text-primary)]">Action Confirmations</p>
+                    <p className="text-sm text-[var(--text-muted)]">Get an email when Zeno completes your requests</p>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={settings.zeno_confirmations !== false}
+                      onChange={(e) => setSettings({ ...settings, zeno_confirmations: e.target.checked } as any)}
+                      className="peer sr-only"
+                    />
+                    <div className="h-6 w-11 rounded-full bg-[var(--bg-card)] peer-checked:bg-emerald-500 peer-focus:ring-2 peer-focus:ring-emerald-500/20 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full border border-[var(--border)]"></div>
+                  </label>
+                </div>
+              </div>
+            </section>
+
+            {/* Reply Examples */}
+            <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20">
+                  <MessageSquare className="h-5 w-5 text-purple-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Reply Commands</h2>
+                  <p className="text-sm text-[var(--text-muted)]">What you can say when replying to Zeno</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
+                  <p className="text-xs font-medium text-blue-400 uppercase tracking-wide mb-2">Quick Replies</p>
+                  <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
+                    <p><span className="text-[var(--text-muted)]">"</span>Reply 1 with: Sounds good, approved<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Reply 2 with: Let's push to next week<span className="text-[var(--text-muted)]">"</span></p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
+                  <p className="text-xs font-medium text-emerald-400 uppercase tracking-wide mb-2">Draft Emails</p>
+                  <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
+                    <p><span className="text-[var(--text-muted)]">"</span>Draft a reply to Sarah saying I need until Friday<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Draft response for the contract email, ask for revised pricing<span className="text-[var(--text-muted)]">"</span></p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
+                  <p className="text-xs font-medium text-amber-400 uppercase tracking-wide mb-2">Send Messages</p>
+                  <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
+                    <p><span className="text-[var(--text-muted)]">"</span>Tell Aamir I'll be there at 3pm<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Email Hammad saying the contract looks good<span className="text-[var(--text-muted)]">"</span></p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
+                  <p className="text-xs font-medium text-purple-400 uppercase tracking-wide mb-2">Schedule Meetings</p>
+                  <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
+                    <p><span className="text-[var(--text-muted)]">"</span>Book a meeting with Aamir tomorrow at 9am<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Schedule 30 min with Sarah and Hammad for contract review<span className="text-[var(--text-muted)]">"</span></p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
+                  <p className="text-xs font-medium text-pink-400 uppercase tracking-wide mb-2">Multiple Actions</p>
+                  <div className="font-mono text-sm text-[var(--text-secondary)]">
+                    <p><span className="text-[var(--text-muted)]">"</span>Reply 1 with yes, tell Aamir we're confirmed, and book prep meeting for 1 hour before<span className="text-[var(--text-muted)]">"</span></p>
+                  </div>
+                </div>
+              </div>
             </section>
 
             {/* Action Buttons */}
@@ -582,19 +772,37 @@ export default function AssistantPage() {
             </div>
 
             {/* How it works */}
-            <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] p-6">
-              <h3 className="font-semibold text-[var(--text-primary)] mb-3">💡 How to use Zeno</h3>
-              <div className="space-y-2 text-sm text-[var(--text-muted)]">
-                <p>1. Zeno sends you email digests with what needs attention</p>
-                <p>2. <strong className="text-[var(--text-secondary)]">Reply to the email</strong> with instructions like:</p>
-                <div className="ml-4 space-y-1 font-mono text-xs bg-[var(--bg-card)] p-3 rounded-lg">
-                  <p>"Reply 1 with: Sounds good, let's proceed"</p>
-                  <p>"Tell Aamir I'll be there at 3pm"</p>
-                  <p>"Draft a response for Sarah saying I need more time"</p>
-                  <p>"Book a meeting with Hammad tomorrow at 9am"</p>
+            <section className="rounded-xl border-2 border-dashed border-[var(--border)] bg-gradient-to-br from-blue-500/5 to-purple-500/5 p-6">
+              <h3 className="font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-blue-400" />
+                How Zeno Works
+              </h3>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="text-center">
+                  <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-blue-500/20 text-2xl mb-2">
+                    📬
+                  </div>
+                  <p className="font-medium text-[var(--text-primary)]">1. Zeno emails you</p>
+                  <p className="text-sm text-[var(--text-muted)]">Digests with what needs your attention</p>
                 </div>
-                <p>3. Zeno executes your commands and confirms via email ✨</p>
+                <div className="text-center">
+                  <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-purple-500/20 text-2xl mb-2">
+                    ✍️
+                  </div>
+                  <p className="font-medium text-[var(--text-primary)]">2. You reply</p>
+                  <p className="text-sm text-[var(--text-muted)]">Natural language instructions</p>
+                </div>
+                <div className="text-center">
+                  <div className="flex h-12 w-12 mx-auto items-center justify-center rounded-full bg-emerald-500/20 text-2xl mb-2">
+                    ✅
+                  </div>
+                  <p className="font-medium text-[var(--text-primary)]">3. Zeno acts</p>
+                  <p className="text-sm text-[var(--text-muted)]">Creates drafts, schedules, confirms</p>
+                </div>
               </div>
+              <p className="text-center text-sm text-[var(--text-muted)] mt-4">
+                Stay off your inbox. Let Zeno handle the noise. You just reply. ✨
+              </p>
             </section>
           </div>
         </div>
