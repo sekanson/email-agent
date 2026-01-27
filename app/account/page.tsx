@@ -704,7 +704,7 @@ function SettingsPageContent() {
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">Gmail</p>
-                            {user?.gmail_connected !== false ? (
+                            {user?.gmail_connected === true ? (
                               <p className="flex items-center gap-1.5 text-sm text-emerald-500">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                                 1 account connected
@@ -714,7 +714,7 @@ function SettingsPageContent() {
                             )}
                           </div>
                         </div>
-                        {user?.gmail_connected === false && (
+                        {user?.gmail_connected !== true && (
                           <a
                             href="/api/integrations/gmail"
                             className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] sm:min-h-0"
@@ -725,7 +725,7 @@ function SettingsPageContent() {
                       </div>
 
                       {/* Connected account details - only show if connected */}
-                      {user?.gmail_connected !== false && (
+                      {user?.gmail_connected === true && (
                         <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
                           <div className="flex items-center gap-3">
                             <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
@@ -759,7 +759,7 @@ function SettingsPageContent() {
                       )}
 
                       {/* Trust messaging for non-connected state */}
-                      {user?.gmail_connected === false && (
+                      {user?.gmail_connected !== true && (
                         <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
                           <p className="text-xs text-[var(--text-muted)]">
                             <span className="font-medium text-[var(--text-secondary)]">🔒 Your data is safe:</span>{" "}
@@ -826,7 +826,7 @@ function SettingsPageContent() {
                           </div>
                           <div>
                             <p className="font-semibold text-[var(--text-primary)]">Google Calendar</p>
-                            {user?.calendar_connected !== false ? (
+                            {user?.calendar_connected === true ? (
                               <p className="flex items-center gap-1.5 text-sm text-emerald-500">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                                 1 account connected
@@ -836,7 +836,7 @@ function SettingsPageContent() {
                             )}
                           </div>
                         </div>
-                        {user?.calendar_connected === false && (
+                        {user?.calendar_connected !== true && (
                           <a
                             href="/api/integrations/calendar"
                             className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] sm:min-h-0"
@@ -847,7 +847,7 @@ function SettingsPageContent() {
                       </div>
 
                       {/* Connected account details - only show if connected */}
-                      {user?.calendar_connected !== false && (
+                      {user?.calendar_connected === true && (
                         <div className="mt-4 flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-3">
                           <div className="flex items-center gap-3">
                             <Check className="h-4 w-4 flex-shrink-0 text-emerald-500" />
