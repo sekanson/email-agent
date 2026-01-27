@@ -231,12 +231,12 @@ export default function Sidebar() {
       {/* Desktop Sidebar - Hidden on mobile */}
       <aside className="sidebar-bg fixed left-0 top-0 z-40 hidden h-screen w-60 flex-col overflow-y-auto border-r border-[var(--border)] lg:flex">
         {/* Logo */}
-        <div className="flex items-center px-4 py-4">
+        <div className="flex items-center px-4 py-5 mb-2">
           <Logo />
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-2">
+        <nav className="flex-1 px-3">
           <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive = pathname === item.href;

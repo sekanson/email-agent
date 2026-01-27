@@ -29,9 +29,9 @@ export default function Logo() {
     <Image
       src={isDark ? "/logo.svg" : "/logo-dark.svg"}
       alt="Zeno Email Agent"
-      width={240}
-      height={140}
-      className="h-[50px] w-auto object-contain"
+      width={200}
+      height={120}
+      className="h-[40px] w-auto object-contain"
       priority
     />
   );
