@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const digestType = (searchParams.get("type") || "morning") as "morning" | "eod" | "weekly";
+    const digestType = (searchParams.get("type") || "morning") as "morning" | "eod" | "weekly" | "urgent";
 
     console.log(`🕐 Running ${digestType} digest cron...`);
 
