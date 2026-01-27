@@ -14,23 +14,23 @@ export interface CategoryConfig {
   order: number;
 }
 
-// Bright/light colors for good contrast on dark theme
+// Gmail-compatible label colors (these exact values are accepted by Gmail API)
 export const CATEGORY_COLORS = {
-  red: "#F87171",      // Red-400 - To Respond
-  orange: "#FB923C",   // Orange-400 - FYI
-  cyan: "#22D3EE",     // Cyan-400 - Comment
-  green: "#4ADE80",    // Green-400 - Notification
-  purple: "#A855F7",   // Purple-400 - Meeting/Calendar
-  blue: "#60A5FA",     // Blue-400 - Awaiting Reply
-  teal: "#2DD4BF",     // Teal-400 - Actioned
-  pink: "#F472B6",     // Pink-400 - Marketing
-  gray: "#9CA3AF",     // Gray-400 - Other
+  red: "#fb4c2f",       // Gmail Red - To Respond
+  orange: "#ffad47",    // Gmail Orange - FYI
+  cyan: "#2da2bb",      // Gmail Cyan - Comment
+  green: "#43d692",     // Gmail Light Green - Notification
+  purple: "#a479e2",    // Gmail Purple - Meeting/Calendar
+  blue: "#4a86e8",      // Gmail Blue - Awaiting Reply
+  teal: "#16a766",      // Gmail Green - Actioned
+  pink: "#f691b3",      // Gmail Pink - Marketing
+  gray: "#4a86e8",      // Gmail Blue (no gray in Gmail) - Other
 };
 
-// Default category configuration
+// Default category configuration (names differentiated from Fyxer)
 export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
   "1": {
-    name: "To Respond",
+    name: "Reply Needed",
     color: CATEGORY_COLORS.red,
     enabled: true,
     required: true,
@@ -40,7 +40,7 @@ export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 1,
   },
   "2": {
-    name: "FYI",
+    name: "For Info",
     color: CATEGORY_COLORS.orange,
     enabled: true,
     description: "Worth knowing, no response required",
@@ -49,7 +49,7 @@ export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 2,
   },
   "3": {
-    name: "Comment",
+    name: "Mentions",
     color: CATEGORY_COLORS.cyan,
     enabled: true,
     description: "Mentions from docs, threads & chats",
@@ -58,7 +58,7 @@ export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 3,
   },
   "4": {
-    name: "Notification",
+    name: "Alerts",
     color: CATEGORY_COLORS.green,
     enabled: true,
     description: "Automated alerts & confirmations",
@@ -67,7 +67,7 @@ export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 4,
   },
   "5": {
-    name: "Meeting",
+    name: "Calendar",
     color: CATEGORY_COLORS.purple,
     enabled: true,
     description: "Meetings, invites & calendar events",
@@ -76,7 +76,7 @@ export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 5,
   },
   "6": {
-    name: "Awaiting Reply",
+    name: "Waiting",
     color: CATEGORY_COLORS.blue,
     enabled: true,
     description: "Waiting on someone else's response",
@@ -85,7 +85,7 @@ export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 6,
   },
   "7": {
-    name: "Actioned",
+    name: "Actioned!",
     color: CATEGORY_COLORS.teal,
     enabled: true,
     description: "Resolved or finished conversations",
@@ -94,7 +94,7 @@ export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 7,
   },
   "8": {
-    name: "Marketing",
+    name: "Ad/Spam",
     color: CATEGORY_COLORS.pink,
     enabled: true,
     description: "Newsletters, sales & promotional",
@@ -130,18 +130,18 @@ export function getCategoryDisplayName(categories: Record<string, CategoryConfig
   return `${num}: ${name}`;
 }
 
-// Preset color options for color picker (all light/bright)
+// Gmail-compatible color presets (these exact values work with Gmail's label API)
 export const COLOR_PRESETS = [
-  "#F87171", // Red
-  "#FB923C", // Orange
-  "#FBBF24", // Amber
-  "#A3E635", // Lime
-  "#4ADE80", // Green
-  "#2DD4BF", // Teal
-  "#22D3EE", // Cyan
-  "#60A5FA", // Blue
-  "#818CF8", // Indigo
-  "#A855F7", // Purple
-  "#E879F9", // Fuchsia
-  "#F472B6", // Pink
+  "#fb4c2f", // Red
+  "#cc3a21", // Dark Red
+  "#ffad47", // Orange
+  "#fad165", // Yellow
+  "#16a766", // Green
+  "#43d692", // Light Green
+  "#4a86e8", // Blue
+  "#a479e2", // Purple
+  "#f691b3", // Pink
+  "#2da2bb", // Cyan
+  "#b99aff", // Light Purple
+  "#ff7537", // Orange Red
 ];

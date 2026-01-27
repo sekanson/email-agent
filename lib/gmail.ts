@@ -239,54 +239,62 @@ export function formatThreadForAI(messages: ThreadMessage[], maxLength: number =
 
 // Gmail's allowed label color palette (verified from API)
 // These are the ONLY colors Gmail accepts for labels
-const GMAIL_ALLOWED_COLORS = [
-  { bg: "#fb4c2f", text: "#ffffff" }, // Red
-  { bg: "#cc3a21", text: "#ffffff" }, // Dark Red
-  { bg: "#ffad47", text: "#ffffff" }, // Orange
-  { bg: "#fad165", text: "#000000" }, // Yellow
-  { bg: "#16a766", text: "#ffffff" }, // Green
-  { bg: "#43d692", text: "#000000" }, // Light Green
-  { bg: "#4a86e8", text: "#ffffff" }, // Blue
-  { bg: "#a479e2", text: "#ffffff" }, // Purple
-  { bg: "#f691b3", text: "#000000" }, // Pink
-  { bg: "#2da2bb", text: "#ffffff" }, // Cyan/Teal
-  { bg: "#b99aff", text: "#000000" }, // Light Purple
-  { bg: "#ff7537", text: "#ffffff" }, // Orange-Red
+export const GMAIL_ALLOWED_COLORS = [
+  { bg: "#fb4c2f", text: "#ffffff", name: "Red" },
+  { bg: "#cc3a21", text: "#ffffff", name: "Dark Red" },
+  { bg: "#ffad47", text: "#ffffff", name: "Orange" },
+  { bg: "#fad165", text: "#000000", name: "Yellow" },
+  { bg: "#16a766", text: "#ffffff", name: "Green" },
+  { bg: "#43d692", text: "#000000", name: "Light Green" },
+  { bg: "#4a86e8", text: "#ffffff", name: "Blue" },
+  { bg: "#a479e2", text: "#ffffff", name: "Purple" },
+  { bg: "#f691b3", text: "#000000", name: "Pink" },
+  { bg: "#2da2bb", text: "#ffffff", name: "Cyan" },
+  { bg: "#b99aff", text: "#000000", name: "Light Purple" },
+  { bg: "#ff7537", text: "#ffffff", name: "Orange Red" },
 ];
 
-// Map user's hex colors to closest Gmail allowed color
-const COLOR_MAPPING: Record<string, number> = {
-  // Original mappings
-  "#ef4444": 0,  // Red -> fb4c2f
-  "#f59e0b": 2,  // Amber -> ffad47
-  "#10b981": 4,  // Green -> 16a766
-  "#6366f1": 6,  // Indigo -> 4a86e8
-  "#8b5cf6": 7,  // Purple -> a479e2
-  "#06b6d4": 9,  // Cyan -> 2da2bb
-  "#84cc16": 5,  // Lime -> 43d692
-  "#f97316": 11, // Orange -> ff7537
-  "#ec4899": 8,  // Pink -> f691b3
-  "#14b8a6": 9,  // Teal -> 2da2bb
-  // New category colors
-  "#f87171": 0,  // Respond (red) -> fb4c2f
-  "#fb923c": 11, // Update (orange) -> ff7537
-  "#22d3ee": 9,  // Comment (cyan) -> 2da2bb
-  "#4ade80": 5,  // Notification (green) -> 43d692
-  "#a855f7": 7,  // Calendar (purple) -> a479e2
-  "#60a5fa": 6,  // Pending (blue) -> 4a86e8
-  "#2dd4bf": 9,  // Complete (teal) -> 2da2bb
-  "#f472b6": 8,  // Marketing/Spam (pink) -> f691b3
-  "#9ca3af": 6,  // Other (gray) -> 4a86e8 (blue as fallback)
-};
+// Convert hex to RGB for color distance calculation
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
+}
+
+// Calculate color distance (simple Euclidean in RGB space)
+function colorDistance(c1: { r: number; g: number; b: number }, c2: { r: number; g: number; b: number }): number {
+  return Math.sqrt(
+    Math.pow(c1.r - c2.r, 2) +
+    Math.pow(c1.g - c2.g, 2) +
+    Math.pow(c1.b - c2.b, 2)
+  );
+}
+
+// Find the closest Gmail color to any arbitrary hex color
+function findClosestGmailColor(hexColor: string): { backgroundColor: string; textColor: string } {
+  const inputRgb = hexToRgb(hexColor);
+  let closestIndex = 0;
+  let minDistance = Infinity;
+
+  GMAIL_ALLOWED_COLORS.forEach((gmailColor, index) => {
+    const gmailRgb = hexToRgb(gmailColor.bg);
+    const distance = colorDistance(inputRgb, gmailRgb);
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestIndex = index;
+    }
+  });
+
+  const color = GMAIL_ALLOWED_COLORS[closestIndex];
+  return { backgroundColor: color.bg, textColor: color.text };
+}
 
 function getGmailColor(hexColor: string): { backgroundColor: string; textColor: string } {
-  const colorIndex = COLOR_MAPPING[hexColor.toLowerCase()];
-  if (colorIndex !== undefined) {
-    const color = GMAIL_ALLOWED_COLORS[colorIndex];
-    return { backgroundColor: color.bg, textColor: color.text };
-  }
-  // Default to blue if no match
-  return { backgroundColor: "#4a86e8", textColor: "#ffffff" };
+  // Use closest color matching for any input color
+  return findClosestGmailColor(hexColor);
 }
 
 export async function createLabel(

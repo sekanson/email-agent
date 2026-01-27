@@ -48,8 +48,8 @@ export function isOtherCategory(name: string): boolean {
 }
 
 export function isRespondCategory(name: string): boolean {
-  const displayName = getDisplayName(name);
-  return displayName === "Respond";
+  const displayName = getDisplayName(name).toLowerCase();
+  return displayName === "respond" || displayName === "to respond" || displayName === "reply needed";
 }
 
 export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {

@@ -2,8 +2,24 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
-import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Lock, RotateCcw, AlertTriangle } from "lucide-react";
-import { DEFAULT_CATEGORIES as SHARED_DEFAULTS, COLOR_PRESETS, type CategoryConfig } from "@/lib/categories";
+import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Lock, RotateCcw, AlertTriangle, ChevronDown } from "lucide-react";
+import { DEFAULT_CATEGORIES as SHARED_DEFAULTS, type CategoryConfig } from "@/lib/categories";
+
+// Gmail's allowed label colors - these are the ONLY colors that work in Gmail
+const GMAIL_COLORS = [
+  { bg: "#fb4c2f", name: "Red" },
+  { bg: "#cc3a21", name: "Dark Red" },
+  { bg: "#ffad47", name: "Orange" },
+  { bg: "#fad165", name: "Yellow" },
+  { bg: "#16a766", name: "Green" },
+  { bg: "#43d692", name: "Light Green" },
+  { bg: "#4a86e8", name: "Blue" },
+  { bg: "#a479e2", name: "Purple" },
+  { bg: "#f691b3", name: "Pink" },
+  { bg: "#2da2bb", name: "Cyan" },
+  { bg: "#b99aff", name: "Light Purple" },
+  { bg: "#ff7537", name: "Orange Red" },
+];
 
 interface Settings {
   temperature: number;
@@ -36,8 +52,8 @@ function isOtherCategory(name: string): boolean {
 }
 
 function isRespondCategory(name: string): boolean {
-  const displayName = getDisplayName(name);
-  return displayName === "To Respond" || displayName === "Respond";
+  const displayName = getDisplayName(name).toLowerCase();
+  return displayName === "to respond" || displayName === "respond" || displayName === "reply needed";
 }
 
 // Build DEFAULT_CATEGORIES from shared defaults (adds number prefixes)
@@ -154,6 +170,20 @@ export default function SettingsPage() {
       setLoading(false);
     }
   }, [userEmail]);
+
+  // Close color pickers when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('[id^="color-picker-"]') && !target.closest('button[title="Click to change color"]')) {
+        document.querySelectorAll('[id^="color-picker-"]').forEach((picker) => {
+          picker.classList.add('hidden');
+        });
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   async function fetchSettings() {
     try {
@@ -427,49 +457,37 @@ export default function SettingsPage() {
           )}
 
           <div className="max-w-3xl space-y-4 sm:space-y-6">
-            {/* Gmail Labels Setup */}
-            <section className="glass-card p-4 sm:p-6">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h2 className="flex items-center gap-2 text-base font-semibold text-[var(--text-primary)] sm:text-lg">
-                    <Tag className="h-5 w-5 text-[var(--accent)]" />
-                    Gmail Labels
-                  </h2>
-                  <p className="mt-1 text-sm text-[var(--text-muted)]">
-                    {user?.labels_created
-                      ? "Sync labels with Gmail (creates new, updates colors, removes deleted)"
-                      : "Create classification labels in your Gmail account"}
-                  </p>
-                </div>
+            {/* Gmail Sync Status */}
+            <section className="glass-card p-4 sm:p-5">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
+                  <Tag className="h-5 w-5 text-[var(--accent)]" />
+                  <div>
+                    <span className="text-sm font-medium text-[var(--text-primary)]">Gmail Labels</span>
+                    <span className="mx-2 text-[var(--text-muted)]">·</span>
+                    <span className="text-sm text-[var(--text-muted)]">
+                      {user?.labels_created ? "Connected" : "Not set up"}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
                   {user?.labels_created && !needsSync && !hasUnsavedChanges && (
                     <span className="flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-400">
                       <span className="pulse-dot h-2 w-2 rounded-full bg-emerald-500" />
                       Synced
                     </span>
                   )}
-                  {(needsSync || hasUnsavedChanges) && user?.labels_created && (
+                  {(needsSync || hasUnsavedChanges) && (
                     <span className="flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400">
                       <AlertTriangle className="h-3 w-3" />
-                      {hasUnsavedChanges ? "Unsaved" : "Out of Sync"}
+                      {hasUnsavedChanges ? "Unsaved changes" : "Needs sync"}
                     </span>
                   )}
-                  <button
-                    onClick={handleSyncLabels}
-                    disabled={setupLoading}
-                    className={`flex min-h-[44px] items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all hover:shadow-md disabled:opacity-50 sm:min-h-0 sm:py-2 ${
-                      needsSync || hasUnsavedChanges
-                        ? "bg-amber-500 hover:bg-amber-600 hover:shadow-amber-500/10"
-                        : "bg-[var(--accent)] hover:bg-[var(--accent-hover)] hover:shadow-blue-500/10"
-                    }`}
-                  >
-                    {setupLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Tag className="h-4 w-4" />
-                    )}
-                    {user?.labels_created ? "Sync Labels" : "Setup Labels"}
-                  </button>
+                  {!user?.labels_created && (
+                    <span className="flex items-center gap-2 rounded-full bg-zinc-500/10 px-3 py-1 text-xs font-medium text-zinc-400">
+                      Setup required
+                    </span>
+                  )}
                 </div>
               </div>
             </section>
@@ -525,24 +543,45 @@ export default function SettingsPage() {
                       >
                         {/* Row 1: Color + Prefix + Name + Actions */}
                         <div className="flex items-center gap-2 sm:gap-3">
-                          <button
-                            type="button"
-                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg sm:h-6 sm:w-6"
-                            style={{ backgroundColor: config.color }}
-                            onClick={() => {
-                              const input = document.getElementById(`color-${num}`) as HTMLInputElement;
-                              input?.click();
-                            }}
-                          />
-                          <input
-                            id={`color-${num}`}
-                            type="color"
-                            value={config.color}
-                            onChange={(e) =>
-                              updateCategory(num, "color", e.target.value)
-                            }
-                            className="sr-only"
-                          />
+                          <div className="relative">
+                            <button
+                              type="button"
+                              className="group flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-all hover:ring-2 hover:ring-[var(--border)] sm:h-6 sm:w-6"
+                              style={{ backgroundColor: config.color }}
+                              onClick={() => {
+                                const picker = document.getElementById(`color-picker-${num}`);
+                                picker?.classList.toggle("hidden");
+                              }}
+                              title="Click to change color"
+                            >
+                              <ChevronDown className="h-3 w-3 text-white/70 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                            <div
+                              id={`color-picker-${num}`}
+                              className="hidden absolute top-full left-0 mt-1 z-50 p-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] shadow-lg"
+                            >
+                              <div className="grid grid-cols-4 gap-1.5">
+                                {GMAIL_COLORS.map((gmailColor) => (
+                                  <button
+                                    key={gmailColor.bg}
+                                    type="button"
+                                    title={gmailColor.name}
+                                    className={`h-6 w-6 rounded-md transition-all hover:scale-110 ${
+                                      config.color.toLowerCase() === gmailColor.bg.toLowerCase()
+                                        ? "ring-2 ring-white ring-offset-2 ring-offset-[var(--bg-card)]"
+                                        : ""
+                                    }`}
+                                    style={{ backgroundColor: gmailColor.bg }}
+                                    onClick={() => {
+                                      updateCategory(num, "color", gmailColor.bg);
+                                      document.getElementById(`color-picker-${num}`)?.classList.add("hidden");
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                              <p className="mt-2 text-[10px] text-[var(--text-muted)] text-center">Gmail colors</p>
+                            </div>
+                          </div>
                           <div className="flex flex-1 items-center gap-1">
                             <span className="text-sm font-semibold text-[var(--text-muted)] sm:text-base">{num}:</span>
                             <input
@@ -623,19 +662,46 @@ export default function SettingsPage() {
               </div>
             </section>
 
-            {/* Save Button */}
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-4 text-base font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-blue-500/10 disabled:opacity-50 sm:min-h-0 sm:py-3"
-            >
-              {saving ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Save className="h-5 w-5" />
+            {/* Save & Sync Buttons */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {/* Primary action: Sync to Gmail */}
+              <button
+                onClick={handleSyncLabels}
+                disabled={setupLoading}
+                className={`flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl px-4 py-4 text-base font-medium text-white transition-all hover:shadow-md disabled:opacity-50 sm:min-h-0 sm:py-3 ${
+                  hasUnsavedChanges || needsSync
+                    ? "bg-amber-500 hover:bg-amber-600 hover:shadow-amber-500/10"
+                    : "bg-emerald-500 hover:bg-emerald-600 hover:shadow-emerald-500/10"
+                }`}
+              >
+                {setupLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Tag className="h-5 w-5" />
+                )}
+                {hasUnsavedChanges ? "Save & Sync to Gmail" : user?.labels_created ? "Sync Labels" : "Setup Gmail Labels"}
+              </button>
+              
+              {/* Secondary: Save only (without sync) */}
+              {hasUnsavedChanges && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50 sm:min-h-0"
+                >
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  Save only
+                </button>
               )}
-              Save Settings
-            </button>
+            </div>
+            
+            <p className="text-center text-xs text-[var(--text-muted)]">
+              Changes are saved to your settings and then synced to Gmail labels.
+            </p>
           </div>
         </div>
       </main>
