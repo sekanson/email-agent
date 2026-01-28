@@ -122,37 +122,31 @@ function generateDigestHtml(data: DigestEmail): string {
     `;
   });
 
-  // Build smart suggestions based on the emails
-  let suggestions = "";
+  // Build quick reply options based on the emails
+  let quickReplies = "";
   if (data.needsAttention.length > 0) {
-    const suggestionList: string[] = [];
-    
+    const replyOptions: string[] = [];
+
     data.needsAttention.forEach((email, index) => {
       const num = index + 1;
       const firstName = email.from.split(' ')[0].split('<')[0].trim();
-      
-      // Add contextual suggestions based on email content
+
+      // Create a smart suggested action for each email
       if (email.suggestedReplies && email.suggestedReplies[0]) {
-        suggestionList.push(`Reply ${num} with: ${email.suggestedReplies[0]}`);
+        replyOptions.push(`<strong>${num}</strong> — ${email.suggestedReplies[0]}`);
+      } else if (email.category === 5) {
+        replyOptions.push(`<strong>${num}</strong> — Confirm the meeting with ${firstName}`);
+      } else {
+        replyOptions.push(`<strong>${num}</strong> — Reply to ${firstName}`);
       }
     });
 
-    // Add general smart suggestions
-    if (data.needsAttention.length >= 2) {
-      const names = data.needsAttention.slice(0, 2).map(e => e.from.split(' ')[0].split('<')[0].trim());
-      suggestionList.push(`Book a meeting with ${names.join(' and ')} to discuss`);
-    }
-    
-    suggestionList.push(`Draft a response for 1 saying I need more time`);
-    
-    if (data.needsAttention.some(e => e.category === 5)) {
-      suggestionList.push(`Reschedule the meeting to tomorrow at 3pm`);
-    }
-
-    suggestions = suggestionList
-      .slice(0, 5)
-      .map((s, i) => `<div style="margin-bottom: 8px;"><code style="background: #e5e7eb; padding: 4px 8px; border-radius: 4px; font-size: 13px;">${s}</code></div>`)
-      .join("");
+    quickReplies = `
+      <div style="margin-bottom: 16px;">
+        <div style="color: #374151; font-size: 14px; margin-bottom: 12px;">Reply with a number to take action:</div>
+        ${replyOptions.map(opt => `<div style="margin-bottom: 8px; color: #4b5563; font-size: 14px;">${opt}</div>`).join("")}
+      </div>
+    `;
   }
 
   // Summary section for non-urgent digests
@@ -207,12 +201,10 @@ function generateDigestHtml(data: DigestEmail): string {
 
   ${data.needsAttention.length > 0 ? `
   <div style="background: #eff6ff; border-radius: 8px; padding: 16px; margin-top: 24px;">
-    <div style="font-weight: 600; margin-bottom: 12px;">💡 Reply to take action</div>
-    <div style="margin-bottom: 16px;">
-      ${suggestions}
-    </div>
+    <div style="font-weight: 600; margin-bottom: 12px;">💡 Quick reply</div>
+    ${quickReplies}
     <div style="color: #6b7280; font-size: 13px; border-top: 1px solid #dbeafe; padding-top: 12px;">
-      Or write your own instructions — I'll figure it out! ✨
+      You can also reply normally with your own instructions.
     </div>
   </div>
   ` : ''}
@@ -264,10 +256,19 @@ function generateDigestText(data: DigestEmail): string {
   }
 
   text += `\n${"=".repeat(40)}\n`;
-  text += `Reply to this email with instructions:\n`;
-  text += `• "Reply 1 with: Sounds good"\n`;
-  text += `• "Draft a reply to Sarah saying..."\n`;
-  text += `• "Schedule a meeting with X tomorrow at 9am"\n`;
+  text += `Quick reply - reply with a number to take action:\n\n`;
+
+  data.needsAttention.forEach((email, index) => {
+    const num = index + 1;
+    const firstName = email.from.split(' ')[0].split('<')[0].trim();
+    if (email.suggestedReplies && email.suggestedReplies[0]) {
+      text += `${num} — ${email.suggestedReplies[0]}\n`;
+    } else {
+      text += `${num} — Reply to ${firstName}\n`;
+    }
+  });
+
+  text += `\nOr reply normally with your own instructions.\n`;
 
   return text;
 }

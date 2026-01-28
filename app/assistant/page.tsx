@@ -305,7 +305,7 @@ export default function AssistantPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">Zeno email assistant</h1>
+              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">Zeno Email Assistant</h1>
               <p className="text-sm text-[var(--text-muted)]">Your AI email companion</p>
             </div>
           </div>
@@ -612,25 +612,29 @@ export default function AssistantPage() {
               </div>
             </section>
 
-            {/* Schedule & Timing */}
+            {/* Digest Schedule */}
             <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-elevated)]">
                   <Clock className="h-5 w-5 text-[var(--text-muted)]" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Schedule & Timing</h2>
-                  <p className="text-sm text-[var(--text-muted)]">When should Zeno check in with you?</p>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Digest Schedule</h2>
+                  <p className="text-sm text-[var(--text-muted)]">When Zeno sends your email summaries</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 {/* Timezone */}
                 <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Timezone</label>
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Your Timezone</label>
                   <select
                     value={settings.timezone}
-                    onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+                    onChange={async (e) => {
+                      const newTimezone = e.target.value;
+                      setSettings({ ...settings, timezone: newTimezone });
+                      await saveSettings({ timezone: newTimezone }, true);
+                    }}
                     className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                   >
                     {TIMEZONES.map((tz) => (
@@ -645,27 +649,39 @@ export default function AssistantPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                      🌅 Morning Brief
+                      🌅 Morning Digest
                     </label>
                     <input
                       type="time"
                       value={settings.zeno_morning_time}
-                      onChange={(e) => setSettings({ ...settings, zeno_morning_time: e.target.value })}
+                      onChange={async (e) => {
+                        const newTime = e.target.value;
+                        setSettings({ ...settings, zeno_morning_time: newTime });
+                        await saveSettings({ zeno_morning_time: newTime }, true);
+                      }}
                       className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                      🌙 End of Day
+                      🌙 Evening Digest
                     </label>
                     <input
                       type="time"
                       value={settings.zeno_eod_time}
-                      onChange={(e) => setSettings({ ...settings, zeno_eod_time: e.target.value })}
+                      onChange={async (e) => {
+                        const newTime = e.target.value;
+                        setSettings({ ...settings, zeno_eod_time: newTime });
+                        await saveSettings({ zeno_eod_time: newTime }, true);
+                      }}
                       className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
                     />
                   </div>
                 </div>
+
+                <p className="text-xs text-[var(--text-muted)] italic">
+                  Zeno will email you a summary of emails needing attention at these times.
+                </p>
               </div>
             </section>
 
@@ -682,18 +698,13 @@ export default function AssistantPage() {
               </div>
 
               <div className="space-y-4">
-                {/* Safe Mode - Always On */}
-                <div className="flex items-center justify-between p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">🔒</span>
-                    <div>
-                      <p className="font-medium text-[var(--text-primary)]">Safe Mode</p>
-                      <p className="text-sm text-[var(--text-muted)]">Zeno creates drafts instead of sending directly — you review and hit send in Gmail</p>
-                    </div>
+                {/* Safe Mode Info */}
+                <div className="flex items-start gap-3 p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
+                  <span className="text-xl flex-shrink-0">🔒</span>
+                  <div>
+                    <p className="font-medium text-[var(--text-primary)]">Safe Mode</p>
+                    <p className="text-sm text-[var(--text-muted)]">Zeno creates drafts instead of sending directly — you review before sending anything</p>
                   </div>
-                  <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-400">
-                    Always On
-                  </span>
                 </div>
 
                 {/* Confirmation emails */}
@@ -715,56 +726,60 @@ export default function AssistantPage() {
               </div>
             </section>
 
-            {/* Reply Examples */}
+            {/* How to Reply */}
             <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20">
                   <MessageSquare className="h-5 w-5 text-purple-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Reply Commands</h2>
-                  <p className="text-sm text-[var(--text-muted)]">What you can say when replying to Zeno</p>
+                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">How to Reply</h2>
+                  <p className="text-sm text-[var(--text-muted)]">Example of what Zeno's digest looks like</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
-                  <p className="text-xs font-medium text-blue-400 uppercase tracking-wide mb-2">Quick Replies</p>
-                  <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
-                    <p><span className="text-[var(--text-muted)]">"</span>Reply 1 with: Sounds good, approved<span className="text-[var(--text-muted)]">"</span></p>
-                    <p><span className="text-[var(--text-muted)]">"</span>Reply 2 with: Let's push to next week<span className="text-[var(--text-muted)]">"</span></p>
+              {/* Example Digest Preview */}
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] p-4 mb-4">
+                <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-3">Example Digest</p>
+                <div className="space-y-3 text-sm">
+                  <div className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded bg-blue-500 text-white text-xs font-bold flex items-center justify-center">1</span>
+                    <div>
+                      <p className="font-medium text-[var(--text-primary)]">John Smith — Project proposal</p>
+                      <p className="text-[var(--text-muted)]">"Hi, I wanted to follow up on the proposal..."</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded bg-blue-500 text-white text-xs font-bold flex items-center justify-center">2</span>
+                    <div>
+                      <p className="font-medium text-[var(--text-primary)]">Sarah Lee — Contract review</p>
+                      <p className="text-[var(--text-muted)]">"Please review the attached contract..."</p>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
-                  <p className="text-xs font-medium text-emerald-400 uppercase tracking-wide mb-2">Draft Emails</p>
-                  <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
-                    <p><span className="text-[var(--text-muted)]">"</span>Draft a reply to Sarah saying I need until Friday<span className="text-[var(--text-muted)]">"</span></p>
-                    <p><span className="text-[var(--text-muted)]">"</span>Draft response for the contract email, ask for revised pricing<span className="text-[var(--text-muted)]">"</span></p>
-                  </div>
+              {/* Quick Reply Format */}
+              <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-4 mb-4">
+                <p className="text-xs font-medium text-blue-400 uppercase tracking-wide mb-2">Quick Reply</p>
+                <p className="text-sm text-[var(--text-secondary)] mb-3">Reply with a number to take action:</p>
+                <div className="space-y-2 text-sm text-[var(--text-secondary)]">
+                  <p><span className="font-mono font-bold text-blue-400">1</span> — Approve the proposal (notify John + schedule kickoff)</p>
+                  <p><span className="font-mono font-bold text-blue-400">2</span> — Request changes to the contract</p>
+                  <p><span className="font-mono font-bold text-blue-400">3</span> — Ask for more details</p>
                 </div>
+                <p className="text-xs text-[var(--text-muted)] mt-3 pt-3 border-t border-blue-500/20">
+                  Or reply with your own instructions — Zeno will figure it out!
+                </p>
+              </div>
 
-                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
-                  <p className="text-xs font-medium text-amber-400 uppercase tracking-wide mb-2">Send Messages</p>
-                  <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
-                    <p><span className="text-[var(--text-muted)]">"</span>Tell John I'll be there at 3pm<span className="text-[var(--text-muted)]">"</span></p>
-                    <p><span className="text-[var(--text-muted)]">"</span>Email Sarah saying the contract looks good<span className="text-[var(--text-muted)]">"</span></p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
-                  <p className="text-xs font-medium text-purple-400 uppercase tracking-wide mb-2">Schedule Meetings</p>
-                  <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
-                    <p><span className="text-[var(--text-muted)]">"</span>Book a meeting with John tomorrow at 9am<span className="text-[var(--text-muted)]">"</span></p>
-                    <p><span className="text-[var(--text-muted)]">"</span>Schedule 30 min with Sarah and Mike for contract review<span className="text-[var(--text-muted)]">"</span></p>
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
-                  <p className="text-xs font-medium text-pink-400 uppercase tracking-wide mb-2">Multiple Actions</p>
-                  <div className="font-mono text-sm text-[var(--text-secondary)]">
-                    <p><span className="text-[var(--text-muted)]">"</span>Reply 1 with yes, tell John we're confirmed, and book prep meeting for 1 hour before<span className="text-[var(--text-muted)]">"</span></p>
-                  </div>
+              {/* Other Commands */}
+              <div className="space-y-2 text-sm">
+                <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-2">You can also say things like:</p>
+                <div className="grid gap-2">
+                  <code className="block bg-[var(--bg-elevated)] px-3 py-2 rounded text-[var(--text-secondary)]">Draft a reply to Sarah asking for revised pricing</code>
+                  <code className="block bg-[var(--bg-elevated)] px-3 py-2 rounded text-[var(--text-secondary)]">Book a meeting with John tomorrow at 2pm</code>
+                  <code className="block bg-[var(--bg-elevated)] px-3 py-2 rounded text-[var(--text-secondary)]">Tell Mike I'll be 15 minutes late</code>
                 </div>
               </div>
             </section>

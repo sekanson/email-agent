@@ -113,6 +113,7 @@ export async function POST(request: NextRequest) {
     // Build base settings object by merging existing with new values
     // Only override fields that are explicitly provided in the request
     const baseSettings: Record<string, unknown> = {
+      // Draft generation settings
       temperature: settings.temperature ?? existingSettings.temperature ?? 0.7,
       signature: settings.signature ?? existingSettings.signature ?? "",
       drafts_enabled: settings.drafts_enabled ?? existingSettings.drafts_enabled ?? true,
@@ -121,6 +122,16 @@ export async function POST(request: NextRequest) {
       auto_poll_interval: settings.auto_poll_interval ?? existingSettings.auto_poll_interval,
       use_writing_style: settings.use_writing_style ?? existingSettings.use_writing_style ?? false,
       writing_style: settings.writing_style ?? existingSettings.writing_style ?? "",
+      // Zeno assistant settings
+      zeno_digest_enabled: settings.zeno_digest_enabled ?? existingSettings.zeno_digest_enabled ?? true,
+      zeno_digest_types: settings.zeno_digest_types ?? existingSettings.zeno_digest_types ?? ["morning", "eod", "weekly"],
+      zeno_morning_time: settings.zeno_morning_time ?? existingSettings.zeno_morning_time ?? "09:00",
+      zeno_eod_time: settings.zeno_eod_time ?? existingSettings.zeno_eod_time ?? "18:00",
+      vip_senders: settings.vip_senders ?? existingSettings.vip_senders ?? [],
+      focus_mode_enabled: settings.focus_mode_enabled ?? existingSettings.focus_mode_enabled ?? false,
+      focus_mode_until: settings.focus_mode_until ?? existingSettings.focus_mode_until ?? null,
+      timezone: settings.timezone ?? existingSettings.timezone ?? "America/New_York",
+      zeno_confirmations: settings.zeno_confirmations ?? existingSettings.zeno_confirmations ?? true,
     };
 
     // Try with user_email first, then email as fallback
