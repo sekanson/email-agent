@@ -38,7 +38,7 @@ export default function UpgradePrompt({
     return null; // Don't show prompt if no changelog available
   }
 
-  const handleAction = async (action: () => Promise<void>) => {
+  const handleAction = async (action: () => Promise<void | boolean>) => {
     setLoading(true);
     try {
       await action();

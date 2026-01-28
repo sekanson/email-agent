@@ -52,20 +52,20 @@ export type UserSettings = typeof DEFAULT_USER_SETTINGS & {
  * @returns Merged object with user values overriding defaults
  */
 export function deepMerge<T extends Record<string, any>>(defaults: T, user: Partial<T>): T {
-  const result = { ...defaults };
+  const result = { ...defaults } as T;
   
   for (const key in user) {
     if (user[key] !== undefined && user[key] !== null) {
       if (typeof user[key] === 'object' && !Array.isArray(user[key]) && user[key] !== null) {
         // Deep merge objects (but not arrays or null values)
         if (typeof defaults[key] === 'object' && !Array.isArray(defaults[key]) && defaults[key] !== null) {
-          result[key] = deepMerge(defaults[key], user[key]);
+          (result as any)[key] = deepMerge(defaults[key] as any, user[key] as any);
         } else {
-          result[key] = user[key];
+          (result as any)[key] = user[key];
         }
       } else {
         // Direct assignment for primitives, arrays, and null values
-        result[key] = user[key];
+        (result as any)[key] = user[key];
       }
     }
   }
@@ -114,7 +114,7 @@ export function mergeUserSettingsWithDefaults(userSettings?: Partial<UserSetting
   
   // Ensure schemaVersions is properly initialized
   if (!merged.schemaVersions) {
-    merged.schemaVersions = { categories: 'v1' };
+    merged.schemaVersions = { categories: 'v1', draftTemplates: 'v1', notifications: 'v1' };
   }
   
   // Ensure upgradePromptsShown is properly initialized
