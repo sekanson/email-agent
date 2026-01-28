@@ -44,6 +44,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Refresh the access token before making Gmail API calls
+    let accessToken = user.access_token;
+    try {
+      const { refreshAccessToken } = await import("@/lib/gmail");
+      accessToken = await refreshAccessToken(user.refresh_token);
+
+      // Update stored token
+      await supabase
+        .from("users")
+        .update({ access_token: accessToken, updated_at: new Date().toISOString() })
+        .eq("email", userEmail);
+
+      console.log(`[${userEmail}] Access token refreshed successfully`);
+    } catch (refreshError) {
+      console.error(`[${userEmail}] Token refresh failed:`, refreshError);
+      // Continue with existing token, might still work
+    }
+
     // Get user settings - try user_email first, then email
     let { data: settings } = await supabase
       .from("user_settings")
@@ -78,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch unread emails from Gmail
     const emails = await getEmails(
-      user.access_token,
+      accessToken,
       user.refresh_token,
       maxEmails,
       "is:unread"
@@ -115,16 +133,24 @@ export async function POST(request: NextRequest) {
         const categoryConfig = categories[category.toString()];
         const categoryName = categoryConfig?.name;
         // gmail_label_ids is now keyed by category NAME, not number
-        const labelId = categoryName ? user.gmail_label_ids[categoryName] : null;
+        const labelId = categoryName ? user.gmail_label_ids?.[categoryName] : null;
+
+        console.log(`[${userEmail}] Email ${email.id}: category=${category}, categoryName=${categoryName}, labelId=${labelId}`);
+
         if (labelId) {
-          await applyLabel(
-            user.access_token,
-            user.refresh_token,
-            email.id,
-            labelId
-          );
+          try {
+            await applyLabel(
+              accessToken,
+              user.refresh_token,
+              email.id,
+              labelId
+            );
+            console.log(`[${userEmail}] ✓ Label ${labelId} applied to email ${email.id}`);
+          } catch (labelError: any) {
+            console.error(`[${userEmail}] ✗ Failed to apply label:`, labelError.message || labelError);
+          }
         } else {
-          console.log(`No label found for category ${category} (${categoryName})`);
+          console.warn(`[${userEmail}] ⚠ No labelId for category "${categoryName}" - gmail_label_ids keys:`, Object.keys(user.gmail_label_ids || {}));
         }
 
         // Step 4: Generate draft for "To Respond" emails (category 1)
@@ -157,7 +183,7 @@ export async function POST(request: NextRequest) {
               let threadContext = "";
               try {
                 const threadMessages = await getThreadMessages(
-                  user.access_token,
+                  accessToken,
                   user.refresh_token,
                   email.threadId,
                   userEmail
@@ -210,7 +236,7 @@ export async function POST(request: NextRequest) {
               }
 
               draftId = await createDraft(
-                user.access_token,
+                accessToken,
                 user.refresh_token,
                 senderEmail,
                 email.subject,

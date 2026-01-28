@@ -150,8 +150,16 @@ export async function GET(request: NextRequest) {
           "is:unread"
         );
 
+        console.log(`[${user.email}] Fetched ${emails.length} unread emails from Gmail`);
+        console.log(`[${user.email}] Already processed: ${processedIds.size} emails in DB`);
+
         // Filter out already processed emails
         const newEmails = emails.filter((e) => !processedIds.has(e.id));
+
+        console.log(`[${user.email}] New emails to process: ${newEmails.length}`);
+        if (emails.length > 0 && newEmails.length === 0) {
+          console.log(`[${user.email}] All ${emails.length} emails already processed - IDs:`, emails.map(e => e.id));
+        }
 
         let emailsProcessed = 0;
         let draftsCreated = 0;
@@ -182,11 +190,21 @@ export async function GET(request: NextRequest) {
             const categoryConfig = categories[category.toString()];
             const categoryName = categoryConfig?.name;
             const labelId = categoryName
-              ? user.gmail_label_ids[categoryName]
+              ? user.gmail_label_ids?.[categoryName]
               : null;
 
+            console.log(`[${user.email}] Email ${email.id}: category=${category}, categoryName=${categoryName}, labelId=${labelId}`);
+            console.log(`[${user.email}] gmail_label_ids keys:`, Object.keys(user.gmail_label_ids || {}));
+
             if (labelId) {
-              await applyLabel(accessToken, user.refresh_token, email.id, labelId);
+              try {
+                await applyLabel(accessToken, user.refresh_token, email.id, labelId);
+                console.log(`[${user.email}] ✓ Applied label ${labelId} to email ${email.id}`);
+              } catch (labelError) {
+                console.error(`[${user.email}] ✗ Failed to apply label:`, labelError);
+              }
+            } else {
+              console.warn(`[${user.email}] ⚠ No labelId found for category "${categoryName}" - skipping label application`);
             }
 
             // Generate draft for "To Respond" emails (category 1)
