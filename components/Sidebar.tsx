@@ -526,6 +526,15 @@ export default function Sidebar() {
             {/* Menu Links */}
             <div className="p-4">
               <div className="space-y-1">
+                <Link
+                  href="/account"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
+                >
+                  <Settings className="h-5 w-5 text-[var(--text-muted)]" />
+                  Settings
+                </Link>
+
                 {isAdmin && (
                   <Link
                     href="/admin"

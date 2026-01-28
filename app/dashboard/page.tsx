@@ -458,27 +458,27 @@ export default function Dashboard() {
 
       <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0 overflow-auto">
         {/* Compact Header with Agent Status */}
-        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
+        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl lg:top-0">
           <div className="px-4 py-3 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               {/* Left: Title + Agent Status */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <div>
                   <h1 className="text-lg font-semibold text-[var(--text-primary)] sm:text-xl">
                     Dashboard
                   </h1>
                 </div>
-                
+
                 {/* Agent Status with Toggle */}
                 {labelsCreated && (
-                  <div className="flex items-center gap-3 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-1.5">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-2.5 py-1 sm:gap-3 sm:px-3 sm:py-1.5">
+                    <div className="flex items-center gap-1.5 sm:gap-2">
                       <span className={`h-2 w-2 rounded-full ${autoPolling ? "bg-emerald-400 animate-pulse" : "bg-[var(--text-muted)]"}`} />
                       <span className="text-xs font-medium text-[var(--text-secondary)]">
                         {autoPolling ? "Active" : "Paused"}
                       </span>
                       {autoPolling && nextPollIn !== null && (
-                        <span className="text-xs text-[var(--text-muted)]">• {nextPollIn}s</span>
+                        <span className="hidden text-xs text-[var(--text-muted)] sm:inline">• {nextPollIn}s</span>
                       )}
                     </div>
                     {/* Toggle Switch */}

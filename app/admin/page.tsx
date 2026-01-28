@@ -538,7 +538,7 @@ export default function AdminPage() {
 
       <main className="min-h-screen overflow-auto pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
         {/* Header */}
-        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-4 py-4 backdrop-blur-xl sm:px-8 sm:py-6 lg:top-0">
+        <div className="border-b border-[var(--border)] bg-[var(--bg-primary)] px-4 py-4 sm:px-8 sm:py-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <Shield className="h-5 w-5 text-blue-500 sm:h-6 sm:w-6" />
