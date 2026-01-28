@@ -49,80 +49,100 @@ export function isOtherCategory(name: string): boolean {
 
 export function isRespondCategory(name: string): boolean {
   const displayName = getDisplayName(name).toLowerCase();
-  return displayName === "respond" || displayName === "to respond" || displayName === "reply needed";
+  return displayName === "respond" || displayName === "to respond" || displayName === "reply needed" || displayName.includes("reply needed");
+}
+
+export function isReceiptsCategory(name: string): boolean {
+  const displayName = getDisplayName(name).toLowerCase();
+  return displayName === "receipts" || displayName.includes("receipt");
+}
+
+export function isSpamCategory(name: string): boolean {
+  const displayName = getDisplayName(name).toLowerCase();
+  return displayName === "spam" || displayName.includes("spam");
+}
+
+export function isNewslettersCategory(name: string): boolean {
+  const displayName = getDisplayName(name).toLowerCase();
+  return displayName === "newsletters" || displayName.includes("newsletter");
+}
+
+export function isCalendarCategory(name: string): boolean {
+  const displayName = getDisplayName(name).toLowerCase();
+  return displayName === "calendar" || displayName.includes("calendar");
 }
 
 export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
   "1": {
-    name: "1: Respond",
-    color: "#F87171",
+    name: "1: Reply Needed 🔴",
+    color: "#EF4444",
     enabled: true,
     required: true,
-    description: "Requires your reply or action",
-    rules: "",
+    description: "Requires YOUR direct response",
+    rules: "Direct questions to you, requests for YOUR input, approval requests, personal emails asking something specific",
     drafts: true,
     order: 1,
   },
   "2": {
-    name: "2: Update",
-    color: "#FB923C",
+    name: "2: FYI 🟠",
+    color: "#F97316",
     enabled: true,
-    description: "Worth knowing, no response required",
-    rules: "",
+    description: "Worth reading, no action needed",
+    rules: "Status updates, announcements, shared docs for awareness, informational forwards, thank-you messages",
     drafts: false,
     order: 2,
   },
   "3": {
-    name: "3: Comment",
-    color: "#22D3EE",
+    name: "3: Calendar 🟣",
+    color: "#A855F7",
     enabled: true,
-    description: "Mentions from docs, threads & chats",
-    rules: "",
+    description: "Time-bound, scheduling related",
+    rules: "Meeting invites, event notifications, RSVPs, scheduling requests, appointment reminders, calendar attachments",
     drafts: false,
     order: 3,
   },
   "4": {
-    name: "4: Notification",
-    color: "#4ADE80",
+    name: "4: Receipts 🟢",
+    color: "#22C55E",
     enabled: true,
-    description: "Automated alerts & confirmations",
-    rules: "",
+    description: "Transactional paper trail",
+    rules: "Payment confirmations, invoices, shipping notifications, order confirmations, account statements, subscription receipts, purchase receipts",
     drafts: false,
     order: 4,
   },
   "5": {
-    name: "5: Calendar",
-    color: "#A855F7",
+    name: "5: Mentions 🔵",
+    color: "#3B82F6",
     enabled: true,
-    description: "Meetings, invites & calendar events",
-    rules: "",
+    description: "CC'd or tagged, not direct ask",
+    rules: "CC'd on threads, @mentions, document comments, group discussions where you're not the primary recipient",
     drafts: false,
     order: 5,
   },
   "6": {
-    name: "6: Pending",
-    color: "#60A5FA",
+    name: "6: Waiting ⏳",
+    color: "#EAB308",
     enabled: true,
-    description: "Waiting on someone else's response",
-    rules: "",
+    description: "Ball in someone else's court",
+    rules: "Emails where you've asked something and await response, submitted applications, pending approvals from others, confirmations you're waiting for",
     drafts: false,
     order: 6,
   },
   "7": {
-    name: "7: Complete",
-    color: "#2DD4BF",
+    name: "7: Newsletters 📰",
+    color: "#06B6D4",
     enabled: true,
-    description: "Resolved or finished conversations",
-    rules: "",
+    description: "Subscribed/wanted content",
+    rules: "Regular digests, mailing lists you subscribed to, educational content, product updates from services you actively use",
     drafts: false,
     order: 7,
   },
   "8": {
-    name: "8: Marketing/Spam",
-    color: "#F472B6",
+    name: "8: Spam 🗑️",
+    color: "#6B7280",
     enabled: true,
-    description: "Newsletters, sales & promotional",
-    rules: "",
+    description: "Unwanted/unsolicited",
+    rules: "Cold sales outreach, unsolicited marketing, promotional emails you didn't subscribe to, actual spam, first-contact selling",
     drafts: false,
     order: 8,
   },
@@ -177,20 +197,61 @@ export async function classifyEmailCategory(
 Categories:
 ${categoryList}
 
-IMPORTANT:
-- Be strict about "Respond" - only genuine personal emails needing a reply
-- Marketing emails often look personal (using names, company references) - check sender domain
-- Cold sales outreach is Marketing/Spam, never Respond
-- Automated notifications are never Respond
-- If unsure, prefer a less important category over Respond
-${hasOther ? '- Use "Other" if email doesn\'t clearly fit any category' : ''}
+=== CRITICAL CLASSIFICATION RULES (follow strictly) ===
+
+1. COLD OUTREACH = ALWAYS SPAM (category 8)
+   - First contact + selling/pitching something = Spam
+   - Unknown sender + promotional content = Spam
+   - "Reaching out because..." + product pitch = Spam
+
+2. RECEIPTS ARE SACRED (category 4)
+   - Payment confirmation = ALWAYS Receipts (never FYI)
+   - Invoice/billing = ALWAYS Receipts
+   - Order/shipping confirmation = ALWAYS Receipts
+   - Account statement = ALWAYS Receipts
+
+3. CALENDAR HAS PRIORITY (category 3)
+   - Meeting invite with date/time = ALWAYS Calendar
+   - Event notification = ALWAYS Calendar
+   - RSVP request = ALWAYS Calendar
+
+4. NEWSLETTERS vs SPAM
+   - Has "Unsubscribe" + broadcast format + no personal ask:
+     * From a service you likely USE = Newsletters (7)
+     * From unknown/unsolicited source = Spam (8)
+   - Product updates from services you use = Newsletters
+   - Cold marketing from unknown sender = Spam
+
+5. REPLY NEEDED = Direct ask to YOU (category 1)
+   - Direct question requiring YOUR answer = Reply Needed
+   - Request for YOUR input/approval = Reply Needed
+   - Personal email asking something specific = Reply Needed
+   - NOT: automated notifications, bulk emails, FYI forwards
+
+6. CC'd vs PRIMARY (category 5)
+   - You're in CC but not TO = Mentions
+   - @mentioned in a doc/thread = Mentions
+   - Group thread where you're not primary = Mentions
+
+7. FYI = Worth reading, no action (category 2)
+   - Status updates = FYI
+   - "Just letting you know" = FYI
+   - "Thanks!" or acknowledgment = FYI
+   - Informational forwards = FYI
+
+8. WAITING = Ball in their court (category 6)
+   - You asked a question, they haven't answered = Waiting
+   - Submitted application = Waiting
+   - Pending approval from others = Waiting
+
+${hasOther ? '- Use "Other" (99) if email doesn\'t clearly fit any category' : ''}
 
 Email:
 From: ${from}
 Subject: ${subject}
 Body: ${body.slice(0, 2000)}
 
-Category number (1-${maxCategory}):`;
+Category number (1-${maxCategory}${hasOther ? ' or 99' : ''}):`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
@@ -372,34 +433,64 @@ CATEGORY: [number]
 CONFIDENCE: [0.0-1.0]
 REASONING: [one sentence explanation]
 
-ANALYSIS TIERS (check in order, stop at first match):
+=== CRITICAL CLASSIFICATION RULES (non-negotiable) ===
+
+★ COLD OUTREACH = ALWAYS SPAM (8)
+  - First contact + selling/pitching = Spam
+  - Unknown sender + promotional = Spam
+
+★ RECEIPTS ARE SACRED (4) - Never misclassify as FYI!
+  - Payment/invoice/order confirmation = ALWAYS Receipts
+  - Shipping notification = ALWAYS Receipts
+  - Account statement = ALWAYS Receipts
+
+★ CALENDAR HAS PRIORITY (3)
+  - Meeting invite with date/time = ALWAYS Calendar
+  - Event notification/RSVP = ALWAYS Calendar
+
+★ NEWSLETTERS vs SPAM (7 vs 8)
+  - "Unsubscribe" + broadcast + service you USE = Newsletters (7)
+  - "Unsubscribe" + broadcast + unknown source = Spam (8)
+
+★ REPLY NEEDED = Direct ask to YOU (1)
+  - Direct question for YOUR answer = Reply Needed
+  - Request for YOUR approval/input = Reply Needed
+
+★ CC'd = MENTIONS (5)
+  - In CC but not TO = Mentions
+  - @mentioned but not primary = Mentions
+
+=== ANALYSIS TIERS (check in order) ===
 
 TIER 0 - THREAD CONTEXT (highest priority):
 Is this part of an existing conversation thread?
-- If YES and it's a reply thread: NEVER classify as Marketing/Spam
-- Analyze based on conversation state (question asked, answer given, etc.)
+- If YES and it's a reply thread: NEVER classify as Spam
+- Analyze based on conversation state
 
 TIER 1 - STRUCTURAL SIGNALS:
-- Calendar invite attachment or meeting request → Calendar
-- @mention or direct question to you → Respond
-- Automated system notification (receipts, alerts) → Notification
+- Receipt/invoice/payment keywords → Receipts (4)
+- Calendar invite attachment or meeting request → Calendar (3)
+- @mention or direct question to you → Reply Needed (1)
+- CC'd not primary recipient → Mentions (5)
 
 TIER 2 - CONVERSATION STATE:
-- Waiting on someone else → Pending
-- Matter is resolved/complete → Complete
-- Just a "thanks" or acknowledgment → Complete
+- Waiting on someone else → Waiting (6)
+- Just a "thanks" or acknowledgment → FYI (2)
 
 TIER 3 - CONTENT ANALYSIS:
-- Requires your reply/action → Respond
-- FYI/informational → Update
-- Thread mention/discussion → Comment
+- Requires your reply/action → Reply Needed (1)
+- FYI/informational/status update → FYI (2)
 
-TIER 4 - CATCH-ALL:
-- Marketing/Spam ONLY if ALL of these are true:
-  1. NOT a reply thread (no Re:/Fwd: prefix, no quoted content)
+TIER 4 - SUBSCRIPTION CONTENT:
+- Regular digest/newsletter from known service → Newsletters (7)
+- Product updates from service you use → Newsletters (7)
+
+TIER 5 - CATCH-ALL:
+- Spam ONLY if ALL of these are true:
+  1. NOT a reply thread
   2. First contact OR bulk sender
-  3. Has 2+ marketing signals: unsubscribe link, promotional language, mass-send format
-${hasOther ? '- Use "Other" if email doesn\'t clearly fit any category' : ""}
+  3. Has promotional content from unknown/unwanted source
+${hasOther ? '- Use "Other" (99) if email doesn\'t clearly fit any category' : ""}
 
 Categories:
 ${categoryList}
@@ -407,14 +498,16 @@ ${contextSection}
 
 UNCERTAINTY HANDLING:
 If confidence < 70% between two categories, prefer:
-- Marketing vs Update → Known contact = Update, Unknown = Marketing
-- Respond vs Update → If any question exists = Respond
-- Notification vs Calendar → If specific date/time to attend = Calendar
-- Pending vs Complete → If open loop remains = Pending
+- Spam vs Newsletters → Known service = Newsletters, Unknown = Spam
+- Spam vs FYI → Known contact = FYI, Unknown = Spam
+- Reply Needed vs FYI → If any direct question = Reply Needed
+- Receipts vs FYI → If transaction/payment = ALWAYS Receipts
+- Calendar vs FYI → If date/time to attend = ALWAYS Calendar
+- Waiting vs FYI → If open loop remains = Waiting
 
 Default hierarchy when truly uncertain:
-Respond > Calendar > Pending > Comment > Update > Notification > Complete > Marketing/Spam > Other
-(Better to surface something that might need action than bury it in Marketing/Spam)
+Reply Needed (1) > Calendar (3) > Receipts (4) > Waiting (6) > Mentions (5) > FYI (2) > Newsletters (7) > Spam (8) > Other (99)
+(Better to surface something that might need action than bury it)
 
 Email:
 From: ${email.from}
@@ -453,21 +546,23 @@ function parseStructuredResponse(
     finalCategory = 2;
   }
 
-  // SAFETY OVERRIDE: If thread detected but classified as Marketing/Spam (8), override
+  // SAFETY OVERRIDE: If thread detected but classified as Spam (8), override
   // This is the critical protection against misclassifying reply threads
-  if (threadSignals.isThread && finalCategory === 8) {
+  // Note: Spam (8) should NEVER be assigned to reply threads
+  const spamCategoryNum = Object.entries(categories).find(([, config]) => isSpamCategory(config.name))?.[0];
+  if (threadSignals.isThread && spamCategoryNum && finalCategory === parseInt(spamCategoryNum)) {
     // Determine better category based on thread state
     const threadState = analyzeThreadState("", ""); // We don't have body here, use default
-    let overrideCategory = 2; // Default to Update
+    let overrideCategory = 2; // Default to FYI
 
-    if (senderContext.mostCommonCategory && senderContext.mostCommonCategory !== 8) {
+    if (senderContext.mostCommonCategory && senderContext.mostCommonCategory !== parseInt(spamCategoryNum)) {
       overrideCategory = senderContext.mostCommonCategory;
     }
 
     return {
       category: overrideCategory,
       confidence: 0.6,
-      reasoning: `Reply thread incorrectly flagged as marketing - overridden to category ${overrideCategory}`,
+      reasoning: `Reply thread incorrectly flagged as spam - overridden to category ${overrideCategory}`,
       isThread: true,
       senderKnown: senderContext.hasHistory,
     };
