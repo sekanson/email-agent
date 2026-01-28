@@ -27,8 +27,8 @@ export const CATEGORY_COLORS = {
   gray: "#4a86e8",      // Gmail Blue (no gray in Gmail) - Other
 };
 
-// Default category configuration (names differentiated from Fyxer)
-export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
+// V1 Categories (legacy)
+export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
   "1": {
     name: "Reply Needed",
     color: CATEGORY_COLORS.red,
@@ -103,6 +103,86 @@ export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
     order: 8,
   },
 };
+
+// V2 Categories (improved defaults)  
+export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
+  "1": {
+    name: "Action Required",
+    color: CATEGORY_COLORS.red,
+    enabled: true,
+    required: true,
+    description: "Urgent emails requiring immediate response",
+    rules: "Direct questions, time-sensitive requests, decisions needed",
+    drafts: true,
+    order: 1,
+  },
+  "2": {
+    name: "FYI Only",
+    color: CATEGORY_COLORS.orange,
+    enabled: true,
+    description: "Informational emails, no action needed",
+    rules: "Status updates, announcements, newsletters you read",
+    drafts: false,
+    order: 2,
+  },
+  "3": {
+    name: "Team Updates",
+    color: CATEGORY_COLORS.cyan,
+    enabled: true,
+    description: "Team communications and collaboration",
+    rules: "Project updates, team mentions, Slack/doc notifications",
+    drafts: false,
+    order: 3,
+  },
+  "4": {
+    name: "System Alerts",
+    color: CATEGORY_COLORS.green,
+    enabled: true,
+    description: "Automated notifications and confirmations",
+    rules: "Service alerts, automated confirmations, system notifications",
+    drafts: false,
+    order: 4,
+  },
+  "5": {
+    name: "Meetings & Events",
+    color: CATEGORY_COLORS.purple,
+    enabled: true,
+    description: "Calendar invites and meeting-related emails",
+    rules: "Meeting invites, calendar updates, event confirmations",
+    drafts: false,
+    order: 5,
+  },
+  "6": {
+    name: "Waiting for Reply",
+    color: CATEGORY_COLORS.blue,
+    enabled: true,
+    description: "Emails where you're waiting for someone else",
+    rules: "Pending responses, delegated tasks, follow-up reminders",
+    drafts: false,
+    order: 6,
+  },
+  "7": {
+    name: "Completed",
+    color: CATEGORY_COLORS.teal,
+    enabled: true,
+    description: "Resolved emails and finished conversations",
+    rules: "Task completions, resolved issues, archived conversations",
+    drafts: false,
+    order: 7,
+  },
+  "8": {
+    name: "Marketing & Spam",
+    color: CATEGORY_COLORS.pink,
+    enabled: true,
+    description: "Promotional emails and unwanted messages",
+    rules: "Marketing emails, sales pitches, promotional content",
+    drafts: false,
+    order: 8,
+  },
+};
+
+// Current default categories (points to latest version)
+export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = DEFAULT_CATEGORIES_V2;
 
 // Helper to get category by number
 export function getCategory(categories: Record<string, CategoryConfig> | null | undefined, num: number | string): CategoryConfig | null {

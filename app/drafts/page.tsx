@@ -12,6 +12,7 @@ import {
   Sparkles,
   PenTool,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
 
 type ResponseStyle = "concise" | "balanced" | "detailed";
@@ -61,6 +62,7 @@ export default function DraftsPage() {
     text: string;
   } | null>(null);
   const [signaturePreview, setSignaturePreview] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const userEmail =
     typeof window !== "undefined"
@@ -165,6 +167,37 @@ export default function DraftsPage() {
       setMessage({ type: "error", text: "Failed to analyze writing style" });
     } finally {
       setAnalyzing(false);
+    }
+  }
+
+  async function resetToDefaults() {
+    const confirmReset = confirm("Reset all draft settings to defaults? This will clear your writing style and signature.");
+    if (!confirmReset) return;
+
+    setResetting(true);
+    setMessage(null);
+
+    try {
+      const res = await fetch("/api/settings/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          userEmail,
+          schema: null // Reset all settings
+        }),
+      });
+
+      if (res.ok) {
+        setMessage({ type: "success", text: "Settings reset to defaults!" });
+        // Refresh settings after reset
+        await fetchSettings();
+      } else {
+        setMessage({ type: "error", text: "Failed to reset settings" });
+      }
+    } catch (error) {
+      setMessage({ type: "error", text: "Failed to reset settings" });
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -474,19 +507,34 @@ export default function DraftsPage() {
               )}
             </section>
 
-            {/* Save Button */}
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-4 text-base font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-[var(--accent)]/10 disabled:opacity-50 sm:min-h-0 sm:py-3"
-            >
-              {saving ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Save className="h-5 w-5" />
-              )}
-              Save Draft Settings
-            </button>
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={resetToDefaults}
+                disabled={resetting || saving}
+                className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-4 py-4 text-base font-medium text-[var(--text-secondary)] transition-all hover:bg-[var(--bg-elevated)] hover:text-[var(--text-primary)] disabled:opacity-50 sm:min-h-0 sm:py-3"
+              >
+                {resetting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <RotateCcw className="h-5 w-5" />
+                )}
+                Reset to Defaults
+              </button>
+              
+              <button
+                onClick={handleSave}
+                disabled={saving || resetting}
+                className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-4 text-base font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-md hover:shadow-[var(--accent)]/10 disabled:opacity-50 sm:min-h-0 sm:py-3"
+              >
+                {saving ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Save className="h-5 w-5" />
+                )}
+                Save Settings
+              </button>
+            </div>
           </div>
         </div>
       </main>

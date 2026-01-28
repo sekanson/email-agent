@@ -30,6 +30,9 @@ import {
   Trash2,
 } from "lucide-react";
 import { DEFAULT_CATEGORIES, getCategoryColor, getCategoryName, type CategoryConfig } from "@/lib/categories";
+import { useUpgradePrompt } from "@/lib/use-upgrade-prompt";
+import { type UserSettings } from "@/lib/settings-merge";
+import UpgradePrompt from "@/components/UpgradePrompt";
 
 interface ProcessedEmail {
   id: string;
@@ -95,6 +98,14 @@ export default function Dashboard() {
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userName, setUserName] = useState("");
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+
+  // Upgrade prompt functionality
+  const {
+    currentPrompt,
+    hasUpgrades,
+    handleUpgradeAction,
+  } = useUpgradePrompt(userSettings);
 
   const toggleEmailExpanded = (emailId: string) => {
     setExpandedEmails((prev) => {
@@ -184,6 +195,11 @@ export default function Dashboard() {
 
       if (settingsData.settings?.categories) {
         setCategories(settingsData.settings.categories);
+      }
+
+      // Store full user settings for upgrade prompt functionality
+      if (settingsData.settings) {
+        setUserSettings(settingsData.settings);
       }
 
       const storedAutoPoll = localStorage.getItem("autoPolling");
@@ -453,6 +469,19 @@ export default function Dashboard() {
           userName={userName}
           onComplete={handleOnboardingComplete}
           onSkip={handleOnboardingSkip}
+        />
+      )}
+
+      {/* Upgrade Prompt */}
+      {currentPrompt && (
+        <UpgradePrompt
+          schema={currentPrompt.schema}
+          fromVersion={currentPrompt.fromVersion}
+          toVersion={currentPrompt.toVersion}
+          userEmail={userEmail}
+          onUpgrade={() => handleUpgradeAction(userEmail, 'upgrade')}
+          onDismiss={() => handleUpgradeAction(userEmail, 'dismiss')}
+          onKeepCurrent={() => handleUpgradeAction(userEmail, 'keep')}
         />
       )}
 
