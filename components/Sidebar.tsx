@@ -35,10 +35,10 @@ const navItems = [
 // Bottom nav items (subset for mobile)
 const bottomNavItems = [
   { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/assistant", label: "Assistant", icon: Sparkles },
   { href: "/declutter", label: "Declutter", icon: Inbox },
   { href: "/categorize", label: "Categorize", icon: Tag },
   { href: "/drafts", label: "Drafts", icon: Mail },
-  { href: "/account", label: "Settings", icon: Settings },
 ];
 
 type Role = "user" | "admin" | "owner" | "primary_owner";
