@@ -33,8 +33,9 @@ export const DEFAULT_USER_SETTINGS = {
   timezone: "America/New_York",
   zeno_confirmations: true,
   
-  // Schema versioning
-  schemaVersions: CURRENT_SCHEMA_VERSIONS,
+  // Schema versioning - defaults to v1 so existing users see upgrade prompts
+  // New users will get prompted to upgrade from v1 to v2
+  schemaVersions: { categories: 'v1', draftTemplates: 'v1', notifications: 'v1' } as Record<SchemaKey, string>,
   upgradePromptsShown: {},
 } as const;
 
