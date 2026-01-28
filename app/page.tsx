@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { Mail, Calendar, Sparkles, Clock, Shield, Zap, ArrowRight, Check, Star, Users, TrendingUp, Lock, Eye, Brain, MessageSquare, ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useState } from "react";
 
 export default function LandingPage() {
   return (
