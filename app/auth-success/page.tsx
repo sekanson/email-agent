@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Image from "next/image";
@@ -8,8 +8,24 @@ import Image from "next/image";
 function AuthSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
+    // Check theme
+    const theme = document.documentElement.getAttribute("data-theme");
+    setIsDark(theme !== "light");
+
+    // Watch for theme changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === "data-theme") {
+          const newTheme = document.documentElement.getAttribute("data-theme");
+          setIsDark(newTheme !== "light");
+        }
+      });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+
     const email = searchParams.get("email");
     const name = searchParams.get("name");
     const picture = searchParams.get("picture");
@@ -25,12 +41,14 @@ function AuthSuccessContent() {
       // No email, redirect to home
       router.push("/");
     }
+
+    return () => observer.disconnect();
   }, [searchParams, router]);
 
   return (
     <div className="text-center">
       <Image
-        src="/logo.svg"
+        src={isDark ? "/logo.svg" : "/logo-dark.svg"}
         alt="Zeno"
         width={480}
         height={280}
