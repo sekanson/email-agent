@@ -1,5 +1,11 @@
 # Zeno Email Agent
 
+## Deployment
+- **Production URL:** https://email-agent-m0iviymp8-xix3-d.vercel.app
+- **Deployment ID:** dpl_FrmaYYxgmDeu2VtMwK6qJSq8vxGA
+- **Project ID:** prj_ZssneJfIiyvB6hIFBJQdmwbELLYQ
+- **Org:** techs-projects-3f073aab
+
 AI-powered email assistant that classifies, drafts, and takes action on your behalf.
 
 **Live:** https://zenoemail.xix3d.com
