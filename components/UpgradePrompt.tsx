@@ -14,9 +14,9 @@ interface UpgradePromptProps {
   fromVersion: string;
   toVersion: string;
   userEmail: string;
-  onUpgrade: () => Promise<void>;
-  onDismiss: () => Promise<void>;
-  onKeepCurrent: () => Promise<void>;
+  onUpgrade: () => Promise<void | boolean>;
+  onDismiss: () => Promise<void | boolean>;
+  onKeepCurrent: () => Promise<void | boolean>;
 }
 
 export default function UpgradePrompt({
