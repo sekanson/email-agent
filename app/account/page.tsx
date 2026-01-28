@@ -298,7 +298,7 @@ function SettingsPageContent() {
 
       <main className="min-h-screen pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}
-        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl lg:top-0">
+        <div className="border-b border-[var(--border)] bg-[var(--bg-primary)]">
           <div className="px-4 py-4 sm:px-8 sm:py-6">
             <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">
               Settings

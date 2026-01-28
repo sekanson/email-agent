@@ -204,7 +204,7 @@ export default function DraftsPage() {
 
       <main className="min-h-screen overflow-auto pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}
-        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-4 py-4 backdrop-blur-xl sm:px-8 sm:py-6 lg:top-0">
+        <div className="border-b border-[var(--border)] bg-[var(--bg-primary)] px-4 py-4 sm:px-8 sm:py-6">
           <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">Draft Settings</h1>
           <p className="text-sm text-[var(--text-muted)] sm:text-base">
             Configure how AI generates draft responses for your emails

@@ -458,7 +458,7 @@ export default function Dashboard() {
 
       <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0 overflow-auto">
         {/* Compact Header with Agent Status */}
-        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl lg:top-0">
+        <div className="border-b border-[var(--border)] bg-[var(--bg-primary)]">
           <div className="px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               {/* Left: Title + Agent Status */}
