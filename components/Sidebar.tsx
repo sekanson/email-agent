@@ -431,7 +431,7 @@ export default function Sidebar() {
       </aside>
 
       {/* Mobile Top Header */}
-      <header className="fixed left-0 right-0 top-0 z-40 flex h-14 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-primary)] px-4 lg:hidden">
+      <header className="fixed left-0 right-0 top-0 z-40 flex h-12 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-primary)] px-4 lg:hidden">
         <Logo />
         <button
           onClick={() => setMobileMenuOpen(true)}

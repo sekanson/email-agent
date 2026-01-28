@@ -429,7 +429,7 @@ export default function DeclutterPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
+        <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center p-4 lg:min-h-screen lg:p-8">
             <div className="max-w-md text-center">
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-emerald-500/10">
@@ -474,7 +474,7 @@ export default function DeclutterPage() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
+      <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
         <div className="p-4 sm:p-6 lg:p-8 lg:pb-24">
           {/* Header */}
           <div className="mb-6 lg:mb-8">

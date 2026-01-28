@@ -246,7 +246,7 @@ export default function AssistantPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="flex min-h-screen items-center justify-center pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
+        <main className="flex min-h-screen items-center justify-center pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
           <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
         </main>
       </div>
@@ -257,7 +257,7 @@ export default function AssistantPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="flex min-h-screen items-center justify-center px-4 pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
+        <main className="flex min-h-screen items-center justify-center px-4 pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
           <div className="text-center">
             <AlertTriangle className="mx-auto h-12 w-12 text-amber-500" />
             <h2 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">Not signed in</h2>
@@ -272,9 +272,9 @@ export default function AssistantPage() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="min-h-screen overflow-auto pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
+      <main className="min-h-screen overflow-auto pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}
-        <div className="sticky top-14 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-4 py-4 backdrop-blur-xl sm:px-8 sm:py-6 lg:top-0">
+        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-4 py-4 backdrop-blur-xl sm:px-8 sm:py-6 lg:top-0">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600">
               <Sparkles className="h-5 w-5 text-white" />

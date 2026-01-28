@@ -31,7 +31,7 @@ export default function Logo() {
       alt="Zeno Email Agent"
       width={200}
       height={120}
-      className="h-[40px] w-auto object-contain"
+      className="h-[32px] w-auto object-contain"
       priority
     />
   );

@@ -521,7 +521,7 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center">
+        <main className="flex min-h-screen items-center justify-center pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
         </main>
       </div>
@@ -536,22 +536,22 @@ export default function AdminPage() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="ml-60 min-h-screen overflow-auto">
+      <main className="min-h-screen overflow-auto pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-8 py-6 backdrop-blur-xl">
-          <div className="flex items-center justify-between">
+        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-4 py-4 backdrop-blur-xl sm:px-8 sm:py-6 lg:top-0">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6 text-blue-500" />
+              <Shield className="h-5 w-5 text-blue-500 sm:h-6 sm:w-6" />
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">
                   Admin Portal
                 </h1>
-                <p className="text-[var(--text-muted)]">Manage users and subscriptions</p>
+                <p className="text-sm text-[var(--text-muted)]">Manage users and subscriptions</p>
               </div>
             </div>
             <button
               onClick={exportUsersToCSV}
-              className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)]"
+              className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] sm:py-2"
             >
               <Download className="h-4 w-4" />
               Export CSV
@@ -559,129 +559,129 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {/* Stats Cards - Row 1 */}
-          <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-blue-500/10 p-2">
-                  <Users className="h-5 w-5 text-blue-500" />
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-blue-500/10 p-1.5 sm:p-2">
+                  <Users className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                  <p className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
                     {stats.totalUsers}
                   </p>
-                  <p className="text-sm text-[var(--text-muted)]">Total Users</p>
+                  <p className="text-xs text-[var(--text-muted)] sm:text-sm">Total Users</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-emerald-500/10 p-2">
-                  <CreditCard className="h-5 w-5 text-emerald-500" />
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-emerald-500/10 p-1.5 sm:p-2">
+                  <CreditCard className="h-4 w-4 text-emerald-500 sm:h-5 sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                  <p className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
                     {stats.paidUsers}
                   </p>
-                  <p className="text-sm text-[var(--text-muted)]">Paid Users</p>
+                  <p className="text-xs text-[var(--text-muted)] sm:text-sm">Paid Users</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-blue-500/10 p-2">
-                  <Clock className="h-5 w-5 text-blue-500" />
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-blue-500/10 p-1.5 sm:p-2">
+                  <Clock className="h-4 w-4 text-blue-500 sm:h-5 sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                  <p className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
                     {stats.activeTrials}
                   </p>
-                  <p className="text-sm text-[var(--text-muted)]">Active Trials</p>
+                  <p className="text-xs text-[var(--text-muted)] sm:text-sm">Active Trials</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-red-500/10 p-2">
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-red-500/10 p-1.5 sm:p-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500 sm:h-5 sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                  <p className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
                     {stats.expiredTrials}
                   </p>
-                  <p className="text-sm text-[var(--text-muted)]">Expired Trials</p>
+                  <p className="text-xs text-[var(--text-muted)] sm:text-sm">Expired Trials</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Stats Cards - Row 2 */}
-          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-cyan-500/10 p-2">
-                  <UserPlus className="h-5 w-5 text-cyan-500" />
+          <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-cyan-500/10 p-1.5 sm:p-2">
+                  <UserPlus className="h-4 w-4 text-cyan-500 sm:h-5 sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                  <p className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
                     {stats.newUsersThisWeek}
                   </p>
-                  <p className="text-sm text-[var(--text-muted)]">New This Week</p>
+                  <p className="text-xs text-[var(--text-muted)] sm:text-sm">New This Week</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-green-500/10 p-2">
-                  <TrendingUp className="h-5 w-5 text-green-500" />
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-green-500/10 p-1.5 sm:p-2">
+                  <TrendingUp className="h-4 w-4 text-green-500 sm:h-5 sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                  <p className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
                     {stats.conversionRate.toFixed(1)}%
                   </p>
-                  <p className="text-sm text-[var(--text-muted)]">Conversion Rate</p>
+                  <p className="text-xs text-[var(--text-muted)] sm:text-sm">Conversion Rate</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-purple-500/10 p-2">
-                  <Mail className="h-5 w-5 text-purple-500" />
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-purple-500/10 p-1.5 sm:p-2">
+                  <Mail className="h-4 w-4 text-purple-500 sm:h-5 sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                  <p className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
                     {stats.totalEmailsProcessed.toLocaleString()}
                   </p>
-                  <p className="text-sm text-[var(--text-muted)]">Emails Processed</p>
+                  <p className="text-xs text-[var(--text-muted)] sm:text-sm">Emails</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-amber-500/10 p-2">
-                  <FileText className="h-5 w-5 text-amber-500" />
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="rounded-lg bg-amber-500/10 p-1.5 sm:p-2">
+                  <FileText className="h-4 w-4 text-amber-500 sm:h-5 sm:w-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--text-primary)]">
+                  <p className="text-xl font-bold text-[var(--text-primary)] sm:text-2xl">
                     {stats.totalDraftsCreated.toLocaleString()}
                   </p>
-                  <p className="text-sm text-[var(--text-muted)]">Drafts Created</p>
+                  <p className="text-xs text-[var(--text-muted)] sm:text-sm">Drafts</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Recent Activity */}
-          <div className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-            <div className="border-b border-[var(--border)] px-6 py-4">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+          <div className="mb-6 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] sm:mb-8">
+            <div className="border-b border-[var(--border)] px-4 py-3 sm:px-6 sm:py-4">
+              <h2 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">
                 Recent Signups
               </h2>
             </div>
@@ -689,28 +689,28 @@ export default function AdminPage() {
               {recentActivity.map((user) => (
                 <div
                   key={user.email}
-                  className="flex items-center justify-between px-6 py-3 transition-colors hover:bg-[var(--bg-elevated)]"
+                  className="flex items-center justify-between px-4 py-3 transition-colors hover:bg-[var(--bg-elevated)] sm:px-6"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     {user.picture ? (
                       <img
                         src={user.picture}
                         alt={user.name || user.email}
-                        className="h-8 w-8 rounded-full"
+                        className="h-8 w-8 flex-shrink-0 rounded-full"
                       />
                     ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-sm font-medium text-[var(--text-primary)]">
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--bg-elevated)] text-sm font-medium text-[var(--text-primary)]">
                         {(user.name || user.email)[0].toUpperCase()}
                       </div>
                     )}
-                    <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[var(--text-primary)]">
                         {user.name || user.email}
                       </p>
-                      <p className="text-xs text-[var(--text-muted)]">{user.email}</p>
+                      <p className="truncate text-xs text-[var(--text-muted)]">{user.email}</p>
                     </div>
                   </div>
-                  <div className="text-right">
+                  <div className="ml-2 flex-shrink-0 text-right">
                     {getStatusBadge(user)}
                     <p className="mt-1 text-xs text-[var(--text-muted)]">
                       {formatDate(user.created_at)}
@@ -722,27 +722,27 @@ export default function AdminPage() {
           </div>
 
           {/* Search */}
-          <div className="mb-6">
-            <div className="relative max-w-md">
+          <div className="mb-4 sm:mb-6">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
               <input
                 type="text"
-                placeholder="Search users by name or email..."
+                placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] py-2.5 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] py-3 pl-10 pr-4 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none sm:max-w-md sm:py-2.5"
               />
             </div>
           </div>
 
           {/* Users Table */}
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-            <div className="border-b border-[var(--border)] px-6 py-4">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)]">
+            <div className="border-b border-[var(--border)] px-4 py-3 sm:px-6 sm:py-4">
+              <h2 className="text-base font-semibold text-[var(--text-primary)] sm:text-lg">
                 All Users ({filteredUsers.length})
               </h2>
             </div>
-            <div className="overflow-x-auto">
+            <div className="-mx-px overflow-x-auto">
               <table className="w-full min-w-[900px]">
                 <thead>
                   <tr className="border-b border-[var(--border)] text-left text-sm text-[var(--text-muted)]">
@@ -813,28 +813,28 @@ export default function AdminPage() {
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/50"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setSelectedUser(null)}
           />
 
           {/* Drawer */}
-          <div className="relative w-full max-w-md bg-[var(--bg-primary)] shadow-2xl">
+          <div className="relative w-full bg-[var(--bg-primary)] shadow-2xl sm:max-w-md">
             <div className="flex h-full flex-col">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-[var(--border)] p-6">
+              <div className="flex items-center justify-between border-b border-[var(--border)] p-4 sm:p-6">
                 <h2 className="text-lg font-semibold text-[var(--text-primary)]">
                   User Details
                 </h2>
                 <button
                   onClick={() => setSelectedUser(null)}
-                  className="rounded-lg p-2 text-[var(--text-muted)] hover:bg-[var(--bg-elevated)]"
+                  className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-elevated)]"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
               {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                 {/* User Info */}
                 <div className="mb-6 flex items-center gap-4">
                   {selectedUser.picture ? (
@@ -944,7 +944,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleSubscriptionAction("pause")}
                         disabled={!!actionLoading}
-                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+                        className="flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
                       >
                         {actionLoading === "pause" ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -956,7 +956,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleSubscriptionAction("cancel")}
                         disabled={!!actionLoading}
-                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+                        className="flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
                       >
                         {actionLoading === "cancel" ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -972,7 +972,7 @@ export default function AdminPage() {
                     <button
                       onClick={() => handleSubscriptionAction("resume")}
                       disabled={!!actionLoading}
-                      className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+                      className="flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
                     >
                       {actionLoading === "resume" ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -989,7 +989,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleSubscriptionAction("extend_trial")}
                         disabled={!!actionLoading}
-                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+                        className="flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
                       >
                         {actionLoading === "extend_trial" ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -1001,7 +1001,7 @@ export default function AdminPage() {
                       <button
                         onClick={() => handleSubscriptionAction("grant_pro")}
                         disabled={!!actionLoading}
-                        className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+                        className="flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
                       >
                         {actionLoading === "grant_pro" ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -1017,7 +1017,7 @@ export default function AdminPage() {
                   <button
                     onClick={() => handleSubscriptionAction("reset_drafts")}
                     disabled={!!actionLoading}
-                    className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+                    className="flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
                   >
                     {actionLoading === "reset_drafts" ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -1031,7 +1031,7 @@ export default function AdminPage() {
                     <button
                       onClick={() => handleSubscriptionAction("revoke_pro")}
                       disabled={!!actionLoading}
-                      className="flex w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
+                      className="flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-3 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)] disabled:opacity-50"
                     >
                       {actionLoading === "revoke_pro" ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -1095,7 +1095,7 @@ export default function AdminPage() {
                     <button
                       onClick={handleDeleteUser}
                       disabled={!!actionLoading || selectedUser.email === adminEmail || selectedUser.role === "primary_owner"}
-                      className="flex w-full items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-left text-sm text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                      className="flex min-h-[48px] w-full items-center gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-left text-sm text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
                     >
                       {actionLoading === "delete_user" ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

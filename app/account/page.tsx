@@ -258,7 +258,7 @@ function SettingsPageContent() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="flex min-h-screen items-center justify-center pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
+        <main className="flex min-h-screen items-center justify-center pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             <p className="text-sm text-[var(--text-muted)]">Loading...</p>
@@ -272,7 +272,7 @@ function SettingsPageContent() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="flex min-h-screen items-center justify-center px-4 pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
+        <main className="flex min-h-screen items-center justify-center px-4 pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
           <div className="text-center">
             <h2 className="text-lg font-semibold text-[var(--text-primary)]">
               Not signed in
@@ -296,9 +296,9 @@ function SettingsPageContent() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="min-h-screen pb-20 pt-14 lg:ml-60 lg:pb-0 lg:pt-0">
+      <main className="min-h-screen pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}
-        <div className="sticky top-14 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl lg:top-0">
+        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl lg:top-0">
           <div className="px-4 py-4 sm:px-8 sm:py-6">
             <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">
               Settings
@@ -1229,7 +1229,7 @@ export default function SettingsPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
+        <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center lg:min-h-screen">
             <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
           </div>

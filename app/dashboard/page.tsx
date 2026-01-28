@@ -410,7 +410,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
+        <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center lg:min-h-screen">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -426,7 +426,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
+        <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <div className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center lg:min-h-screen">
             <div className="text-center px-4">
               <Mail className="mx-auto h-12 w-12 text-[var(--text-muted)]" />
@@ -456,7 +456,7 @@ export default function Dashboard() {
         />
       )}
 
-      <main className="min-h-screen pt-14 pb-20 lg:ml-60 lg:pt-0 lg:pb-0 overflow-auto">
+      <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0 overflow-auto">
         {/* Compact Header with Agent Status */}
         <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-xl">
           <div className="px-4 py-3 sm:px-6 lg:px-8">
