@@ -305,7 +305,7 @@ export default function AssistantPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">Zeno Assistant</h1>
+              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">Zeno email assistant</h1>
               <p className="text-sm text-[var(--text-muted)]">Your AI email companion</p>
             </div>
           </div>
@@ -682,25 +682,19 @@ export default function AssistantPage() {
               </div>
 
               <div className="space-y-4">
-                {/* Draft vs Send */}
-                <div className="flex items-center justify-between p-4 rounded-lg bg-[var(--bg-elevated)]">
-                  <div>
-                    <p className="font-medium text-[var(--text-primary)]">Safe Mode</p>
-                    <p className="text-sm text-[var(--text-muted)]">Create drafts instead of sending directly</p>
+                {/* Safe Mode - Always On */}
+                <div className="flex items-center justify-between p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">🔒</span>
+                    <div>
+                      <p className="font-medium text-[var(--text-primary)]">Safe Mode</p>
+                      <p className="text-sm text-[var(--text-muted)]">Zeno creates drafts instead of sending directly — you review and hit send in Gmail</p>
+                    </div>
                   </div>
-                  <label className="relative inline-flex cursor-pointer items-center">
-                    <input
-                      type="checkbox"
-                      checked={true}
-                      disabled
-                      className="peer sr-only"
-                    />
-                    <div className="h-6 w-11 rounded-full bg-emerald-500 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:translate-x-full"></div>
-                  </label>
+                  <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-400">
+                    Always On
+                  </span>
                 </div>
-                <p className="text-xs text-[var(--text-muted)] italic px-1">
-                  🔒 For safety, Zeno always creates drafts. You review and hit send in Gmail.
-                </p>
 
                 {/* Confirmation emails */}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-[var(--bg-elevated)]">
@@ -753,23 +747,23 @@ export default function AssistantPage() {
                 <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
                   <p className="text-xs font-medium text-amber-400 uppercase tracking-wide mb-2">Send Messages</p>
                   <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
-                    <p><span className="text-[var(--text-muted)]">"</span>Tell Aamir I'll be there at 3pm<span className="text-[var(--text-muted)]">"</span></p>
-                    <p><span className="text-[var(--text-muted)]">"</span>Email Hammad saying the contract looks good<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Tell John I'll be there at 3pm<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Email Sarah saying the contract looks good<span className="text-[var(--text-muted)]">"</span></p>
                   </div>
                 </div>
 
                 <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
                   <p className="text-xs font-medium text-purple-400 uppercase tracking-wide mb-2">Schedule Meetings</p>
                   <div className="space-y-2 font-mono text-sm text-[var(--text-secondary)]">
-                    <p><span className="text-[var(--text-muted)]">"</span>Book a meeting with Aamir tomorrow at 9am<span className="text-[var(--text-muted)]">"</span></p>
-                    <p><span className="text-[var(--text-muted)]">"</span>Schedule 30 min with Sarah and Hammad for contract review<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Book a meeting with John tomorrow at 9am<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Schedule 30 min with Sarah and Mike for contract review<span className="text-[var(--text-muted)]">"</span></p>
                   </div>
                 </div>
 
                 <div className="rounded-lg bg-[var(--bg-elevated)] p-4">
                   <p className="text-xs font-medium text-pink-400 uppercase tracking-wide mb-2">Multiple Actions</p>
                   <div className="font-mono text-sm text-[var(--text-secondary)]">
-                    <p><span className="text-[var(--text-muted)]">"</span>Reply 1 with yes, tell Aamir we're confirmed, and book prep meeting for 1 hour before<span className="text-[var(--text-muted)]">"</span></p>
+                    <p><span className="text-[var(--text-muted)]">"</span>Reply 1 with yes, tell John we're confirmed, and book prep meeting for 1 hour before<span className="text-[var(--text-muted)]">"</span></p>
                   </div>
                 </div>
               </div>

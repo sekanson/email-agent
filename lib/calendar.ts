@@ -586,6 +586,21 @@ export function parseTimeExpression(
 ): Date | null {
   const lower = expression.toLowerCase().trim();
 
+  // Handle ISO date format "YYYY-MM-DD HH:MM" or "YYYY-MM-DD"
+  const isoMatch = expression.match(/(\d{4}-\d{2}-\d{2})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if (isoMatch) {
+    const [, dateStr, hours, minutes] = isoMatch;
+    const date = new Date(dateStr + "T12:00:00"); // Use noon to avoid timezone issues
+
+    if (hours && minutes) {
+      date.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    } else {
+      date.setHours(9, 0, 0, 0); // Default to 9 AM
+    }
+
+    return date;
+  }
+
   // Handle "tomorrow at X"
   if (lower.includes("tomorrow")) {
     const date = new Date(referenceDate);
