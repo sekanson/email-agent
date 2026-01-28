@@ -110,26 +110,31 @@ export default function AssistantPage() {
     }
   }
 
-  async function saveSettings() {
-    setSaving(true);
-    setMessage(null);
+  async function saveSettings(settingsToSave?: Partial<ZenoSettings>, silent = false) {
+    if (!silent) setSaving(true);
+    if (!silent) setMessage(null);
+
+    const finalSettings = settingsToSave ? { ...settings, ...settingsToSave } : settings;
 
     try {
       const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail, settings }),
+        body: JSON.stringify({ userEmail, settings: finalSettings }),
       });
 
       if (res.ok) {
-        setMessage({ type: "success", text: "Settings saved!" });
+        if (!silent) setMessage({ type: "success", text: "Settings saved!" });
+        return true;
       } else {
-        setMessage({ type: "error", text: "Failed to save settings" });
+        if (!silent) setMessage({ type: "error", text: "Failed to save settings" });
+        return false;
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to save settings" });
+      if (!silent) setMessage({ type: "error", text: "Failed to save settings" });
+      return false;
     } finally {
-      setSaving(false);
+      if (!silent) setSaving(false);
     }
   }
 
@@ -167,26 +172,32 @@ export default function AssistantPage() {
     }));
   }
 
-  function addVipSender() {
+  async function addVipSender() {
     if (!newVip.trim()) return;
     const email = newVip.trim().toLowerCase();
     if (!settings.vip_senders.includes(email)) {
+      const newVipList = [...settings.vip_senders, email];
       setSettings((prev) => ({
         ...prev,
-        vip_senders: [...prev.vip_senders, email],
+        vip_senders: newVipList,
       }));
+      // Auto-save VIP changes
+      await saveSettings({ vip_senders: newVipList }, true);
     }
     setNewVip("");
   }
 
-  function removeVipSender(email: string) {
+  async function removeVipSender(emailToRemove: string) {
+    const newVipList = settings.vip_senders.filter((e) => e !== emailToRemove);
     setSettings((prev) => ({
       ...prev,
-      vip_senders: prev.vip_senders.filter((e) => e !== email),
+      vip_senders: newVipList,
     }));
+    // Auto-save VIP changes
+    await saveSettings({ vip_senders: newVipList }, true);
   }
 
-  function enableFocusMode(duration: string) {
+  async function enableFocusMode(duration: string) {
     let until: string | null = null;
     const now = new Date();
 
@@ -219,14 +230,28 @@ export default function AssistantPage() {
       focus_mode_until: until,
     }));
     setShowFocusOptions(false);
+
+    // Auto-save focus mode immediately
+    const saved = await saveSettings({ focus_mode_enabled: true, focus_mode_until: until }, true);
+    if (saved) {
+      setMessage({ type: "success", text: `Focus mode enabled until ${new Date(until!).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` });
+      setTimeout(() => setMessage(null), 3000);
+    }
   }
 
-  function disableFocusMode() {
+  async function disableFocusMode() {
     setSettings((prev) => ({
       ...prev,
       focus_mode_enabled: false,
       focus_mode_until: null,
     }));
+
+    // Auto-save focus mode immediately
+    const saved = await saveSettings({ focus_mode_enabled: false, focus_mode_until: null }, true);
+    if (saved) {
+      setMessage({ type: "success", text: "Focus mode disabled" });
+      setTimeout(() => setMessage(null), 3000);
+    }
   }
 
   const focusModeActive = settings.focus_mode_enabled && 
@@ -753,7 +778,7 @@ export default function AssistantPage() {
             {/* Action Buttons */}
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
-                onClick={saveSettings}
+                onClick={() => saveSettings()}
                 disabled={saving}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-6 py-3 text-base font-medium text-white transition-all hover:bg-[var(--accent-hover)] disabled:opacity-50"
               >
