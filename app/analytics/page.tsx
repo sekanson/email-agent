@@ -171,7 +171,7 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center max-md:ml-0 max-md:pb-20">
+        <main className="flex min-h-screen items-center justify-center pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <Loader2 className="h-8 w-8 animate-spin text-[var(--accent)]" />
         </main>
       </div>
@@ -182,7 +182,7 @@ export default function AnalyticsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
-        <main className="ml-60 flex min-h-screen items-center justify-center max-md:ml-0 max-md:pb-20">
+        <main className="flex min-h-screen items-center justify-center px-4 pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
           <div className="text-center">
             <AlertCircle className="mx-auto h-12 w-12 text-amber-500" />
             <h2 className="mt-4 text-lg font-semibold text-[var(--text-primary)]">
@@ -201,16 +201,16 @@ export default function AnalyticsPage() {
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
 
-      <main className="ml-60 min-h-screen overflow-auto max-md:ml-0 max-md:pb-20">
+      <main className="min-h-screen overflow-auto pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
         {/* Header */}
-        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-8 py-6 backdrop-blur-xl max-md:px-4">
-          <div className="flex items-center justify-between">
+        <div className="sticky top-12 z-10 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-4 py-4 backdrop-blur-xl sm:px-8 sm:py-6 lg:top-0">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 p-2.5">
-                <BarChart3 className="h-6 w-6 text-blue-500" />
+              <div className="rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 p-2 sm:p-2.5">
+                <BarChart3 className="h-5 w-5 text-blue-500 sm:h-6 sm:w-6" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)]">
+                <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">
                   Analytics
                 </h1>
                 <p className="text-sm text-[var(--text-muted)]">
@@ -218,14 +218,14 @@ export default function AnalyticsPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-500">
+            <div className="flex items-center gap-2 self-start rounded-full bg-emerald-500/10 px-3 py-1.5 text-sm text-emerald-500 sm:self-center">
               <TrendingUp className="h-4 w-4" />
               <span className="font-medium">+{weekChange}% this week</span>
             </div>
           </div>
         </div>
 
-        <div className="p-8 space-y-6 max-md:p-4">
+        <div className="space-y-4 p-4 sm:space-y-6 sm:p-6 lg:p-8">
           {/* Hero Stats Row */}
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {/* Total Emails */}
