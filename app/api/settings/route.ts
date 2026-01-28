@@ -99,16 +99,38 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient();
 
-    // Build base settings object (user_id omitted - FK constraint references profiles table not users)
+    // First, fetch existing settings to merge with (prevents overwriting unrelated fields)
+    let existingSettings: Record<string, unknown> = {};
+    let { data: existing } = await supabase
+      .from("user_settings")
+      .select("*")
+      .eq("user_email", userEmail)
+      .single();
+
+    if (!existing) {
+      const result = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("email", userEmail)
+        .single();
+      existing = result.data;
+    }
+
+    if (existing) {
+      existingSettings = existing;
+    }
+
+    // Build base settings object by merging existing with new values
+    // Only override fields that are explicitly provided in the request
     const baseSettings: Record<string, unknown> = {
-      temperature: settings.temperature ?? 0.7,
-      signature: settings.signature ?? "",
-      drafts_enabled: settings.drafts_enabled ?? true,
-      categories: settings.categories ?? DEFAULT_CATEGORIES,
-      auto_poll_enabled: settings.auto_poll_enabled,
-      auto_poll_interval: settings.auto_poll_interval,
-      use_writing_style: settings.use_writing_style ?? false,
-      writing_style: settings.writing_style ?? "",
+      temperature: settings.temperature ?? existingSettings.temperature ?? 0.7,
+      signature: settings.signature ?? existingSettings.signature ?? "",
+      drafts_enabled: settings.drafts_enabled ?? existingSettings.drafts_enabled ?? true,
+      categories: settings.categories ?? existingSettings.categories ?? DEFAULT_CATEGORIES,
+      auto_poll_enabled: settings.auto_poll_enabled ?? existingSettings.auto_poll_enabled,
+      auto_poll_interval: settings.auto_poll_interval ?? existingSettings.auto_poll_interval,
+      use_writing_style: settings.use_writing_style ?? existingSettings.use_writing_style ?? false,
+      writing_style: settings.writing_style ?? existingSettings.writing_style ?? "",
     };
 
     // Try with user_email first, then email as fallback
