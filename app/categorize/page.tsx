@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import UpgradePrompt from "@/components/UpgradePrompt";
+import { useUpgradePrompt } from "@/lib/use-upgrade-prompt";
+import { type UserSettings } from "@/lib/settings-merge";
 import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Lock, RotateCcw, AlertTriangle, ChevronDown } from "lucide-react";
-import { DEFAULT_CATEGORIES as SHARED_DEFAULTS, type CategoryConfig } from "@/lib/categories";
+import { DEFAULT_CATEGORIES as SHARED_DEFAULTS, DEFAULT_CATEGORIES_V2, type CategoryConfig } from "@/lib/categories";
 
 // Gmail's allowed label colors - these are the ONLY colors that work in Gmail
 const GMAIL_COLORS = [
@@ -157,6 +160,16 @@ export default function SettingsPage() {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+
+  // Upgrade prompt hook - only for categories
+  const {
+    currentPrompt,
+    handleUpgradeAction,
+  } = useUpgradePrompt(userSettings);
+
+  // Only show category upgrade prompts on this page
+  const showCategoryUpgrade = currentPrompt?.schema === 'categories';
 
   const userEmail =
     typeof window !== "undefined"
@@ -203,6 +216,8 @@ export default function SettingsPage() {
           auto_poll_interval: data.settings.auto_poll_interval ?? 120,
           categories,
         });
+        // Store full settings for upgrade prompt
+        setUserSettings(data.settings);
       }
     } catch (error) {
       console.error("Failed to fetch settings:", error);
@@ -427,9 +442,35 @@ export default function SettingsPage() {
     );
   }
 
+  // Handle upgrade action and refresh settings
+  const handleUpgradeWithRefresh = async (action: 'upgrade' | 'keep' | 'dismiss') => {
+    const success = await handleUpgradeAction(userEmail, action);
+    if (success) {
+      // Refresh settings to show updated categories
+      await fetchSettings();
+      if (action === 'upgrade') {
+        setMessage({ type: "success", text: "Categories upgraded! Your new categories are ready." });
+        setNeedsSync(true);
+      }
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
+
+      {/* Category Upgrade Prompt */}
+      {showCategoryUpgrade && currentPrompt && (
+        <UpgradePrompt
+          schema={currentPrompt.schema}
+          fromVersion={currentPrompt.fromVersion}
+          toVersion={currentPrompt.toVersion}
+          userEmail={userEmail}
+          onUpgrade={() => handleUpgradeWithRefresh('upgrade')}
+          onDismiss={() => handleUpgradeWithRefresh('dismiss')}
+          onKeepCurrent={() => handleUpgradeWithRefresh('keep')}
+        />
+      )}
 
       <main className="min-h-screen overflow-auto pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}

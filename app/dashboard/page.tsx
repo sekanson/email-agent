@@ -472,8 +472,8 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Upgrade Prompt */}
-      {currentPrompt && (
+      {/* Upgrade Prompt - Only show non-category upgrades here (categories show in /categorize) */}
+      {currentPrompt && currentPrompt.schema !== 'categories' && (
         <UpgradePrompt
           schema={currentPrompt.schema}
           fromVersion={currentPrompt.fromVersion}
