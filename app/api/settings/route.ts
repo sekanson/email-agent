@@ -1,16 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
-
-const DEFAULT_CATEGORIES = {
-  "1": { name: "To Respond", color: "#ef4444", enabled: true },
-  "2": { name: "FYI", color: "#f59e0b", enabled: true },
-  "3": { name: "Comment", color: "#10b981", enabled: true },
-  "4": { name: "Notification", color: "#6366f1", enabled: true },
-  "5": { name: "Meeting Update", color: "#8b5cf6", enabled: true },
-  "6": { name: "Awaiting Reply", color: "#06b6d4", enabled: true },
-  "7": { name: "Actioned", color: "#84cc16", enabled: true },
-  "8": { name: "Marketing", color: "#f97316", enabled: true },
-};
+import { DEFAULT_CATEGORIES } from "@/lib/categories";
 
 export async function GET(request: NextRequest) {
   try {
