@@ -73,35 +73,34 @@ export async function POST(request: NextRequest) {
 
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
-    // Get IDs to keep unread (only important emails if except === "important")
+    // Get the scanned email IDs from the session
+    // Note: important_emails field actually stores ALL scanned emails (naming is legacy)
+    const scannedEmails: { gmail_id: string; category: string }[] = session.important_emails || [];
+
+    if (scannedEmails.length === 0) {
+      return NextResponse.json({
+        markedRead: 0,
+        keptUnread: 0,
+        error: "No scanned emails found in session"
+      });
+    }
+
+    // Get IDs to keep unread (only "important" category emails if except === "important")
     const keepUnreadIds = new Set<string>();
-    const importantEmails: ImportantEmail[] = session.important_emails || [];
 
     if (except === "important") {
-      for (const email of importantEmails) {
-        keepUnreadIds.add(email.gmail_id);
+      for (const email of scannedEmails) {
+        if (email.category === "important") {
+          keepUnreadIds.add(email.gmail_id);
+        }
       }
     }
 
-    // Fetch all unread message IDs
-    let allUnreadIds: string[] = [];
-    let pageToken: string | undefined;
-
-    do {
-      const listResponse = await gmail.users.messages.list({
-        userId: "me",
-        q: "is:unread",
-        maxResults: 500,
-        pageToken,
-      });
-
-      const messages = listResponse.data.messages || [];
-      allUnreadIds.push(...messages.map((m) => m.id!));
-      pageToken = listResponse.data.nextPageToken || undefined;
-    } while (pageToken && allUnreadIds.length < 5000);
+    // Only mark scanned emails as read (not ALL unread emails in Gmail)
+    const scannedIds = scannedEmails.map(e => e.gmail_id);
 
     // Filter out IDs to keep unread
-    const idsToMarkRead = allUnreadIds.filter((id) => !keepUnreadIds.has(id));
+    const idsToMarkRead = scannedIds.filter((id) => !keepUnreadIds.has(id));
 
     // Batch mark as read (100 at a time)
     let markedRead = 0;
