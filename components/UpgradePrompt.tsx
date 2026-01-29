@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { X, Sparkles, ArrowRight, Info } from "lucide-react";
 import { 
   getSchemaChangelog, 
@@ -30,20 +30,28 @@ export default function UpgradePrompt({
 }: UpgradePromptProps) {
   const [loading, setLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   const changelog = getSchemaChangelog(schema, toVersion);
   const schemaDisplayName = getSchemaDisplayName(schema);
 
-  if (!changelog) {
-    return null; // Don't show prompt if no changelog available
+  // Hide immediately if already hidden or no changelog
+  if (hidden || !changelog) {
+    return null;
   }
 
   const handleAction = async (action: () => Promise<void | boolean>) => {
+    if (loading) return; // Prevent double-clicks
+    
     setLoading(true);
     try {
       await action();
+      // Hide the modal immediately after action completes
+      setHidden(true);
     } catch (error) {
       console.error("Upgrade prompt action failed:", error);
+      // Still hide on error to prevent stuck state
+      setHidden(true);
     } finally {
       setLoading(false);
     }

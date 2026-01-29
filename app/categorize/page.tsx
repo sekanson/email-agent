@@ -444,14 +444,20 @@ export default function SettingsPage() {
 
   // Handle upgrade action and refresh settings
   const handleUpgradeWithRefresh = async (action: 'upgrade' | 'keep' | 'dismiss') => {
-    const success = await handleUpgradeAction(userEmail, action);
-    if (success) {
-      // Refresh settings to show updated categories
-      await fetchSettings();
-      if (action === 'upgrade') {
-        setMessage({ type: "success", text: "Categories upgraded! Your new categories are ready." });
+    try {
+      const success = await handleUpgradeAction(userEmail, action);
+      if (success && action === 'upgrade') {
+        // Refresh settings to show updated categories
+        await fetchSettings();
+        setMessage({ type: "success", text: "Categories upgraded! Your new categories are ready. Click 'Save & Sync to Gmail' to apply." });
         setNeedsSync(true);
+      } else if (success) {
+        // For keep/dismiss, just refresh to ensure sync
+        await fetchSettings();
       }
+    } catch (error) {
+      console.error("Upgrade action failed:", error);
+      setMessage({ type: "error", text: "Upgrade failed. Please try again." });
     }
   };
 
