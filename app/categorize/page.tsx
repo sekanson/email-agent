@@ -585,20 +585,6 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={deleteExistingLabels}
-                    disabled={deletingLabels}
-                    className="flex min-h-[44px] items-center gap-1 rounded-lg border border-red-500/30 px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50 sm:min-h-0 sm:py-1.5"
-                    title="Delete all Zeno labels from Gmail"
-                  >
-                    {deletingLabels ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                    <span className="hidden sm:inline">Delete Gmail Labels</span>
-                    <span className="sm:hidden">Clear</span>
-                  </button>
                   {!isAtDefaults && (
                     <button
                       onClick={restoreDefaults}
@@ -797,6 +783,30 @@ export default function SettingsPage() {
             <p className="text-center text-xs text-[var(--text-muted)]">
               Changes are saved to your settings and then synced to Gmail labels.
             </p>
+
+            {/* Gmail Label Management */}
+            <section className="mt-8 rounded-xl border border-red-500/20 bg-red-500/5 p-4 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-red-400">Gmail Label Cleanup</h3>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    Delete all existing Zeno labels from Gmail. Use this if labels got out of sync or you want to start fresh.
+                  </p>
+                </div>
+                <button
+                  onClick={deleteExistingLabels}
+                  disabled={deletingLabels}
+                  className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50 sm:min-h-0"
+                >
+                  {deletingLabels ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Delete All Zeno Labels
+                </button>
+              </div>
+            </section>
           </div>
         </div>
       </main>
