@@ -20,12 +20,36 @@ export interface UpgradeInfo {
   needsPrompt: boolean;
 }
 
+// LocalStorage key for persisting dismissed prompts
+const DISMISSED_PROMPTS_KEY = 'zeno_dismissed_upgrade_prompts';
+
+// Helper to get dismissed prompts from localStorage
+function getDismissedFromStorage(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const stored = localStorage.getItem(DISMISSED_PROMPTS_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+// Helper to save dismissed prompts to localStorage
+function saveDismissedToStorage(dismissed: Set<string>) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(DISMISSED_PROMPTS_KEY, JSON.stringify([...dismissed]));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
 export function useUpgradePrompt(userSettings: UserSettings | null) {
   const [pendingUpgrades, setPendingUpgrades] = useState<UpgradeInfo[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState<UpgradeInfo | null>(null);
   
-  // Track prompts dismissed this session (survives re-renders and settings refreshes)
-  const dismissedThisSession = useRef<Set<string>>(new Set());
+  // Track prompts dismissed - combines session memory AND localStorage persistence
+  const dismissedPrompts = useRef<Set<string>>(getDismissedFromStorage());
 
   useEffect(() => {
     if (!userSettings) {
@@ -47,8 +71,8 @@ export function useUpgradePrompt(userSettings: UserSettings | null) {
         currentVersion
       );
       
-      // Also check if dismissed this session (handles race conditions with DB)
-      const dismissedLocally = dismissedThisSession.current.has(promptKey);
+      // Check localStorage/session dismissal (handles DB save failures)
+      const dismissedLocally = dismissedPrompts.current.has(promptKey);
 
       if (needsUpgrade && !seenPrompt && !dismissedLocally) {
         upgrades.push({
@@ -68,9 +92,10 @@ export function useUpgradePrompt(userSettings: UserSettings | null) {
 
   const dismissCurrentPrompt = useCallback(() => {
     if (currentPrompt) {
-      // Track as dismissed this session
+      // Track as dismissed - both in memory AND localStorage
       const promptKey = getUpgradePromptKey(currentPrompt.schema, currentPrompt.toVersion);
-      dismissedThisSession.current.add(promptKey);
+      dismissedPrompts.current.add(promptKey);
+      saveDismissedToStorage(dismissedPrompts.current);
       
       // Remove the current prompt from pending list
       const remainingUpgrades = pendingUpgrades.filter(
@@ -87,9 +112,10 @@ export function useUpgradePrompt(userSettings: UserSettings | null) {
   ): Promise<boolean> => {
     if (!currentPrompt) return false;
 
-    // Immediately dismiss locally to prevent re-showing on settings refresh
+    // Immediately dismiss locally AND persist to localStorage
     const promptKey = getUpgradePromptKey(currentPrompt.schema, currentPrompt.toVersion);
-    dismissedThisSession.current.add(promptKey);
+    dismissedPrompts.current.add(promptKey);
+    saveDismissedToStorage(dismissedPrompts.current);
 
     try {
       const response = await fetch('/api/settings/upgrade', {

@@ -64,7 +64,10 @@ export async function POST(request: NextRequest) {
         
         // Apply schema-specific upgrades
         if (schema === 'categories' && toVersion === 'v2') {
+          console.log(`[upgrade] Applying v2 categories for ${userEmail}`);
+          console.log(`[upgrade] OLD categories:`, Object.values(currentSettings.categories || {}).map((c: any) => c.name));
           updatedSettings.categories = DEFAULT_CATEGORIES_V2;
+          console.log(`[upgrade] NEW categories:`, Object.values(DEFAULT_CATEGORIES_V2).map((c: any) => c.name));
         }
         
         // Mark prompt as shown
@@ -92,12 +95,23 @@ export async function POST(request: NextRequest) {
     updatedSettings.schemaVersions = schemaVersions;
     updatedSettings.upgradePromptsShown = upgradePromptsShown;
 
-    // Save to database
+    // Save to database - only save columns that likely exist
+    // Note: schemaVersions and upgradePromptsShown may not exist as columns
+    // We save categories separately to ensure that at least works
+    const coreSettings = {
+      categories: updatedSettings.categories,
+      temperature: updatedSettings.temperature,
+      signature: updatedSettings.signature,
+      drafts_enabled: updatedSettings.drafts_enabled,
+    };
+
     const tryUpsert = async (emailColumn: string) => {
       const settingsToSave = {
         [emailColumn]: userEmail,
-        ...updatedSettings,
+        ...coreSettings,
       };
+
+      console.log(`[upgrade] Attempting upsert with ${emailColumn}:`, JSON.stringify(settingsToSave, null, 2));
 
       return await supabase
         .from("user_settings")
@@ -110,19 +124,22 @@ export async function POST(request: NextRequest) {
     let { data, error } = await tryUpsert("user_email");
 
     if (error?.message?.includes("user_email")) {
-      console.log("Retrying with 'email' column...");
+      console.log("[upgrade] Retrying with 'email' column...");
       const result = await tryUpsert("email");
       data = result.data;
       error = result.error;
     }
 
     if (error) {
-      console.error("Error saving upgrade:", error);
+      console.error("[upgrade] Error saving upgrade:", error);
       return NextResponse.json(
         { error: `Failed to save upgrade: ${error.message}` },
         { status: 500 }
       );
     }
+
+    console.log(`[upgrade] Success! Saved settings for ${userEmail}, action=${action}`);
+    console.log(`[upgrade] Categories saved:`, Object.keys(updatedSettings.categories || {}).length, "categories");
 
     return NextResponse.json({
       success: true,
@@ -130,6 +147,7 @@ export async function POST(request: NextRequest) {
       schema,
       newVersion: schemaVersions[schema as SchemaKey],
       settings: data,
+      categoriesSaved: Object.keys(updatedSettings.categories || {}).length,
     });
 
   } catch (error) {
