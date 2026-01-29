@@ -161,6 +161,7 @@ export default function SettingsPage() {
     text: string;
   } | null>(null);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
+  const [deletingLabels, setDeletingLabels] = useState(false);
 
   // Upgrade prompt hook - only for categories
   const {
@@ -198,9 +199,10 @@ export default function SettingsPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  async function fetchSettings() {
+  async function fetchSettings(bustCache = false) {
     try {
-      const res = await fetch(`/api/settings?userEmail=${userEmail}`);
+      const cacheParam = bustCache ? `&_t=${Date.now()}` : '';
+      const res = await fetch(`/api/settings?userEmail=${userEmail}${cacheParam}`);
       const data = await res.json();
 
       if (data.user) {
@@ -408,6 +410,38 @@ export default function SettingsPage() {
     }
   }
 
+  async function deleteExistingLabels() {
+    if (!confirm("Delete ALL existing Zeno labels from Gmail? This cannot be undone. You can recreate them by clicking 'Save & Sync to Gmail' after.")) {
+      return;
+    }
+    
+    setDeletingLabels(true);
+    try {
+      const res = await fetch('/api/delete-labels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userEmail }),
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        setMessage({ 
+          type: "success", 
+          text: `${data.message}. Click 'Save & Sync to Gmail' to create fresh labels.` 
+        });
+        setNeedsSync(true);
+      } else {
+        setMessage({ type: "error", text: data.error || "Failed to delete labels" });
+      }
+    } catch (error) {
+      console.error("Failed to delete labels:", error);
+      setMessage({ type: "error", text: "Failed to delete labels. Please try again." });
+    } finally {
+      setDeletingLabels(false);
+    }
+  }
+
   const isAtDefaults = hasAllDefaults(settings.categories);
   const nonOtherCount = Object.values(settings.categories).filter(c => !isOtherCategory(c.name)).length;
   const canAddCategory = nonOtherCount < 8;
@@ -447,13 +481,13 @@ export default function SettingsPage() {
     try {
       const success = await handleUpgradeAction(userEmail, action);
       if (success && action === 'upgrade') {
-        // Refresh settings to show updated categories
-        await fetchSettings();
+        // Refresh settings with cache bust to show updated categories
+        await fetchSettings(true);
         setMessage({ type: "success", text: "Categories upgraded! Your new categories are ready. Click 'Save & Sync to Gmail' to apply." });
         setNeedsSync(true);
       } else if (success) {
         // For keep/dismiss, just refresh to ensure sync
-        await fetchSettings();
+        await fetchSettings(true);
       }
     } catch (error) {
       console.error("Upgrade action failed:", error);
@@ -551,6 +585,20 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={deleteExistingLabels}
+                    disabled={deletingLabels}
+                    className="flex min-h-[44px] items-center gap-1 rounded-lg border border-red-500/30 px-3 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50 sm:min-h-0 sm:py-1.5"
+                    title="Delete all Zeno labels from Gmail"
+                  >
+                    {deletingLabels ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                    <span className="hidden sm:inline">Delete Gmail Labels</span>
+                    <span className="sm:hidden">Clear</span>
+                  </button>
                   {!isAtDefaults && (
                     <button
                       onClick={restoreDefaults}
