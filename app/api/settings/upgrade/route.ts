@@ -95,14 +95,15 @@ export async function POST(request: NextRequest) {
     updatedSettings.schemaVersions = schemaVersions;
     updatedSettings.upgradePromptsShown = upgradePromptsShown;
 
-    // Save to database - only save columns that likely exist
-    // Note: schemaVersions and upgradePromptsShown may not exist as columns
-    // We save categories separately to ensure that at least works
+    // Save to database - include schema versioning columns
+    // These columns are added by 20260129_add_zeno_settings.sql migration
     const coreSettings = {
       categories: updatedSettings.categories,
       temperature: updatedSettings.temperature,
       signature: updatedSettings.signature,
       drafts_enabled: updatedSettings.drafts_enabled,
+      schemaVersions: updatedSettings.schemaVersions,
+      upgradePromptsShown: updatedSettings.upgradePromptsShown,
     };
 
     const tryUpsert = async (emailColumn: string) => {
