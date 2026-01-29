@@ -218,28 +218,35 @@ export default function AssistantPage() {
   }
 
   async function enableFocusMode(duration: string) {
+    // Calculate duration in hours for the API
+    let durationHours: number | null = null;
     let until: string | null = null;
     const now = new Date();
 
     switch (duration) {
       case "1h":
+        durationHours = 1;
         until = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
         break;
       case "4h":
+        durationHours = 4;
         until = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString();
         break;
       case "today":
         const endOfDay = new Date(now);
         endOfDay.setHours(23, 59, 59, 999);
+        durationHours = (endOfDay.getTime() - now.getTime()) / (60 * 60 * 1000);
         until = endOfDay.toISOString();
         break;
       case "tomorrow":
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(9, 0, 0, 0);
+        durationHours = (tomorrow.getTime() - now.getTime()) / (60 * 60 * 1000);
         until = tomorrow.toISOString();
         break;
       case "week":
+        durationHours = 7 * 24;
         until = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
         break;
     }
@@ -251,12 +258,41 @@ export default function AssistantPage() {
     }));
     setShowFocusOptions(false);
 
-    // Auto-save focus mode immediately
-    const saved = await saveSettings({ focus_mode_enabled: true, focus_mode_until: until }, true);
-    if (saved) {
-      setMessage({ type: "success", text: `Focus mode enabled until ${new Date(until!).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` });
-    } else {
-      setMessage({ type: "error", text: "Failed to save focus mode settings" });
+    try {
+      // Call the focus-mode/start API to create Gmail filter
+      const response = await fetch("/api/focus-mode/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail, durationHours }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Check if it's a permission error
+        if (data.needsReconnect) {
+          setMessage({ type: "error", text: "Focus Mode requires additional permissions. Please reconnect Gmail in Settings." });
+        } else {
+          setMessage({ type: "error", text: data.error || "Failed to enable focus mode" });
+        }
+        // Revert the state change
+        setSettings((prev) => ({
+          ...prev,
+          focus_mode_enabled: false,
+          focus_mode_until: null,
+        }));
+        return;
+      }
+
+      setMessage({
+        type: "success",
+        text: data.alreadyActive
+          ? "Focus mode is already active"
+          : `Focus mode enabled until ${new Date(until!).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`
+      });
+    } catch (error) {
+      console.error("Error enabling focus mode:", error);
+      setMessage({ type: "error", text: "Failed to enable focus mode" });
       // Revert the state change
       setSettings((prev) => ({
         ...prev,
@@ -276,12 +312,39 @@ export default function AssistantPage() {
       focus_mode_until: null,
     }));
 
-    // Auto-save focus mode immediately
-    const saved = await saveSettings({ focus_mode_enabled: false, focus_mode_until: null }, true);
-    if (saved) {
-      setMessage({ type: "success", text: "Focus mode disabled" });
-    } else {
-      setMessage({ type: "error", text: "Failed to save settings" });
+    try {
+      // Call the focus-mode/end API to remove Gmail filter and restore emails
+      const response = await fetch("/api/focus-mode/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage({ type: "error", text: data.error || "Failed to disable focus mode" });
+        // Revert the state change
+        setSettings((prev) => ({
+          ...prev,
+          focus_mode_enabled: previousEnabled,
+          focus_mode_until: previousUntil,
+        }));
+        return;
+      }
+
+      // Show summary of what was queued during focus mode
+      if (data.emailsRestored > 0) {
+        setMessage({
+          type: "success",
+          text: `Focus mode disabled. ${data.emailsRestored} email${data.emailsRestored > 1 ? "s" : ""} restored to inbox.`
+        });
+      } else {
+        setMessage({ type: "success", text: "Focus mode disabled" });
+      }
+    } catch (error) {
+      console.error("Error disabling focus mode:", error);
+      setMessage({ type: "error", text: "Failed to disable focus mode" });
       // Revert the state change
       setSettings((prev) => ({
         ...prev,

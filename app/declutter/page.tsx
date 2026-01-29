@@ -120,6 +120,23 @@ export default function DeclutterPage() {
   const [selectedForUnsubscribe, setSelectedForUnsubscribe] = useState<Set<string>>(new Set());
   const [showMassUnsubscribe, setShowMassUnsubscribe] = useState(false);
 
+  // Step-through unsubscribe wizard state
+  const [unsubscribeWizard, setUnsubscribeWizard] = useState<{
+    active: boolean;
+    queue: SenderGroup[];
+    currentIndex: number;
+    completed: string[];
+    skipped: string[];
+    autoSendingEmail: boolean;
+  }>({
+    active: false,
+    queue: [],
+    currentIndex: 0,
+    completed: [],
+    skipped: [],
+    autoSendingEmail: false,
+  });
+
   // Cumulative scan counter
   const [totalScanned, setTotalScanned] = useState(0);
   const [sessionScanned, setSessionScanned] = useState(0);
@@ -269,6 +286,8 @@ export default function DeclutterPage() {
     setCleanupResult(null);
     setSelectedEmails(new Set());
     setActiveFilter("all");
+    setShowMassUnsubscribe(false);
+    setSelectedForUnsubscribe(new Set());
 
     try {
       const phaseTimer1 = setTimeout(() => setScanPhase("analyzing"), 2000);
@@ -370,27 +389,158 @@ export default function DeclutterPage() {
     }
   }
 
-  function handleMassUnsubscribe() {
-    const links: string[] = [];
+  function startUnsubscribeWizard() {
+    // Build queue from selected senders
+    const queue: SenderGroup[] = [];
     for (const senderEmail of selectedForUnsubscribe) {
       const sender = unsubscribableSenders.find((s) => s.email === senderEmail);
-      if (sender?.unsubscribeLink && !sender.unsubscribeLink.startsWith("mailto:")) {
-        links.push(sender.unsubscribeLink);
+      if (sender?.unsubscribeLink) {
+        queue.push(sender);
       }
     }
 
-    if (links.length === 0) {
-      setError("No unsubscribe links available for selected senders (some may require email unsubscribe)");
+    if (queue.length === 0) {
+      setError("No unsubscribe links available for selected senders");
       return;
     }
 
-    if (confirm(`This will open ${links.length} unsubscribe pages in new tabs. Continue?`)) {
-      for (const link of links) {
-        window.open(link, "_blank");
-      }
-      setSelectedForUnsubscribe(new Set());
-      setShowMassUnsubscribe(false);
+    setUnsubscribeWizard({
+      active: true,
+      queue,
+      currentIndex: 0,
+      completed: [],
+      skipped: [],
+      autoSendingEmail: false,
+    });
+
+    // Open first link
+    openCurrentUnsubscribeLink(queue[0]);
+  }
+
+  function openCurrentUnsubscribeLink(sender: SenderGroup) {
+    if (!sender.unsubscribeLink) return;
+
+    if (sender.unsubscribeLink.startsWith("mailto:")) {
+      // Auto-send unsubscribe email
+      handleMailtoUnsubscribe(sender);
+    } else {
+      // Open in new tab
+      window.open(sender.unsubscribeLink, "_blank");
     }
+  }
+
+  async function handleMailtoUnsubscribe(sender: SenderGroup) {
+    if (!sender.unsubscribeLink) return;
+
+    setUnsubscribeWizard(prev => ({ ...prev, autoSendingEmail: true }));
+
+    try {
+      // Parse mailto link
+      const mailtoUrl = new URL(sender.unsubscribeLink);
+      const to = mailtoUrl.pathname || sender.unsubscribeLink.replace("mailto:", "").split("?")[0];
+      const params = new URLSearchParams(mailtoUrl.search);
+      const subject = params.get("subject") || "Unsubscribe";
+      const body = params.get("body") || "Please unsubscribe me from this mailing list.";
+
+      // Send via our API
+      const res = await fetch("/api/declutter/send-unsubscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userEmail,
+          to,
+          subject,
+          body,
+        }),
+      });
+
+      if (res.ok) {
+        // Auto-mark as completed since email was sent
+        wizardMarkCompleted();
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to send unsubscribe email:", err);
+    }
+
+    setUnsubscribeWizard(prev => ({ ...prev, autoSendingEmail: false }));
+    // Fall back to opening mailto link manually
+    window.location.href = sender.unsubscribeLink!;
+  }
+
+  function wizardMarkCompleted() {
+    setUnsubscribeWizard(prev => {
+      const current = prev.queue[prev.currentIndex];
+      const newCompleted = [...prev.completed, current.email];
+      const nextIndex = prev.currentIndex + 1;
+
+      if (nextIndex >= prev.queue.length) {
+        // Done with all
+        return { ...prev, completed: newCompleted, currentIndex: nextIndex, autoSendingEmail: false };
+      }
+
+      // Open next link
+      setTimeout(() => openCurrentUnsubscribeLink(prev.queue[nextIndex]), 300);
+
+      return {
+        ...prev,
+        completed: newCompleted,
+        currentIndex: nextIndex,
+        autoSendingEmail: false,
+      };
+    });
+  }
+
+  function wizardSkip() {
+    setUnsubscribeWizard(prev => {
+      const current = prev.queue[prev.currentIndex];
+      const newSkipped = [...prev.skipped, current.email];
+      const nextIndex = prev.currentIndex + 1;
+
+      if (nextIndex >= prev.queue.length) {
+        // Done with all
+        return { ...prev, skipped: newSkipped, currentIndex: nextIndex };
+      }
+
+      // Open next link
+      setTimeout(() => openCurrentUnsubscribeLink(prev.queue[nextIndex]), 300);
+
+      return {
+        ...prev,
+        skipped: newSkipped,
+        currentIndex: nextIndex,
+      };
+    });
+  }
+
+  function wizardCancel() {
+    setUnsubscribeWizard({
+      active: false,
+      queue: [],
+      currentIndex: 0,
+      completed: [],
+      skipped: [],
+      autoSendingEmail: false,
+    });
+  }
+
+  function wizardFinish() {
+    // Clear selections for completed items
+    const newSelection = new Set(selectedForUnsubscribe);
+    for (const email of unsubscribeWizard.completed) {
+      newSelection.delete(email);
+    }
+    setSelectedForUnsubscribe(newSelection);
+
+    setUnsubscribeWizard({
+      active: false,
+      queue: [],
+      currentIndex: 0,
+      completed: [],
+      skipped: [],
+      autoSendingEmail: false,
+    });
+    setShowMassUnsubscribe(false);
   }
 
   function toggleSenderSelection(senderEmail: string) {
@@ -534,6 +684,8 @@ export default function DeclutterPage() {
                   onClick={() => {
                     setCleanupResult(null);
                     setScanResult(null);
+                    setShowMassUnsubscribe(false);
+                    setSelectedForUnsubscribe(new Set());
                   }}
                   className="min-h-[44px] rounded-xl border border-[var(--border)] px-6 py-3 font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)]"
                 >
@@ -994,6 +1146,111 @@ export default function DeclutterPage() {
                 </div>
               )}
 
+              {/* Unsubscribe Wizard Modal */}
+              {unsubscribeWizard.active && (
+                <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center">
+                  <div className="mx-0 w-full rounded-t-2xl border-t border-orange-500/30 bg-[var(--bg-card)] p-6 shadow-2xl sm:mx-4 sm:max-w-md sm:rounded-2xl sm:border">
+                    {/* Check if we're done */}
+                    {unsubscribeWizard.currentIndex >= unsubscribeWizard.queue.length ? (
+                      <>
+                        {/* Completion screen */}
+                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
+                          <CheckCircle className="h-6 w-6 text-emerald-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                          All Done!
+                        </h3>
+                        <div className="mt-4 space-y-2 text-sm text-[var(--text-secondary)]">
+                          <p className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-emerald-400" />
+                            <span><strong className="text-emerald-400">{unsubscribeWizard.completed.length}</strong> unsubscribed successfully</span>
+                          </p>
+                          {unsubscribeWizard.skipped.length > 0 && (
+                            <p className="flex items-center gap-2">
+                              <X className="h-4 w-4 text-zinc-400" />
+                              <span><strong className="text-zinc-400">{unsubscribeWizard.skipped.length}</strong> skipped</span>
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={wizardFinish}
+                          className="mt-6 w-full rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-emerald-600"
+                        >
+                          Done
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Current unsubscribe step */}
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-sm font-medium text-orange-400">
+                            {unsubscribeWizard.currentIndex + 1} of {unsubscribeWizard.queue.length}
+                          </span>
+                          <button
+                            onClick={wizardCancel}
+                            className="rounded-lg p-1 text-[var(--text-muted)] transition-colors hover:bg-[var(--bg-elevated)]"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="mb-4 h-1 overflow-hidden rounded-full bg-[var(--bg-elevated)]">
+                          <div
+                            className="h-full bg-orange-500 transition-all duration-300"
+                            style={{ width: `${((unsubscribeWizard.currentIndex) / unsubscribeWizard.queue.length) * 100}%` }}
+                          />
+                        </div>
+
+                        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                          Unsubscribing from
+                        </h3>
+
+                        <div className="mt-3 rounded-xl bg-[var(--bg-elevated)] p-4">
+                          <p className="font-medium text-[var(--text-primary)]">
+                            {unsubscribeWizard.queue[unsubscribeWizard.currentIndex]?.name}
+                          </p>
+                          <p className="mt-1 text-sm text-[var(--text-muted)]">
+                            {unsubscribeWizard.queue[unsubscribeWizard.currentIndex]?.email}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--text-muted)]">
+                            {unsubscribeWizard.queue[unsubscribeWizard.currentIndex]?.count} email{unsubscribeWizard.queue[unsubscribeWizard.currentIndex]?.count !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+
+                        {unsubscribeWizard.autoSendingEmail ? (
+                          <div className="mt-4 flex items-center justify-center gap-2 py-3 text-sm text-[var(--text-secondary)]">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Sending unsubscribe email...
+                          </div>
+                        ) : (
+                          <>
+                            <p className="mt-4 text-sm text-[var(--text-secondary)]">
+                              A new tab has opened with the unsubscribe page. Complete the unsubscribe process there, then come back here.
+                            </p>
+
+                            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                              <button
+                                onClick={wizardSkip}
+                                className="min-h-[44px] flex-1 rounded-xl border border-[var(--border)] px-4 py-2.5 font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)]"
+                              >
+                                Skip
+                              </button>
+                              <button
+                                onClick={wizardMarkCompleted}
+                                className="min-h-[44px] flex-1 rounded-xl bg-emerald-500 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-emerald-600"
+                              >
+                                Done - Next
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Mass Unsubscribe Section */}
               {unsubscribableSenders.length > 0 && (
                 <div className="glass-card overflow-hidden">
@@ -1060,8 +1317,7 @@ export default function DeclutterPage() {
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => toggleSenderSelection(sender.email)}
-                                disabled={isMailto}
-                                className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-elevated)] text-orange-500 focus:ring-orange-500/50 disabled:opacity-50"
+                                className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-elevated)] text-orange-500 focus:ring-orange-500/50"
                               />
                               <div className="min-w-0 flex-1">
                                 <p className="truncate font-medium text-[var(--text-primary)]">
@@ -1072,8 +1328,8 @@ export default function DeclutterPage() {
                                 </p>
                               </div>
                               {isMailto && (
-                                <span className="rounded bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-400">
-                                  Email only
+                                <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
+                                  Auto-email
                                 </span>
                               )}
                             </div>
@@ -1084,7 +1340,7 @@ export default function DeclutterPage() {
                       {/* Unsubscribe Button */}
                       <div className="border-t border-[var(--border)] px-4 py-4">
                         <button
-                          onClick={handleMassUnsubscribe}
+                          onClick={startUnsubscribeWizard}
                           disabled={selectedForUnsubscribe.size === 0}
                           className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -1092,7 +1348,7 @@ export default function DeclutterPage() {
                           Unsubscribe from {selectedForUnsubscribe.size} Subscription{selectedForUnsubscribe.size !== 1 ? "s" : ""}
                         </button>
                         <p className="mt-2 text-center text-xs text-[var(--text-muted)]">
-                          This will open unsubscribe pages in new tabs. Some may require confirmation.
+                          Opens each unsubscribe page one at a time for easy confirmation.
                         </p>
                       </div>
                     </div>
