@@ -98,6 +98,39 @@ export function getUserSchemaVersion(
   return userSchemaVersions?.[schema] || "v1";
 }
 
+// V2 category names for detection
+const V2_CATEGORY_NAMES = [
+  "Action Required",
+  "FYI Only", 
+  "Team Updates",
+  "System Alerts",
+  "Meetings & Events",
+  "Waiting for Reply",
+  "Completed",
+  "Marketing & Spam"
+];
+
+// Detect schema version from actual data (fallback when schemaVersions column doesn't exist)
+export function detectCategoriesVersion(
+  categories: Record<string, { name: string }> | undefined | null
+): string {
+  if (!categories) return "v1";
+  
+  const categoryNames = Object.values(categories).map(c => c.name);
+  
+  // Check if categories match v2 names
+  const v2Matches = V2_CATEGORY_NAMES.filter(name => 
+    categoryNames.some(cn => cn === name || cn.includes(name))
+  );
+  
+  // If most categories match v2 names, user is on v2
+  if (v2Matches.length >= 5) {
+    return "v2";
+  }
+  
+  return "v1";
+}
+
 // Check if user has seen upgrade prompt
 export function hasSeenUpgradePrompt(
   upgradePromptsShown: Record<string, boolean> | undefined | null,

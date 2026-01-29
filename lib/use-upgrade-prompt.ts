@@ -9,6 +9,7 @@ import {
   hasSeenUpgradePrompt,
   getUserSchemaVersion,
   getUpgradePromptKey,
+  detectCategoriesVersion,
   type SchemaKey 
 } from "./schema-versions";
 import type { UserSettings } from "./settings-merge";
@@ -62,7 +63,14 @@ export function useUpgradePrompt(userSettings: UserSettings | null) {
 
     // Check each schema for needed upgrades
     for (const [schema, currentVersion] of Object.entries(CURRENT_SCHEMA_VERSIONS)) {
-      const userVersion = getUserSchemaVersion(userSettings.schemaVersions, schema as SchemaKey);
+      let userVersion = getUserSchemaVersion(userSettings.schemaVersions, schema as SchemaKey);
+      
+      // For categories, detect version from actual data if schemaVersions is missing
+      // This handles cases where the schemaVersions column doesn't exist in the DB
+      if (schema === 'categories' && !userSettings.schemaVersions?.categories) {
+        userVersion = detectCategoriesVersion(userSettings.categories);
+      }
+      
       const needsUpgrade = needsUpgradePrompt(userVersion, currentVersion);
       const promptKey = getUpgradePromptKey(schema as SchemaKey, currentVersion);
       const seenPrompt = hasSeenUpgradePrompt(
