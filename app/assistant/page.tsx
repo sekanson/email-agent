@@ -63,6 +63,15 @@ export default function AssistantPage() {
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [newVip, setNewVip] = useState("");
   const [showFocusOptions, setShowFocusOptions] = useState(false);
+  const [showCustomTimes, setShowCustomTimes] = useState(false);
+
+  // Auto-dismiss toast messages after 3 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
 
   const [settings, setSettings] = useState<ZenoSettings>({
     zeno_digest_enabled: true,
@@ -163,14 +172,6 @@ export default function AssistantPage() {
     }
   }
 
-  function toggleDigestType(type: string) {
-    setSettings((prev) => ({
-      ...prev,
-      zeno_digest_types: prev.zeno_digest_types.includes(type)
-        ? prev.zeno_digest_types.filter((t) => t !== type)
-        : [...prev.zeno_digest_types, type],
-    }));
-  }
 
   async function addVipSender() {
     if (!newVip.trim()) return;
@@ -182,19 +183,38 @@ export default function AssistantPage() {
         vip_senders: newVipList,
       }));
       // Auto-save VIP changes
-      await saveSettings({ vip_senders: newVipList }, true);
+      const saved = await saveSettings({ vip_senders: newVipList }, true);
+      if (saved) {
+        setMessage({ type: "success", text: `${email} added to VIP list` });
+      } else {
+        setMessage({ type: "error", text: "Failed to save VIP sender" });
+        // Revert the change
+        setSettings((prev) => ({
+          ...prev,
+          vip_senders: settings.vip_senders,
+        }));
+      }
     }
     setNewVip("");
   }
 
   async function removeVipSender(emailToRemove: string) {
+    const previousList = settings.vip_senders;
     const newVipList = settings.vip_senders.filter((e) => e !== emailToRemove);
     setSettings((prev) => ({
       ...prev,
       vip_senders: newVipList,
     }));
     // Auto-save VIP changes
-    await saveSettings({ vip_senders: newVipList }, true);
+    const saved = await saveSettings({ vip_senders: newVipList }, true);
+    if (!saved) {
+      setMessage({ type: "error", text: "Failed to save settings" });
+      // Revert the change
+      setSettings((prev) => ({
+        ...prev,
+        vip_senders: previousList,
+      }));
+    }
   }
 
   async function enableFocusMode(duration: string) {
@@ -235,11 +255,21 @@ export default function AssistantPage() {
     const saved = await saveSettings({ focus_mode_enabled: true, focus_mode_until: until }, true);
     if (saved) {
       setMessage({ type: "success", text: `Focus mode enabled until ${new Date(until!).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` });
-      setTimeout(() => setMessage(null), 3000);
+    } else {
+      setMessage({ type: "error", text: "Failed to save focus mode settings" });
+      // Revert the state change
+      setSettings((prev) => ({
+        ...prev,
+        focus_mode_enabled: false,
+        focus_mode_until: null,
+      }));
     }
   }
 
   async function disableFocusMode() {
+    const previousEnabled = settings.focus_mode_enabled;
+    const previousUntil = settings.focus_mode_until;
+
     setSettings((prev) => ({
       ...prev,
       focus_mode_enabled: false,
@@ -250,7 +280,14 @@ export default function AssistantPage() {
     const saved = await saveSettings({ focus_mode_enabled: false, focus_mode_until: null }, true);
     if (saved) {
       setMessage({ type: "success", text: "Focus mode disabled" });
-      setTimeout(() => setMessage(null), 3000);
+    } else {
+      setMessage({ type: "error", text: "Failed to save settings" });
+      // Revert the state change
+      setSettings((prev) => ({
+        ...prev,
+        focus_mode_enabled: previousEnabled,
+        focus_mode_until: previousUntil,
+      }));
     }
   }
 
@@ -305,25 +342,29 @@ export default function AssistantPage() {
               <Sparkles className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">Zeno Email Assistant</h1>
-              <p className="text-sm text-[var(--text-muted)]">Your AI email companion</p>
+              <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">Zeno - Your Email Assistant</h1>
+              <p className="text-sm text-[var(--text-muted)]">Meet your new AI email companion</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 sm:p-8">
-          {message && (
+        {/* Fixed Toast Notification */}
+        {message && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
             <div
-              className={`mb-6 flex items-center gap-2 rounded-xl p-4 text-sm ${
+              className={`flex items-center gap-2 rounded-xl px-4 py-3 text-sm shadow-lg ${
                 message.type === "success"
-                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                  : "bg-red-500/10 text-red-400 border border-red-500/20"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-red-500 text-white"
               }`}
             >
               {message.type === "success" ? <Check className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
               {message.text}
             </div>
-          )}
+          </div>
+        )}
+
+        <div className="p-4 sm:p-8">
 
           <div className="max-w-2xl space-y-6">
             {/* Focus Mode Card */}
@@ -405,7 +446,11 @@ export default function AssistantPage() {
                   <input
                     type="checkbox"
                     checked={settings.zeno_digest_enabled}
-                    onChange={(e) => setSettings({ ...settings, zeno_digest_enabled: e.target.checked })}
+                    onChange={async (e) => {
+                      const newValue = e.target.checked;
+                      setSettings({ ...settings, zeno_digest_enabled: newValue });
+                      await saveSettings({ zeno_digest_enabled: newValue }, true);
+                    }}
                     className="peer sr-only"
                   />
                   <div className="h-6 w-11 rounded-full bg-[var(--bg-elevated)] peer-checked:bg-blue-500 peer-focus:ring-2 peer-focus:ring-blue-500/20 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full"></div>
@@ -416,7 +461,13 @@ export default function AssistantPage() {
                 <div className="space-y-3">
                   {/* Morning Brief */}
                   <div
-                    onClick={() => toggleDigestType("morning")}
+                    onClick={async () => {
+                      const newTypes = settings.zeno_digest_types.includes("morning")
+                        ? settings.zeno_digest_types.filter((t) => t !== "morning")
+                        : [...settings.zeno_digest_types, "morning"];
+                      setSettings({ ...settings, zeno_digest_types: newTypes });
+                      await saveSettings({ zeno_digest_types: newTypes }, true);
+                    }}
                     className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-all ${
                       settings.zeno_digest_types.includes("morning")
                         ? "border-blue-500/50 bg-blue-500/10"
@@ -431,7 +482,7 @@ export default function AssistantPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-[var(--text-muted)]">9:00 AM</span>
+                      <span className="text-sm text-[var(--text-muted)]">{settings.zeno_morning_time || "9:00 AM"}</span>
                       {settings.zeno_digest_types.includes("morning") && (
                         <Check className="h-5 w-5 text-blue-400" />
                       )}
@@ -440,7 +491,13 @@ export default function AssistantPage() {
 
                   {/* EOD Wrap-up */}
                   <div
-                    onClick={() => toggleDigestType("eod")}
+                    onClick={async () => {
+                      const newTypes = settings.zeno_digest_types.includes("eod")
+                        ? settings.zeno_digest_types.filter((t) => t !== "eod")
+                        : [...settings.zeno_digest_types, "eod"];
+                      setSettings({ ...settings, zeno_digest_types: newTypes });
+                      await saveSettings({ zeno_digest_types: newTypes }, true);
+                    }}
                     className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-all ${
                       settings.zeno_digest_types.includes("eod")
                         ? "border-blue-500/50 bg-blue-500/10"
@@ -455,7 +512,7 @@ export default function AssistantPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-[var(--text-muted)]">6:00 PM</span>
+                      <span className="text-sm text-[var(--text-muted)]">{settings.zeno_eod_time || "6:00 PM"}</span>
                       {settings.zeno_digest_types.includes("eod") && (
                         <Check className="h-5 w-5 text-blue-400" />
                       )}
@@ -464,7 +521,13 @@ export default function AssistantPage() {
 
                   {/* Weekly Digest */}
                   <div
-                    onClick={() => toggleDigestType("weekly")}
+                    onClick={async () => {
+                      const newTypes = settings.zeno_digest_types.includes("weekly")
+                        ? settings.zeno_digest_types.filter((t) => t !== "weekly")
+                        : [...settings.zeno_digest_types, "weekly"];
+                      setSettings({ ...settings, zeno_digest_types: newTypes });
+                      await saveSettings({ zeno_digest_types: newTypes }, true);
+                    }}
                     className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-all ${
                       settings.zeno_digest_types.includes("weekly")
                         ? "border-blue-500/50 bg-blue-500/10"
@@ -498,6 +561,75 @@ export default function AssistantPage() {
                     <span className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-medium text-red-400">
                       Always On
                     </span>
+                  </div>
+
+                  {/* Customize Times - Expandable */}
+                  <div className="pt-2">
+                    <button
+                      onClick={() => setShowCustomTimes(!showCustomTimes)}
+                      className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      <Clock className="h-4 w-4" />
+                      {showCustomTimes ? "Hide custom times" : "Customize times"}
+                    </button>
+
+                    {showCustomTimes && (
+                      <div className="mt-4 space-y-4 p-4 rounded-lg bg-[var(--bg-elevated)]">
+                        {/* Timezone */}
+                        <div>
+                          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Your Timezone</label>
+                          <select
+                            value={settings.timezone}
+                            onChange={async (e) => {
+                              const newTimezone = e.target.value;
+                              setSettings({ ...settings, timezone: newTimezone });
+                              await saveSettings({ timezone: newTimezone }, true);
+                            }}
+                            className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                          >
+                            {TIMEZONES.map((tz) => (
+                              <option key={tz.value} value={tz.value}>
+                                {tz.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Custom times */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              🌅 Morning
+                            </label>
+                            <input
+                              type="time"
+                              value={settings.zeno_morning_time}
+                              onChange={async (e) => {
+                                const newTime = e.target.value;
+                                setSettings({ ...settings, zeno_morning_time: newTime });
+                                await saveSettings({ zeno_morning_time: newTime }, true);
+                              }}
+                              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                              🌙 Evening
+                            </label>
+                            <input
+                              type="time"
+                              value={settings.zeno_eod_time}
+                              onChange={async (e) => {
+                                const newTime = e.target.value;
+                                setSettings({ ...settings, zeno_eod_time: newTime });
+                                await saveSettings({ zeno_eod_time: newTime }, true);
+                              }}
+                              className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -612,79 +744,6 @@ export default function AssistantPage() {
               </div>
             </section>
 
-            {/* Digest Schedule */}
-            <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--bg-elevated)]">
-                  <Clock className="h-5 w-5 text-[var(--text-muted)]" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-semibold text-[var(--text-primary)]">Digest Schedule</h2>
-                  <p className="text-sm text-[var(--text-muted)]">When Zeno sends your email summaries</p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {/* Timezone */}
-                <div>
-                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">Your Timezone</label>
-                  <select
-                    value={settings.timezone}
-                    onChange={async (e) => {
-                      const newTimezone = e.target.value;
-                      setSettings({ ...settings, timezone: newTimezone });
-                      await saveSettings({ timezone: newTimezone }, true);
-                    }}
-                    className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-                  >
-                    {TIMEZONES.map((tz) => (
-                      <option key={tz.value} value={tz.value}>
-                        {tz.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Custom times */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                      🌅 Morning Digest
-                    </label>
-                    <input
-                      type="time"
-                      value={settings.zeno_morning_time}
-                      onChange={async (e) => {
-                        const newTime = e.target.value;
-                        setSettings({ ...settings, zeno_morning_time: newTime });
-                        await saveSettings({ zeno_morning_time: newTime }, true);
-                      }}
-                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                      🌙 Evening Digest
-                    </label>
-                    <input
-                      type="time"
-                      value={settings.zeno_eod_time}
-                      onChange={async (e) => {
-                        const newTime = e.target.value;
-                        setSettings({ ...settings, zeno_eod_time: newTime });
-                        await saveSettings({ zeno_eod_time: newTime }, true);
-                      }}
-                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none"
-                    />
-                  </div>
-                </div>
-
-                <p className="text-xs text-[var(--text-muted)] italic">
-                  Zeno will email you a summary of emails needing attention at these times.
-                </p>
-              </div>
-            </section>
-
             {/* Reply Behavior */}
             <section className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -703,7 +762,7 @@ export default function AssistantPage() {
                   <span className="text-xl flex-shrink-0">🔒</span>
                   <div>
                     <p className="font-medium text-[var(--text-primary)]">Safe Mode</p>
-                    <p className="text-sm text-[var(--text-muted)]">Zeno creates drafts instead of sending directly — you review before sending anything</p>
+                    <p className="text-sm text-[var(--text-muted)]">Zeno creates drafts instead of sending directly — you review <strong>BEFORE</strong> sending anything</p>
                   </div>
                 </div>
 

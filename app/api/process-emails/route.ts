@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEmails, applyLabel, createDraft, getThreadMessages, formatThreadForAI } from "@/lib/gmail";
+import { getEmails, replaceCategoryLabel, createDraft, getThreadMessages, formatThreadForAI } from "@/lib/gmail";
 import {
   classifyEmailWithContext,
   generateDraftResponse,
@@ -140,13 +140,18 @@ export async function POST(request: NextRequest) {
 
         if (labelId) {
           try {
-            await applyLabel(
+            // Get all category label IDs for removing old labels
+            const allCategoryLabelIds = Object.values(user.gmail_label_ids || {}).filter(Boolean) as string[];
+
+            // Replace label - removes any existing category label and applies new one
+            await replaceCategoryLabel(
               accessToken,
               user.refresh_token,
               email.id,
-              labelId
+              labelId,
+              allCategoryLabelIds
             );
-            console.log(`[${userEmail}] ✓ Label ${labelId} applied to email ${email.id}`);
+            console.log(`[${userEmail}] ✓ Label ${labelId} applied to email ${email.id} (old labels removed)`);
           } catch (labelError: any) {
             console.error(`[${userEmail}] ✗ Failed to apply label:`, labelError.message || labelError);
           }
@@ -204,7 +209,8 @@ export async function POST(request: NextRequest) {
                 temperature,
                 signature,
                 writingStyle,
-                threadContext  // Pass thread context to AI
+                threadContext,  // Pass thread context to AI
+                userEmail  // Pass user email so AI knows who is replying
               );
 
               console.log(`Draft body generated, creating Gmail draft...`);

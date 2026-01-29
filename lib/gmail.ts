@@ -423,6 +423,57 @@ export async function applyLabel(
   });
 }
 
+/**
+ * Replace category label - removes all existing category labels and applies the new one.
+ * This ensures only ONE category label is ever on an email, and it gets updated
+ * as the conversation evolves.
+ */
+export async function replaceCategoryLabel(
+  accessToken: string,
+  refreshToken: string,
+  messageId: string,
+  newLabelId: string,
+  allCategoryLabelIds: string[]
+): Promise<void> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  // Get current labels on the message
+  const message = await gmail.users.messages.get({
+    userId: "me",
+    id: messageId,
+    format: "minimal",
+  });
+
+  const currentLabelIds = message.data.labelIds || [];
+
+  // Find which category labels are currently on this message
+  const labelsToRemove = currentLabelIds.filter(
+    (id) => allCategoryLabelIds.includes(id) && id !== newLabelId
+  );
+
+  // Build the modification request
+  const requestBody: { addLabelIds?: string[]; removeLabelIds?: string[] } = {};
+
+  if (labelsToRemove.length > 0) {
+    requestBody.removeLabelIds = labelsToRemove;
+  }
+
+  // Only add if not already present
+  if (!currentLabelIds.includes(newLabelId)) {
+    requestBody.addLabelIds = [newLabelId];
+  }
+
+  // Only make the API call if there's something to change
+  if (requestBody.addLabelIds || requestBody.removeLabelIds) {
+    await gmail.users.messages.modify({
+      userId: "me",
+      id: messageId,
+      requestBody,
+    });
+  }
+}
+
 export async function removeLabel(
   accessToken: string,
   refreshToken: string,

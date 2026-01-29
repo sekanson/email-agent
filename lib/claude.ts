@@ -320,7 +320,8 @@ export async function generateDraftResponse(
   temperature: number = 0.5,
   signature: string = "",
   writingStyle: string = "",
-  threadContext: string = ""  // Full conversation history for context
+  threadContext: string = "",  // Full conversation history for context
+  userEmail: string = ""  // The user's email (who is replying)
 ): Promise<string> {
   // Determine response style from temperature
   const style = getStyleFromTemp(temperature);
@@ -339,8 +340,18 @@ export async function generateDraftResponse(
     ? "\n- Consider the FULL conversation history above when crafting your response"
     : "";
 
-  const prompt = `Write a professional email reply to this message.
+  // Extract sender name for context
+  const senderName = from.split('<')[0].trim() || from.split('@')[0];
+
+  const prompt = `You are drafting an email reply on behalf of a user.
+
+IMPORTANT CONTEXT:
+- The USER received this email and needs to respond
+- You are writing a reply FROM the user TO ${senderName}
+- Write as if YOU are the user replying to this message
+- Do NOT write from ${senderName}'s perspective - they sent the email, you're replying to them
 ${threadSection}
+EMAIL RECEIVED:
 From: ${from}
 Subject: ${subject}
 Body:
@@ -348,15 +359,16 @@ ${body.slice(0, 3000)}
 
 Instructions:
 - ${config.lengthInstruction}
-- Write a helpful, professional response
+- Write a helpful, professional response FROM the user's perspective
+- You are REPLYING to ${senderName}, not writing as them
 - Match the tone of the original email${styleInstruction}${threadInstruction}
 - Only write the email body text
 - Do NOT include a subject line
 - Do NOT include a greeting like "Dear..." (start with the content)
 - Do NOT include a sign-off or signature (that will be added separately)
-- Do NOT make up information you don't know - if you need info from the user, indicate that clearly
+- If you need information from the user to complete the response, add a placeholder like [PLEASE ADD: specific info needed]
 
-Write ONLY the email body text:`;
+Write ONLY the email body text (remember: you're the USER replying TO ${senderName}):`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
