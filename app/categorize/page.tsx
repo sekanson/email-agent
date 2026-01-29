@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import UpgradePrompt from "@/components/UpgradePrompt";
+import ConfirmModal from "@/components/ConfirmModal";
 import { useUpgradePrompt } from "@/lib/use-upgrade-prompt";
 import { type UserSettings } from "@/lib/settings-merge";
 import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Lock, RotateCcw, AlertTriangle, ChevronDown } from "lucide-react";
@@ -162,6 +163,21 @@ export default function SettingsPage() {
   } | null>(null);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [deletingLabels, setDeletingLabels] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    variant: "danger" | "warning" | "default";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    variant: "default",
+    onConfirm: () => {},
+  });
 
   // Upgrade prompt hook - only for categories
   const {
@@ -401,20 +417,36 @@ export default function SettingsPage() {
   }
 
   function restoreDefaults() {
-    if (confirm("Reset all categories to defaults? This will remove any custom categories.")) {
-      setHasUnsavedChanges(true);
-      setSettings((prev) => ({
-        ...prev,
-        categories: { ...DEFAULT_CATEGORIES },
-      }));
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Restore Default Categories?",
+      message: "This will reset all your categories to the default configuration. Any custom categories you've created will be removed.",
+      confirmText: "Restore Defaults",
+      variant: "warning",
+      onConfirm: () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        setHasUnsavedChanges(true);
+        setSettings((prev) => ({
+          ...prev,
+          categories: { ...DEFAULT_CATEGORIES },
+        }));
+      },
+    });
   }
 
-  async function deleteExistingLabels() {
-    if (!confirm("⚠️ DELETE ALL GMAIL LABELS?\n\nThis will permanently delete ALL your custom Gmail labels (not just Zeno labels). System labels like Inbox, Sent, etc. will be kept.\n\nUse this if you want to start completely fresh with only Zeno categories.\n\nThis cannot be undone!")) {
-      return;
-    }
-    
+  function showDeleteLabelsConfirm() {
+    setConfirmModal({
+      isOpen: true,
+      title: "Delete All Gmail Labels?",
+      message: "This will permanently delete ALL your custom Gmail labels (not just Zeno labels). System labels like Inbox, Sent, etc. will be kept.\n\nUse this if you want to start completely fresh with only Zeno categories.\n\nThis cannot be undone!",
+      confirmText: "Delete All Labels",
+      variant: "danger",
+      onConfirm: executeDeleteLabels,
+    });
+  }
+
+  async function executeDeleteLabels() {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
     setDeletingLabels(true);
     try {
       const res = await fetch('/api/delete-labels', {
@@ -511,6 +543,17 @@ export default function SettingsPage() {
           onKeepCurrent={() => handleUpgradeWithRefresh('keep')}
         />
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
       <main className="min-h-screen overflow-auto pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}
@@ -794,7 +837,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <button
-                  onClick={deleteExistingLabels}
+                  onClick={showDeleteLabelsConfirm}
                   disabled={deletingLabels}
                   className="flex min-h-[44px] items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50 sm:min-h-0"
                 >
