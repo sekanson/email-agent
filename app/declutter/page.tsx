@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
+import ConfirmModal from "@/components/ConfirmModal";
 import {
   Inbox,
   Loader2,
@@ -103,6 +104,21 @@ export default function DeclutterPage() {
   const [cleaning, setCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    variant: "danger" | "warning" | "default";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    variant: "default",
+    onConfirm: () => {},
+  });
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [showNukeConfirm, setShowNukeConfirm] = useState(false);
 
@@ -576,11 +592,19 @@ export default function DeclutterPage() {
       return;
     }
 
-    if (confirm(`This will open ${links.size} unsubscribe pages in new tabs. Continue?`)) {
-      for (const link of links) {
-        window.open(link, "_blank");
-      }
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Open Unsubscribe Pages?",
+      message: `This will open ${links.size} unsubscribe page${links.size > 1 ? 's' : ''} in new tabs. You'll need to complete the unsubscribe process on each page.`,
+      confirmText: `Open ${links.size} Tab${links.size > 1 ? 's' : ''}`,
+      variant: "default",
+      onConfirm: () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        for (const link of links) {
+          window.open(link, "_blank");
+        }
+      },
+    });
   }
 
   function toggleSelectEmail(gmailId: string) {
@@ -702,6 +726,17 @@ export default function DeclutterPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
       <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0">
         <div className="p-4 sm:p-6 lg:p-8 lg:pb-24">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import ConfirmModal from "@/components/ConfirmModal";
 import {
   Save,
   Loader2,
@@ -63,6 +64,21 @@ export default function DraftsPage() {
   } | null>(null);
   const [signaturePreview, setSignaturePreview] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    variant: "danger" | "warning" | "default";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    variant: "default",
+    onConfirm: () => {},
+  });
 
   const userEmail =
     typeof window !== "undefined"
@@ -170,10 +186,19 @@ export default function DraftsPage() {
     }
   }
 
-  async function resetToDefaults() {
-    const confirmReset = confirm("Reset all draft settings to defaults? This will clear your writing style and signature.");
-    if (!confirmReset) return;
+  function resetToDefaults() {
+    setConfirmModal({
+      isOpen: true,
+      title: "Reset Draft Settings?",
+      message: "This will clear your writing style and signature, resetting all draft settings to their defaults.",
+      confirmText: "Reset to Defaults",
+      variant: "warning",
+      onConfirm: executeReset,
+    });
+  }
 
+  async function executeReset() {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
     setResetting(true);
     setMessage(null);
 
@@ -234,6 +259,17 @@ export default function DraftsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)]">
       <Sidebar />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
       <main className="min-h-screen overflow-auto pb-20 pt-12 lg:ml-60 lg:pb-0 lg:pt-0">
         {/* Header */}

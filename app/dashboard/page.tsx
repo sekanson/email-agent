@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import OnboardingModal from "@/components/OnboardingModal";
+import ConfirmModal from "@/components/ConfirmModal";
 import Link from "next/link";
 import {
   Mail,
@@ -79,6 +80,21 @@ export default function Dashboard() {
     useState<Record<string, CategoryConfig>>(DEFAULT_CATEGORIES);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    variant: "danger" | "warning" | "default";
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    variant: "default",
+    onConfirm: () => {},
+  });
   const [labelsCreated, setLabelsCreated] = useState(false);
   const [processResult, setProcessResult] = useState<{
     processed: number;
@@ -267,34 +283,40 @@ export default function Dashboard() {
     }
   }
 
-  async function handleResetMetrics() {
-    const confirmed = window.confirm(
-      "This will clear all processed email history and reset your metrics to zero. Your Gmail labels will not be affected. Continue?"
-    );
+  function handleResetMetrics() {
+    setConfirmModal({
+      isOpen: true,
+      title: "Reset Email Metrics?",
+      message: "This will clear all processed email history and reset your metrics to zero. Your Gmail labels will not be affected.",
+      confirmText: "Reset Metrics",
+      variant: "warning",
+      onConfirm: executeResetMetrics,
+    });
+  }
 
-    if (confirmed) {
-      try {
-        const res = await fetch("/api/emails", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userEmail }),
+  async function executeResetMetrics() {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    try {
+      const res = await fetch("/api/emails", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userEmail }),
+      });
+
+      if (res.ok) {
+        setEmails([]);
+        setMetrics({
+          totalProcessed: 0,
+          toRespond: 0,
+          draftsCreated: 0,
+          other: 0,
+          byCategory: {},
+          totalAll: 0,
         });
-
-        if (res.ok) {
-          setEmails([]);
-          setMetrics({
-            totalProcessed: 0,
-            toRespond: 0,
-            draftsCreated: 0,
-            other: 0,
-            byCategory: {},
-            totalAll: 0,
-          });
-          setDisplayLimit(25);
-        }
-      } catch (error) {
-        console.error("Failed to reset metrics:", error);
+        setDisplayLimit(25);
       }
+    } catch (error) {
+      console.error("Failed to reset metrics:", error);
     }
   }
 
@@ -484,6 +506,17 @@ export default function Dashboard() {
           onKeepCurrent={() => handleUpgradeAction(userEmail, 'keep')}
         />
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
 
       <main className="min-h-screen pt-12 pb-20 lg:ml-60 lg:pt-0 lg:pb-0 overflow-auto">
         {/* Compact Header with Agent Status */}
