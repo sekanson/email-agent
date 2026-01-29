@@ -698,3 +698,121 @@ export async function markAsRead(
     },
   });
 }
+
+// ============ Filter Management (for Focus Mode) ============
+
+export async function getFilters(
+  accessToken: string,
+  refreshToken: string
+): Promise<any[]> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  const response = await gmail.users.settings.filters.list({
+    userId: "me",
+  });
+
+  return response.data.filter || [];
+}
+
+export async function createFilter(
+  accessToken: string,
+  refreshToken: string,
+  filterConfig: {
+    criteria: {
+      from?: string;
+      to?: string;
+      subject?: string;
+      query?: string;
+      hasAttachment?: boolean;
+    };
+    action: {
+      addLabelIds?: string[];
+      removeLabelIds?: string[];
+      forward?: string;
+    };
+  }
+): Promise<any> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  const response = await gmail.users.settings.filters.create({
+    userId: "me",
+    requestBody: filterConfig,
+  });
+
+  return response.data;
+}
+
+export async function deleteFilter(
+  accessToken: string,
+  refreshToken: string,
+  filterId: string
+): Promise<void> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  await gmail.users.settings.filters.delete({
+    userId: "me",
+    id: filterId,
+  });
+}
+
+// ============ Message Operations (for Focus Mode) ============
+
+export async function searchMessages(
+  accessToken: string,
+  refreshToken: string,
+  query: string,
+  maxResults: number = 100
+): Promise<string[]> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  const response = await gmail.users.messages.list({
+    userId: "me",
+    q: query,
+    maxResults,
+  });
+
+  return (response.data.messages || []).map((m: any) => m.id);
+}
+
+export async function getMessage(
+  accessToken: string,
+  refreshToken: string,
+  messageId: string,
+  format: "full" | "metadata" | "minimal" = "full"
+): Promise<any> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  const response = await gmail.users.messages.get({
+    userId: "me",
+    id: messageId,
+    format,
+  });
+
+  return response.data;
+}
+
+export async function modifyMessage(
+  accessToken: string,
+  refreshToken: string,
+  messageId: string,
+  modifications: {
+    addLabelIds?: string[];
+    removeLabelIds?: string[];
+  }
+): Promise<any> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  const response = await gmail.users.messages.modify({
+    userId: "me",
+    id: messageId,
+    requestBody: modifications,
+  });
+
+  return response.data;
+}
