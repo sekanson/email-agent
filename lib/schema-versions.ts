@@ -101,9 +101,9 @@ export function getUserSchemaVersion(
 // V2 category names for detection
 const V2_CATEGORY_NAMES = [
   "Action Required",
-  "FYI Only", 
+  "FYI Only",
   "Team Updates",
-  "System Alerts",
+  "Notifications",
   "Meetings & Events",
   "Waiting for Reply",
   "Completed",

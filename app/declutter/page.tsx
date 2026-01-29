@@ -116,6 +116,10 @@ export default function DeclutterPage() {
   // Action loading states
   const [blockingEmail, setBlockingEmail] = useState<string | null>(null);
 
+  // Mass unsubscribe state
+  const [selectedForUnsubscribe, setSelectedForUnsubscribe] = useState<Set<string>>(new Set());
+  const [showMassUnsubscribe, setShowMassUnsubscribe] = useState(false);
+
   // Cumulative scan counter
   const [totalScanned, setTotalScanned] = useState(0);
   const [sessionScanned, setSessionScanned] = useState(0);
@@ -211,6 +215,37 @@ export default function DeclutterPage() {
 
     return [...groups.values()].sort((a, b) => b.count - a.count);
   }, [filteredEmails, scanResult]);
+
+  // Get senders that have unsubscribe links
+  const unsubscribableSenders = useMemo(() => {
+    if (!scanResult) return [];
+
+    const groups = new Map<string, SenderGroup>();
+
+    for (const email of scanResult.emails) {
+      if (!email.has_unsubscribe || !email.unsubscribe_link) continue;
+
+      const existing = groups.get(email.from_email);
+      if (existing) {
+        existing.count++;
+        existing.emails.push(email);
+      } else {
+        const nameMatch = email.from.match(/^([^<]+)/);
+        const name = nameMatch ? nameMatch[1].trim() : email.from_email;
+
+        groups.set(email.from_email, {
+          email: email.from_email,
+          name,
+          count: 1,
+          emails: [email],
+          hasUnsubscribe: true,
+          unsubscribeLink: email.unsubscribe_link,
+        });
+      }
+    }
+
+    return [...groups.values()].sort((a, b) => b.count - a.count);
+  }, [scanResult]);
 
   function resetCounter() {
     setTotalScanned(0);
@@ -333,6 +368,48 @@ export default function DeclutterPage() {
     } else {
       window.open(link, "_blank");
     }
+  }
+
+  function handleMassUnsubscribe() {
+    const links: string[] = [];
+    for (const senderEmail of selectedForUnsubscribe) {
+      const sender = unsubscribableSenders.find((s) => s.email === senderEmail);
+      if (sender?.unsubscribeLink && !sender.unsubscribeLink.startsWith("mailto:")) {
+        links.push(sender.unsubscribeLink);
+      }
+    }
+
+    if (links.length === 0) {
+      setError("No unsubscribe links available for selected senders (some may require email unsubscribe)");
+      return;
+    }
+
+    if (confirm(`This will open ${links.length} unsubscribe pages in new tabs. Continue?`)) {
+      for (const link of links) {
+        window.open(link, "_blank");
+      }
+      setSelectedForUnsubscribe(new Set());
+      setShowMassUnsubscribe(false);
+    }
+  }
+
+  function toggleSenderSelection(senderEmail: string) {
+    const newSelection = new Set(selectedForUnsubscribe);
+    if (newSelection.has(senderEmail)) {
+      newSelection.delete(senderEmail);
+    } else {
+      newSelection.add(senderEmail);
+    }
+    setSelectedForUnsubscribe(newSelection);
+  }
+
+  function selectAllUnsubscribable() {
+    const allEmails = new Set(unsubscribableSenders.map(s => s.email));
+    setSelectedForUnsubscribe(allEmails);
+  }
+
+  function deselectAllUnsubscribable() {
+    setSelectedForUnsubscribe(new Set());
   }
 
   function handleBulkUnsubscribe() {
@@ -914,6 +991,112 @@ export default function DeclutterPage() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {/* Mass Unsubscribe Section */}
+              {unsubscribableSenders.length > 0 && (
+                <div className="glass-card overflow-hidden">
+                  <button
+                    onClick={() => setShowMassUnsubscribe(!showMassUnsubscribe)}
+                    className="flex w-full items-center justify-between px-4 py-4 text-left transition-colors hover:bg-[var(--bg-elevated)]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10">
+                        <Link2Off className="h-5 w-5 text-orange-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-[var(--text-primary)]">Mass Unsubscribe</h3>
+                        <p className="text-sm text-[var(--text-muted)]">
+                          {unsubscribableSenders.length} subscriptions found
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronDown
+                      className={`h-5 w-5 text-[var(--text-muted)] transition-transform ${
+                        showMassUnsubscribe ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {showMassUnsubscribe && (
+                    <div className="border-t border-[var(--border)]">
+                      {/* Select All / Deselect All */}
+                      <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
+                        <span className="text-sm text-[var(--text-muted)]">
+                          {selectedForUnsubscribe.size} of {unsubscribableSenders.length} selected
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={selectAllUnsubscribable}
+                            className="text-sm font-medium text-[var(--accent)] hover:underline"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-[var(--border)]">|</span>
+                          <button
+                            onClick={deselectAllUnsubscribable}
+                            className="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                          >
+                            Deselect All
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Subscription List */}
+                      <div className="max-h-[400px] divide-y divide-[var(--border)] overflow-y-auto">
+                        {unsubscribableSenders.map((sender) => {
+                          const isSelected = selectedForUnsubscribe.has(sender.email);
+                          const isMailto = sender.unsubscribeLink?.startsWith("mailto:");
+
+                          return (
+                            <div
+                              key={sender.email}
+                              className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                                isSelected ? "bg-orange-500/5" : "hover:bg-[var(--bg-elevated)]"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleSenderSelection(sender.email)}
+                                disabled={isMailto}
+                                className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-elevated)] text-orange-500 focus:ring-orange-500/50 disabled:opacity-50"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-medium text-[var(--text-primary)]">
+                                  {sender.name}
+                                </p>
+                                <p className="truncate text-sm text-[var(--text-muted)]">
+                                  {sender.email} • {sender.count} email{sender.count > 1 ? "s" : ""}
+                                </p>
+                              </div>
+                              {isMailto && (
+                                <span className="rounded bg-zinc-500/10 px-2 py-0.5 text-xs text-zinc-400">
+                                  Email only
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Unsubscribe Button */}
+                      <div className="border-t border-[var(--border)] px-4 py-4">
+                        <button
+                          onClick={handleMassUnsubscribe}
+                          disabled={selectedForUnsubscribe.size === 0}
+                          className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Link2Off className="h-5 w-5" />
+                          Unsubscribe from {selectedForUnsubscribe.size} Subscription{selectedForUnsubscribe.size !== 1 ? "s" : ""}
+                        </button>
+                        <p className="mt-2 text-center text-xs text-[var(--text-muted)]">
+                          This will open unsubscribe pages in new tabs. Some may require confirmation.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

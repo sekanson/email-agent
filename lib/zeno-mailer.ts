@@ -70,7 +70,7 @@ const CATEGORY_NAMES: Record<number, string> = {
   1: "Reply Needed",
   2: "For Info",
   3: "Mentions",
-  4: "Alerts",
+  4: "Notifications",
   5: "Calendar",
   6: "Waiting",
   7: "Actioned!",

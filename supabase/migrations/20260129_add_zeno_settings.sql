@@ -8,3 +8,7 @@ ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS focus_mode_enabled BOOLEAN DE
 ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS focus_mode_until TIMESTAMPTZ DEFAULT NULL;
 ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS timezone TEXT DEFAULT 'America/New_York';
 ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS zeno_confirmations BOOLEAN DEFAULT true;
+
+-- Add schema versioning columns (required by settings-merge.ts)
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS "schemaVersions" JSONB DEFAULT '{"categories": "v1", "draftTemplates": "v1", "notifications": "v1"}'::jsonb;
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS "upgradePromptsShown" JSONB DEFAULT '{}'::jsonb;

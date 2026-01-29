@@ -19,7 +19,7 @@ export const CATEGORY_COLORS = {
   red: "#fb4c2f",       // Gmail Red - To Respond
   orange: "#ffad47",    // Gmail Orange - FYI
   cyan: "#2da2bb",      // Gmail Cyan - Comment
-  green: "#43d692",     // Gmail Light Green - Notification
+  green: "#43d692",     // Gmail Light Green - Notifications
   purple: "#a479e2",    // Gmail Purple - Meeting/Calendar
   blue: "#4a86e8",      // Gmail Blue - Awaiting Reply
   teal: "#16a766",      // Gmail Green - Actioned
@@ -58,10 +58,10 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     order: 3,
   },
   "4": {
-    name: "Alerts",
+    name: "Notifications",
     color: CATEGORY_COLORS.green,
     enabled: true,
-    description: "Automated alerts & confirmations",
+    description: "Automated notifications & confirmations",
     rules: "",
     drafts: false,
     order: 4,
@@ -135,11 +135,11 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     order: 3,
   },
   "4": {
-    name: "System Alerts",
+    name: "Notifications",
     color: CATEGORY_COLORS.green,
     enabled: true,
     description: "Automated notifications and confirmations",
-    rules: "Service alerts, automated confirmations, system notifications",
+    rules: "Service notifications, automated confirmations, system updates",
     drafts: false,
     order: 4,
   },

@@ -291,17 +291,17 @@ interface StyleConfig {
 const STYLE_CONFIGS: Record<ResponseStyle, StyleConfig> = {
   concise: {
     temperature: 0.3,
-    lengthInstruction: "Keep your response SHORT and DIRECT - aim for 2-4 sentences maximum. Get straight to the point without filler or unnecessary pleasantries.",
-    maxTokens: 300,
+    lengthInstruction: "Keep your response to 2-4 sentences MAXIMUM. Be direct and to the point. No filler, no unnecessary pleasantries.",
+    maxTokens: 200,
   },
   balanced: {
     temperature: 0.5,
-    lengthInstruction: "Write a natural-length response appropriate to the context. Be helpful but don't over-explain.",
-    maxTokens: 600,
+    lengthInstruction: "Write a response of 4-6 sentences. Cover the key points naturally without over-explaining.",
+    maxTokens: 400,
   },
   detailed: {
     temperature: 0.7,
-    lengthInstruction: "Provide a thorough, comprehensive response that fully addresses all aspects of the email.",
+    lengthInstruction: "Provide a thorough response of 6+ sentences as needed. Fully address all aspects of the email with appropriate detail.",
     maxTokens: 1000,
   },
 };
