@@ -94,12 +94,13 @@ export async function POST(request: NextRequest) {
       (processedEmails || []).map((e) => e.gmail_id)
     );
 
-    // Fetch unread emails from Gmail
+    // Fetch recent emails from inbox (not just unread - handles case where user reads quickly)
+    // Using newer_than:1d to catch emails from the last 24 hours
     const emails = await getEmails(
       accessToken,
       user.refresh_token,
       maxEmails,
-      "is:unread"
+      "in:inbox newer_than:1d"
     );
 
     // Filter out already processed emails

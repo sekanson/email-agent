@@ -142,15 +142,16 @@ export async function GET(request: NextRequest) {
           (processedEmails || []).map((e) => e.gmail_id)
         );
 
-        // Fetch unread emails from Gmail
+        // Fetch recent emails from inbox (not just unread - handles case where user reads quickly)
+        // Using newer_than:2h to catch emails from the last 2 hours on cron runs
         const emails = await getEmails(
           accessToken,
           user.refresh_token,
           MAX_EMAILS_PER_USER,
-          "is:unread"
+          "in:inbox newer_than:2h"
         );
 
-        console.log(`[${user.email}] Fetched ${emails.length} unread emails from Gmail`);
+        console.log(`[${user.email}] Fetched ${emails.length} recent inbox emails from Gmail`);
         console.log(`[${user.email}] Already processed: ${processedIds.size} emails in DB`);
 
         // Filter out already processed emails

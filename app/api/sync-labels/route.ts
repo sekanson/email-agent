@@ -130,34 +130,74 @@ export async function POST(request: NextRequest) {
     let deleted = 0;
     let updated = 0;
 
-    console.log("=== STEP 1: DELETE labels no longer in categories ===");
+    console.log("=== STEP 1: MIGRATE labels no longer in categories ===");
 
-    // Delete labels we own that are no longer in current category names
+    // Instead of deleting, try to rename old labels to new category names
+    // This preserves the label ID so emails keep their labels
+    const oldLabelNames = Object.keys(ourLabelIds);
+    const newCategoryNamesNotYetAssigned = [...currentCategoryNames];
+    
     for (const [labelName, labelId] of Object.entries(ourLabelIds)) {
       if (!currentCategoryNames.includes(labelName)) {
-        console.log(`DELETING: "${labelName}" (ID: ${labelId}) - not in current categories`);
-        try {
-          await deleteLabel(accessToken, user.refresh_token, labelId);
-          console.log(`  ✓ Deleted successfully`);
-          deleted++;
-        } catch (deleteError: any) {
-          console.error(`  ✗ Failed to delete: ${deleteError.message}`);
+        // This old label name is not in current categories
+        // Try to find a new category name at the same position (order) to rename to
+        const oldLabelOrder = labelName.match(/^(\d+):/)?.[1];
+        let renamedTo: string | null = null;
+        
+        if (oldLabelOrder) {
+          // Find a new category with the same order number that hasn't been assigned yet
+          const matchingNewName = newCategoryNamesNotYetAssigned.find(name => 
+            name.startsWith(`${oldLabelOrder}:`) && !oldLabelNames.includes(name)
+          );
+          
+          if (matchingNewName) {
+            // Rename the label instead of delete+create
+            console.log(`RENAMING: "${labelName}" → "${matchingNewName}" (ID: ${labelId})`);
+            try {
+              const category = Object.values(categories).find((c) => c.name === matchingNewName);
+              await updateLabel(accessToken, user.refresh_token, labelId, matchingNewName, category?.color);
+              console.log(`  ✓ Renamed successfully`);
+              newOurLabelIds[matchingNewName] = labelId;
+              // Remove from list so we don't try to create it later
+              const idx = newCategoryNamesNotYetAssigned.indexOf(matchingNewName);
+              if (idx > -1) newCategoryNamesNotYetAssigned.splice(idx, 1);
+              renamedTo = matchingNewName;
+              updated++;
+            } catch (renameError: any) {
+              console.error(`  ✗ Failed to rename: ${renameError.message}`);
+            }
+          }
+        }
+        
+        if (!renamedTo) {
+          // No matching new category found - delete the old label
+          console.log(`DELETING: "${labelName}" (ID: ${labelId}) - no matching new category`);
+          try {
+            await deleteLabel(accessToken, user.refresh_token, labelId);
+            console.log(`  ✓ Deleted successfully`);
+            deleted++;
+          } catch (deleteError: any) {
+            console.error(`  ✗ Failed to delete: ${deleteError.message}`);
+          }
         }
       } else {
-        // Label still needed - keep it
+        // Label still needed with same name - keep it
         console.log(`KEEPING: "${labelName}" (ID: ${labelId})`);
         newOurLabelIds[labelName] = labelId;
+        // Remove from list so we don't try to create it
+        const idx = newCategoryNamesNotYetAssigned.indexOf(labelName);
+        if (idx > -1) newCategoryNamesNotYetAssigned.splice(idx, 1);
       }
     }
 
     console.log("=== STEP 2: CREATE labels for new categories ===");
 
-    // Create labels for categories we don't have yet
+    // Create labels for categories we don't have yet (weren't renamed or kept)
     // IMPORTANT: We NEVER take ownership of pre-existing labels to avoid deleting
     // labels created by other apps (like Fyxer)
-    for (const categoryName of currentCategoryNames) {
+    for (const categoryName of newCategoryNamesNotYetAssigned) {
       if (newOurLabelIds[categoryName]) {
-        // Already have this label in our tracking
+        // Already have this label in our tracking (from rename or keep)
         continue;
       }
 
