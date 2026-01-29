@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { deleteLabel, getLabels, refreshAccessToken } from "@/lib/gmail";
 
+// Gmail system labels that cannot be deleted
+const SYSTEM_LABELS = [
+  'INBOX', 'SENT', 'TRASH', 'SPAM', 'DRAFT', 'STARRED', 'IMPORTANT',
+  'UNREAD', 'CATEGORY_PERSONAL', 'CATEGORY_SOCIAL', 'CATEGORY_PROMOTIONS',
+  'CATEGORY_UPDATES', 'CATEGORY_FORUMS', 'CHAT', 'SCHEDULED'
+];
+
 export async function POST(request: NextRequest) {
   try {
     const { userEmail } = await request.json();
@@ -36,60 +43,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user settings to find our label IDs
-    let { data: settings } = await supabase
-      .from("user_settings")
-      .select("our_label_ids")
-      .eq("user_email", userEmail)
-      .single();
-
-    if (!settings) {
-      const result = await supabase
-        .from("user_settings")
-        .select("our_label_ids")
-        .eq("email", userEmail)
-        .single();
-      settings = result.data;
-    }
-
-    const ourLabelIds: Record<string, string> = settings?.our_label_ids || {};
-    
-    // Also get all Gmail labels to find any Zeno-prefixed ones we might have missed
+    // Get ALL Gmail labels
     let accessToken = user.access_token;
     const allLabels = await getLabels(accessToken, user.refresh_token);
     
-    // Find all labels that start with our prefix (space + emoji or just common Zeno names)
-    const zenoLabelPrefixes = [" 1️⃣", " 2️⃣", " 3️⃣", " 4️⃣", " 5️⃣", " 6️⃣", " 7️⃣", " 8️⃣", " 🔴", " 🟠", " 🟡", " 🟢", " 🔵", " 🟣"];
-    const zenoCategoryNames = [
-      "Action Required", "FYI Only", "Team Updates", "Notifications",
-      "Meetings & Events", "Waiting for Reply", "Completed", "Marketing & Spam",
-      "Reply Needed", "For Info", "Mentions", "Updates", "Scheduled", "Pending", "Done", "Promo"
-    ];
-
-    const labelsToDelete: { id: string; name: string }[] = [];
-
-    // Add labels from our_label_ids
-    for (const [name, id] of Object.entries(ourLabelIds)) {
-      labelsToDelete.push({ id, name });
-    }
-
-    // Find any other Zeno-like labels
-    for (const label of allLabels) {
-      // Skip if already in our list
-      if (labelsToDelete.some(l => l.id === label.id)) continue;
-      
-      // Check if it matches our patterns
-      const hasZenoPrefix = zenoLabelPrefixes.some(prefix => label.name.startsWith(prefix));
-      const hasZenoName = zenoCategoryNames.some(name => 
-        label.name.includes(name) || label.name.endsWith(name)
-      );
-      
-      if (hasZenoPrefix || hasZenoName) {
-        labelsToDelete.push({ id: label.id, name: label.name });
+    // Filter to only user-created labels (exclude system labels)
+    const labelsToDelete = allLabels.filter(label => {
+      // Skip system labels
+      if (SYSTEM_LABELS.includes(label.id) || SYSTEM_LABELS.includes(label.name)) {
+        return false;
       }
-    }
+      // Skip labels that start with system prefixes
+      if (label.id.startsWith('CATEGORY_') || label.id.startsWith('CHAT')) {
+        return false;
+      }
+      // Only delete user-created labels (they have Label_ prefix in ID)
+      return label.id.startsWith('Label_') || !label.id.match(/^[A-Z_]+$/);
+    });
 
-    // Delete all found labels
+    console.log(`[delete-labels] Found ${labelsToDelete.length} user labels to delete for ${userEmail}`);
+
+    // Delete all user-created labels
     let deleted = 0;
     const errors: string[] = [];
 
@@ -115,12 +89,14 @@ export async function POST(request: NextRequest) {
             errors.push(`${label.name}: ${retryError.message}`);
           }
         } else {
+          // Some labels might fail (system labels we missed, etc.) - just log and continue
+          console.log(`[delete-labels] Could not delete ${label.name}: ${error.message}`);
           errors.push(`${label.name}: ${error.message}`);
         }
       }
     }
 
-    // Clear our_label_ids in settings
+    // Clear our_label_ids in settings since we're starting fresh
     const updateResult = await supabase
       .from("user_settings")
       .update({ our_label_ids: {} })
