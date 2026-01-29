@@ -119,6 +119,20 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("Error starting focus mode:", error);
+    
+    // Check if it's a scope/permission error
+    if (error.message?.includes("insufficient authentication scopes") || 
+        error.message?.includes("insufficientPermissions")) {
+      return NextResponse.json(
+        { 
+          error: "Focus Mode requires additional permissions. Please reconnect your Gmail account.",
+          needsReconnect: true,
+          details: "Go to Settings → Reconnect Gmail to enable Focus Mode."
+        },
+        { status: 403 }
+      );
+    }
+    
     return NextResponse.json(
       { error: `Failed to start focus mode: ${error.message}` },
       { status: 500 }
