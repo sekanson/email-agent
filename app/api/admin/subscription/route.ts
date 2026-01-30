@@ -29,10 +29,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get target user
+    // Get target user (only fields needed for subscription management)
     const { data: targetUser, error: targetError } = await supabase
       .from("users")
-      .select("*")
+      .select("email, stripe_subscription_id, stripe_customer_id, subscription_status")
       .eq("email", targetUserEmail)
       .single();
 

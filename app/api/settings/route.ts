@@ -18,10 +18,17 @@ export async function GET(request: NextRequest) {
     const supabase = createClient();
 
     // Get user info including subscription status, draft count, and integrations
-    // Note: gmail_connected, calendar_connected may not exist in all deployments
+    // NOTE: Only select safe columns - never expose tokens or sensitive Stripe data!
     const { data: user, error: userError } = await supabase
       .from("users")
-      .select("*")
+      .select(`
+        id, email, name, picture, created_at, updated_at,
+        subscription_status, subscription_tier, trial_ends_at,
+        drafts_created_count, emails_processed_count,
+        onboarding_completed, notification_preferences,
+        gmail_connected, gmail_connected_at, calendar_connected, calendar_connected_at,
+        labels_created
+      `)
       .eq("email", userEmail)
       .single();
 

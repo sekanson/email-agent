@@ -49,11 +49,13 @@ interface UserRecord {
   updated_at?: string;
   emails_processed?: number;
   drafts_created_count?: number;
-  stripe_customer_id?: string;
-  stripe_subscription_id?: string;
   labels_created?: boolean;
-  refresh_token?: string;
+  gmail_connected?: boolean;
+  gmail_connected_at?: string;
+  calendar_connected?: boolean;
   auto_poll_enabled?: boolean;
+  // NOTE: Sensitive fields (access_token, refresh_token, stripe_*) are NOT
+  // returned by the API for security reasons
 }
 
 type Role = "user" | "admin" | "owner" | "primary_owner";
@@ -189,16 +191,16 @@ function getSyncStatusBadge(user: UserRecord) {
     };
   }
 
-  // Check if user has no refresh token
-  if (!user.refresh_token) {
+  // Check if user has no Gmail connection
+  if (!user.gmail_connected) {
     return {
       badge: (
         <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-medium text-red-400">
           <XCircle className="h-3 w-3" />
-          No Token
+          Not Connected
         </span>
       ),
-      reason: "User needs to re-authenticate with Gmail",
+      reason: "User needs to connect their Gmail account",
     };
   }
 

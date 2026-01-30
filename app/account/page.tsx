@@ -30,9 +30,8 @@ interface UserData {
   subscription_tier: string;
   trial_ends_at: string | null;
   drafts_created_count: number;
-  emails_processed?: number;
+  emails_processed_count?: number;
   created_at: string;
-  stripe_customer_id: string | null;
   notification_preferences?: {
     timezone?: string;
     quiet_hours_start?: string;
@@ -43,6 +42,8 @@ interface UserData {
   gmail_connected_at?: string;
   calendar_connected?: boolean;
   calendar_connected_at?: string;
+  labels_created?: boolean;
+  // NOTE: Sensitive fields (tokens, stripe IDs) are NOT returned by the API
 }
 
 interface Metrics {

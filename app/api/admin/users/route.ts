@@ -32,10 +32,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch all users
+    // Fetch all users (only safe columns - no tokens!)
     const { data: users, error: usersError } = await supabase
       .from("users")
-      .select("*")
+      .select(`
+        id, email, name, picture, created_at, updated_at,
+        labels_created, gmail_label_ids, trial_started_at, trial_ends_at,
+        subscription_status, subscription_tier, is_admin, role,
+        emails_processed_count, last_active_at, drafts_created_count,
+        onboarding_completed, notification_preferences,
+        gmail_connected, gmail_connected_at, calendar_connected, calendar_connected_at
+      `)
       .order("created_at", { ascending: false });
 
     if (usersError) {
