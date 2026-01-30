@@ -34,6 +34,7 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
+import { useRequireAuth } from "@/lib/useAuth";
 
 interface UserRecord {
   id?: string;
@@ -263,9 +264,8 @@ export default function AdminPage() {
   const canManageRoles = ["owner", "primary_owner"].includes(currentUserRole);
   const canManageOwners = currentUserRole === "primary_owner";
 
-  const adminEmail = typeof window !== "undefined"
-    ? localStorage.getItem("userEmail") || ""
-    : "";
+  const { userEmail: authEmail, isLoading: authLoading } = useRequireAuth();
+  const adminEmail = authEmail || "";
 
   useEffect(() => {
     checkAdminAndFetchData();

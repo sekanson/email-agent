@@ -34,6 +34,7 @@ import { DEFAULT_CATEGORIES, getCategoryColor, getCategoryName, type CategoryCon
 import { useUpgradePrompt } from "@/lib/use-upgrade-prompt";
 import { type UserSettings } from "@/lib/settings-merge";
 import UpgradePrompt from "@/components/UpgradePrompt";
+import { useRequireAuth } from "@/lib/useAuth";
 
 interface ProcessedEmail {
   id: string;
@@ -135,18 +136,17 @@ export default function Dashboard() {
     });
   };
 
-  const userEmail =
-    typeof window !== "undefined"
-      ? localStorage.getItem("userEmail") || ""
-      : "";
+  const { userEmail: authEmail, isLoading: authLoading } = useRequireAuth();
+  const userEmail = authEmail || "";
 
   useEffect(() => {
+    if (authLoading) return;
     if (userEmail) {
       fetchData();
     } else {
       setLoading(false);
     }
-  }, [userEmail]);
+  }, [userEmail, authLoading]);
 
   useEffect(() => {
     if (userEmail && !loading) {

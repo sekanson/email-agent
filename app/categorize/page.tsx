@@ -8,6 +8,7 @@ import { useUpgradePrompt } from "@/lib/use-upgrade-prompt";
 import { type UserSettings } from "@/lib/settings-merge";
 import { Save, Tag, Loader2, Check, AlertCircle, Plus, Trash2, Lock, RotateCcw, AlertTriangle, ChevronDown } from "lucide-react";
 import { DEFAULT_CATEGORIES as SHARED_DEFAULTS, DEFAULT_CATEGORIES_V2, type CategoryConfig } from "@/lib/categories";
+import { useRequireAuth } from "@/lib/useAuth";
 
 // Gmail's allowed label colors - these are the ONLY colors that work in Gmail
 const GMAIL_COLORS = [
@@ -188,10 +189,8 @@ export default function SettingsPage() {
   // Only show category upgrade prompts on this page
   const showCategoryUpgrade = currentPrompt?.schema === 'categories';
 
-  const userEmail =
-    typeof window !== "undefined"
-      ? localStorage.getItem("userEmail") || ""
-      : "";
+  const { userEmail: authEmail, isLoading: authLoading } = useRequireAuth();
+  const userEmail = authEmail || "";
 
   useEffect(() => {
     if (userEmail) {

@@ -21,6 +21,7 @@ import {
   Settings,
   MessageSquare,
 } from "lucide-react";
+import { useRequireAuth } from "@/lib/useAuth";
 
 interface ZenoSettings {
   zeno_digest_enabled: boolean;
@@ -84,7 +85,8 @@ export default function AssistantPage() {
     timezone: "America/New_York",
   });
 
-  const userEmail = typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "";
+  const { userEmail: authEmail, isLoading: authLoading } = useRequireAuth();
+  const userEmail = authEmail || "";
   const userName = typeof window !== "undefined" ? localStorage.getItem("userName") || "" : "";
 
   useEffect(() => {

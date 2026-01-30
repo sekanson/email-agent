@@ -38,6 +38,7 @@ import {
   Legend,
 } from "recharts";
 import { DEFAULT_CATEGORIES, getCategoryName, getCategoryColor } from "@/lib/categories";
+import { useRequireAuth } from "@/lib/useAuth";
 
 interface AnalyticsData {
   overview: {
@@ -78,19 +79,10 @@ const MOCK_HOURLY_ACTIVITY = [
 
 export default function AnalyticsPage() {
   const router = useRouter();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { userEmail, isLoading: authLoading } = useRequireAuth();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
-
-  useEffect(() => {
-    const email = localStorage.getItem("userEmail");
-    if (!email) {
-      router.push("/");
-      return;
-    }
-    setUserEmail(email);
-  }, [router]);
 
   useEffect(() => {
     if (!userEmail) return;

@@ -21,6 +21,7 @@ import {
   Clock,
   RefreshCw,
 } from "lucide-react";
+import { useRequireAuth } from "@/lib/useAuth";
 
 interface UserData {
   email: string;
@@ -78,10 +79,8 @@ function SettingsPageContent() {
   const [deleting, setDeleting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  const userEmail =
-    typeof window !== "undefined"
-      ? localStorage.getItem("userEmail") || ""
-      : "";
+  const { userEmail: authEmail, isLoading: authLoading } = useRequireAuth();
+  const userEmail = authEmail || "";
 
   useEffect(() => {
     if (userEmail) {

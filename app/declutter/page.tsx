@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Sidebar from "@/components/Sidebar";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useRequireAuth } from "@/lib/useAuth";
 import {
   Inbox,
   Loader2,
@@ -160,10 +161,8 @@ export default function DeclutterPage() {
   // Mobile category drawer
   const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
 
-  const userEmail =
-    typeof window !== "undefined"
-      ? localStorage.getItem("userEmail") || ""
-      : "";
+  const { userEmail: authEmail, isLoading: authLoading } = useRequireAuth();
+  const userEmail = authEmail || "";
 
   // Load from localStorage on mount
   useEffect(() => {

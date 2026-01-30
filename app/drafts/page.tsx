@@ -15,6 +15,7 @@ import {
   RefreshCw,
   RotateCcw,
 } from "lucide-react";
+import { useRequireAuth } from "@/lib/useAuth";
 
 type ResponseStyle = "concise" | "balanced" | "detailed";
 
@@ -80,10 +81,8 @@ export default function DraftsPage() {
     onConfirm: () => {},
   });
 
-  const userEmail =
-    typeof window !== "undefined"
-      ? localStorage.getItem("userEmail") || ""
-      : "";
+  const { userEmail: authEmail, isLoading: authLoading } = useRequireAuth();
+  const userEmail = authEmail || "";
 
   useEffect(() => {
     if (userEmail) {
