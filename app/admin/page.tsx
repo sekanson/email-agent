@@ -476,7 +476,6 @@ export default function AdminPage() {
       "Signed Up",
       "Trial Ends",
       "Is Admin",
-      "Stripe Customer ID",
     ];
 
     const rows = users.map((u) => [
@@ -489,7 +488,6 @@ export default function AdminPage() {
       u.created_at || "",
       u.trial_ends_at || "",
       u.is_admin ? "Yes" : "No",
-      u.stripe_customer_id || "",
     ]);
 
     const csvContent = [
@@ -917,21 +915,7 @@ export default function AdminPage() {
                       </span>
                     </div>
                   )}
-                  {selectedUser.stripe_customer_id && (
-                    <div className="flex items-center justify-between rounded-lg bg-[var(--bg-card)] p-3">
-                      <span className="text-sm text-[var(--text-muted)]">Stripe Customer</span>
-                      <a
-                        href={`https://dashboard.stripe.com/customers/${selectedUser.stripe_customer_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-sm text-blue-400 hover:underline"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        View in Stripe
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    </div>
-                  )}
+                  {/* Stripe Customer link removed - sensitive data no longer exposed */}
                 </div>
 
                 {/* Actions */}
