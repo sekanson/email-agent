@@ -72,6 +72,7 @@ export const authOptions: NextAuthOptions = {
  */
 export async function getAuthenticatedUser(): Promise<string | null> {
   const session = await getServerSession(authOptions);
+  console.log("[getAuthenticatedUser] Session:", session);
   return session?.user?.email || null;
 }
 
@@ -113,12 +114,13 @@ export async function verifyUserAccess(requestedEmail: string): Promise<{
  */
 export async function isAdmin(email: string): Promise<boolean> {
   const supabase = createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("users")
     .select("is_admin")
     .eq("email", email)
     .single();
 
+  console.log("[isAdmin] Checking admin status for:", email, "Result:", data, "Error:", error);
   return data?.is_admin === true;
 }
 

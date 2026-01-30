@@ -8,7 +8,10 @@ export async function GET(request: NextRequest) {
     // Verify admin authentication
     const { authorized, userEmail, error } = await verifyAdminAccess();
 
+    console.log("[Admin API] verifyAdminAccess result:", { authorized, userEmail, error });
+
     if (!authorized) {
+      console.log("[Admin API] Access denied:", { userEmail, error });
       if (!userEmail) {
         return unauthorizedResponse(error || "Please sign in");
       }
