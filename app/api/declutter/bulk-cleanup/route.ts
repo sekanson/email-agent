@@ -2,20 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { google } from "googleapis";
 import { BulkCleanupRequest, BulkCleanupResponse } from "@/lib/declutter-types";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to perform bulk cleanup");
+    }
+
     const {
-      userEmail,
       action,
       olderThanDays,
       categories,
       senders,
-    }: BulkCleanupRequest = await request.json();
+    }: Omit<BulkCleanupRequest, 'userEmail'> = await request.json();
 
-    if (!userEmail || !action || !olderThanDays) {
+    const userEmail = authenticatedEmail; // Use authenticated email
+
+    if (!action || !olderThanDays) {
       return NextResponse.json(
-        { error: "Missing required fields: userEmail, action, olderThanDays" },
+        { error: "Missing required fields: action, olderThanDays" },
         { status: 400 }
       );
     }

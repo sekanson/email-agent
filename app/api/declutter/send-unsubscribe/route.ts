@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { google } from "googleapis";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, to, subject, body } = await request.json();
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to send unsubscribe emails");
+    }
 
-    if (!userEmail || !to) {
+    const { to, subject, body } = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email
+
+    if (!to) {
       return NextResponse.json(
-        { error: "Missing userEmail or recipient" },
+        { error: "Missing recipient" },
         { status: 400 }
       );
     }

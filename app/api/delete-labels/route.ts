@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { deleteLabel, getLabels, refreshAccessToken } from "@/lib/gmail";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 // Gmail system labels that cannot be deleted
 const SYSTEM_LABELS = [
@@ -11,14 +13,13 @@ const SYSTEM_LABELS = [
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail } = await request.json();
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to delete labels");
     }
+
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     const supabase = createClient();
 

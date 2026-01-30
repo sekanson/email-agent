@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { google } from "googleapis";
 import Anthropic from "@anthropic-ai/sdk";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -169,14 +171,14 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    const { userEmail, scanAll = false, maxEmails = 500 } = await request.json();
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "Missing userEmail" },
-        { status: 400 }
-      );
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to scan emails");
     }
+
+    const { scanAll = false, maxEmails = 500 } = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     const effectiveMax = scanAll ? MAX_EMAILS_TOTAL : Math.min(maxEmails, CHUNK_SIZE);
     console.log(`[Declutter Scan] Starting scan for ${userEmail}, scanAll: ${scanAll}, effectiveMax: ${effectiveMax}`);

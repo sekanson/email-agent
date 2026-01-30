@@ -1,36 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
+import { verifyAdminAccess } from "@/lib/auth";
+import { unauthorizedResponse, forbiddenResponse } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const userEmail = searchParams.get("userEmail");
+    // Verify admin authentication
+    const { authorized, userEmail, error } = await verifyAdminAccess();
 
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
+    if (!authorized) {
+      if (!userEmail) {
+        return unauthorizedResponse(error || "Please sign in");
+      }
+      return forbiddenResponse(error || "Admin access required");
     }
 
     const supabase = createClient();
-
-    // Check if requesting user has admin access (admin, owner, or primary_owner)
-    const { data: currentUser, error: userError } = await supabase
-      .from("users")
-      .select("is_admin, role")
-      .eq("email", userEmail)
-      .single();
-
-    const userRole = currentUser?.role || "user";
-    const canAccessAdmin = ["admin", "owner", "primary_owner"].includes(userRole) || currentUser?.is_admin;
-
-    if (userError || !canAccessAdmin) {
-      return NextResponse.json(
-        { isAdmin: false, error: "Not authorized" },
-        { status: 403 }
-      );
-    }
 
     // Fetch all users (only safe columns - no tokens!)
     const { data: users, error: usersError } = await supabase

@@ -2,12 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { google } from "googleapis";
 import { ActionRequest, ActionResponse } from "@/lib/declutter-types";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, senderEmail, action }: ActionRequest = await request.json();
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to perform this action");
+    }
 
-    if (!userEmail || !senderEmail || !action) {
+    const { senderEmail, action }: Omit<ActionRequest, 'userEmail'> = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email
+
+    if (!senderEmail || !action) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }

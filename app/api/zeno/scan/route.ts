@@ -9,18 +9,25 @@ import { createClient } from "@/lib/supabase";
 import { getSenderContext } from "@/lib/sender-context";
 import { DigestEmail, generateSuggestedActions } from "@/lib/zeno-digest";
 import { createAction, updateSenderHistory } from "@/lib/action-queue";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 /**
  * POST /api/zeno/scan
- * 
+ *
  * Scans the user's inbox for important emails that need attention.
  * Returns emails prioritized by importance with suggested actions.
- * 
- * Body: { userEmail: string, maxEmails?: number, includeRead?: boolean }
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, maxEmails = 20, includeRead = false } = await request.json();
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to scan emails");
+    }
+
+    const { maxEmails = 20, includeRead = false } = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     if (!userEmail) {
       return NextResponse.json(

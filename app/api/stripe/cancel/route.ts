@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail } = await request.json();
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to cancel subscription");
     }
+
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     const supabase = createClient();
 

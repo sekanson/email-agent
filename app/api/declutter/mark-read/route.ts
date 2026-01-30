@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { google } from "googleapis";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 interface ImportantEmail {
   gmail_id: string;
@@ -13,11 +15,18 @@ interface ImportantEmail {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, sessionId, except } = await request.json();
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to mark emails as read");
+    }
 
-    if (!userEmail || !sessionId) {
+    const { sessionId, except } = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email
+
+    if (!sessionId) {
       return NextResponse.json(
-        { error: "Missing userEmail or sessionId" },
+        { error: "Missing sessionId" },
         { status: 400 }
       );
     }

@@ -6,23 +6,26 @@ import {
   approveAction,
   cancelAction,
 } from "@/lib/action-queue";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 /**
  * GET /api/zeno/actions
- * 
+ *
  * Get actions for a user (pending or history)
- * 
- * Query params:
- * - userEmail: string (required)
- * - status: 'pending' | 'history' | 'all' (default: 'pending')
- * - limit: number (default: 50)
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to view actions");
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const userEmail = searchParams.get("userEmail");
     const status = searchParams.get("status") || "pending";
     const limit = parseInt(searchParams.get("limit") || "50");
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     if (!userEmail) {
       return NextResponse.json(
@@ -93,6 +96,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to manage actions");
+    }
+
     const { actionId, operation } = await request.json();
 
     if (!actionId || !operation) {

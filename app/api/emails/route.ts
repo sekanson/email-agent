@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to view emails");
+    }
+
     const searchParams = request.nextUrl.searchParams;
-    const userEmail = searchParams.get("userEmail");
     const dateRange = searchParams.get("dateRange") || "all";
     const limit = parseInt(searchParams.get("limit") || "100");
     const category = searchParams.get("category"); // Optional category filter
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
-    }
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     const supabase = createClient();
 

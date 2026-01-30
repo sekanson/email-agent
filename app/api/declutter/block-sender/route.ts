@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { google } from "googleapis";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, senderEmail, action = "block" } = await request.json();
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to block senders");
+    }
 
-    if (!userEmail || !senderEmail) {
+    const { senderEmail, action = "block" } = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email
+
+    if (!senderEmail) {
       return NextResponse.json(
-        { error: "Missing userEmail or senderEmail" },
+        { error: "Missing senderEmail" },
         { status: 400 }
       );
     }

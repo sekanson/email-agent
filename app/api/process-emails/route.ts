@@ -9,20 +9,22 @@ import {
 } from "@/lib/claude";
 import { createClient } from "@/lib/supabase";
 import { getSenderContext } from "@/lib/sender-context";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 // Free tier limit for drafts
 const FREE_DRAFT_LIMIT = 10;
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, maxEmails = 10 } = await request.json();
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to process emails");
     }
+
+    const { maxEmails = 10 } = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     const supabase = createClient();
 

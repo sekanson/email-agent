@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import SessionProvider from "@/components/providers/SessionProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -33,16 +34,18 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className={`${inter.variable} font-sans antialiased`}>
-        {/* Background ribbon decoration */}
-        <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-[0.03]">
-          <img
-            src="/ribbon.svg"
-            alt=""
-            className="absolute left-0 top-0 h-full w-full object-cover"
-            aria-hidden="true"
-          />
-        </div>
-        {children}
+        <SessionProvider>
+          {/* Background ribbon decoration */}
+          <div className="pointer-events-none fixed inset-0 overflow-hidden opacity-[0.03]">
+            <img
+              src="/ribbon.svg"
+              alt=""
+              className="absolute left-0 top-0 h-full w-full object-cover"
+              aria-hidden="true"
+            />
+          </div>
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

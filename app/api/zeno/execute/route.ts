@@ -21,35 +21,30 @@ import {
   getPendingActions,
   approveAction,
 } from "@/lib/action-queue";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 /**
  * POST /api/zeno/execute
- * 
+ *
  * Executes approved actions from the action queue.
  * Can execute a specific action or process all approved actions.
- * 
- * Body: { 
- *   userEmail: string,
- *   actionId?: string,      // Execute specific action
- *   executeAll?: boolean,   // Execute all approved actions
- *   autoApprove?: boolean   // Auto-approve pending actions first
- * }
  */
 export async function POST(request: NextRequest) {
   try {
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to execute actions");
+    }
+
     const {
-      userEmail,
       actionId,
       executeAll = false,
       autoApprove = false,
     } = await request.json();
 
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
-    }
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     const supabase = createClient();
 

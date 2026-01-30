@@ -1,33 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { getStripe } from "@/lib/stripe";
+import { verifyAdminAccess } from "@/lib/auth";
+import { unauthorizedResponse, forbiddenResponse } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
-    const { adminEmail, targetUserEmail, action } = await request.json();
+    // Verify admin authentication
+    const { authorized, userEmail: adminEmail, error } = await verifyAdminAccess();
 
-    if (!adminEmail || !targetUserEmail || !action) {
+    if (!authorized) {
+      if (!adminEmail) {
+        return unauthorizedResponse(error || "Please sign in");
+      }
+      return forbiddenResponse(error || "Admin access required");
+    }
+
+    const { targetUserEmail, action } = await request.json();
+
+    if (!targetUserEmail || !action) {
       return NextResponse.json(
-        { error: "Admin email, target user email, and action are required" },
+        { error: "Target user email and action are required" },
         { status: 400 }
       );
     }
 
     const supabase = createClient();
-
-    // Verify admin status
-    const { data: adminUser } = await supabase
-      .from("users")
-      .select("is_admin")
-      .eq("email", adminEmail)
-      .single();
-
-    if (!adminUser?.is_admin) {
-      return NextResponse.json(
-        { error: "Not authorized" },
-        { status: 403 }
-      );
-    }
 
     // Get target user (only fields needed for subscription management)
     const { data: targetUser, error: targetError } = await supabase

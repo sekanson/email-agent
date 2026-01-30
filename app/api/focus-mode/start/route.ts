@@ -1,25 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
-import { 
-  refreshAccessToken, 
-  createLabel, 
+import {
+  refreshAccessToken,
+  createLabel,
   getLabels,
   createFilter,
   getFilters
 } from "@/lib/gmail";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 const FOCUS_QUEUE_LABEL = "📵 Focus Queue";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, durationHours } = await request.json();
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to use focus mode");
     }
+
+    const { durationHours } = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email, not request body
 
     const supabase = createClient();
 

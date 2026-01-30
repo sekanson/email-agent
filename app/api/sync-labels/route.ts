@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { createLabel, getLabels, updateLabel, deleteLabel, refreshAccessToken } from "@/lib/gmail";
 import { createClient } from "@/lib/supabase";
 import { DEFAULT_CATEGORIES, CategoryConfig } from "@/lib/claude";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   console.log("=== SYNC LABELS START ===");
 
   try {
-    const { userEmail } = await request.json();
-    console.log("User email:", userEmail);
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to sync labels");
     }
+
+    const userEmail = authenticatedEmail; // Use authenticated email
+    console.log("User email:", userEmail);
 
     const supabase = createClient();
 

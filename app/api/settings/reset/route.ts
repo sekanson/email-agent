@@ -2,17 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { CURRENT_SCHEMA_VERSIONS, type SchemaKey } from "@/lib/schema-versions";
 import { DEFAULT_USER_SETTINGS } from "@/lib/settings-merge";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail, schema } = await request.json();
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to reset settings");
     }
+
+    const { schema } = await request.json();
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     const supabase = createClient();
 

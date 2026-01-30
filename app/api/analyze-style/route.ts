@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getEmails, refreshAccessToken } from "@/lib/gmail";
 import { createClient } from "@/lib/supabase";
 import Anthropic from "@anthropic-ai/sdk";
+import { getAuthenticatedUser } from "@/lib/auth";
+import { unauthorizedResponse } from "@/lib/api-utils";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -9,14 +11,13 @@ const anthropic = new Anthropic({
 
 export async function POST(request: NextRequest) {
   try {
-    const { userEmail } = await request.json();
-
-    if (!userEmail) {
-      return NextResponse.json(
-        { error: "User email is required" },
-        { status: 400 }
-      );
+    // Verify authentication
+    const authenticatedEmail = await getAuthenticatedUser();
+    if (!authenticatedEmail) {
+      return unauthorizedResponse("Please sign in to analyze your writing style");
     }
+
+    const userEmail = authenticatedEmail; // Use authenticated email
 
     const supabase = createClient();
 
