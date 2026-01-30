@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { detectThreadSignals, ThreadSignals, analyzeThreadState } from "./thread-detection";
 import { SenderContext, formatSenderContextForPrompt } from "./sender-context";
+import { DEFAULT_CATEGORIES as SHARED_CATEGORIES, CategoryConfig as SharedCategoryConfig } from "./categories";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -72,81 +73,9 @@ export function isCalendarCategory(name: string): boolean {
   return displayName === "calendar" || displayName.includes("calendar");
 }
 
-export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = {
-  "1": {
-    name: "1: Reply Needed 🔴",
-    color: "#EF4444",
-    enabled: true,
-    required: true,
-    description: "Requires YOUR direct response",
-    rules: "Direct questions to you, requests for YOUR input, approval requests, personal emails asking something specific",
-    drafts: true,
-    order: 1,
-  },
-  "2": {
-    name: "2: FYI 🟠",
-    color: "#F97316",
-    enabled: true,
-    description: "Worth reading, no action needed",
-    rules: "Status updates, announcements, shared docs for awareness, informational forwards, thank-you messages",
-    drafts: false,
-    order: 2,
-  },
-  "3": {
-    name: "3: Calendar 🟣",
-    color: "#A855F7",
-    enabled: true,
-    description: "Time-bound, scheduling related",
-    rules: "Meeting invites, event notifications, RSVPs, scheduling requests, appointment reminders, calendar attachments",
-    drafts: false,
-    order: 3,
-  },
-  "4": {
-    name: "4: Receipts 🟢",
-    color: "#22C55E",
-    enabled: true,
-    description: "Transactional paper trail",
-    rules: "Payment confirmations, invoices, shipping notifications, order confirmations, account statements, subscription receipts, purchase receipts",
-    drafts: false,
-    order: 4,
-  },
-  "5": {
-    name: "5: Mentions 🔵",
-    color: "#3B82F6",
-    enabled: true,
-    description: "CC'd or tagged, not direct ask",
-    rules: "CC'd on threads, @mentions, document comments, group discussions where you're not the primary recipient",
-    drafts: false,
-    order: 5,
-  },
-  "6": {
-    name: "6: Waiting ⏳",
-    color: "#EAB308",
-    enabled: true,
-    description: "Ball in someone else's court",
-    rules: "Emails where you've asked something and await response, submitted applications, pending approvals from others, confirmations you're waiting for",
-    drafts: false,
-    order: 6,
-  },
-  "7": {
-    name: "7: Newsletters 📰",
-    color: "#06B6D4",
-    enabled: true,
-    description: "Subscribed/wanted content",
-    rules: "Regular digests, mailing lists you subscribed to, educational content, product updates from services you actively use",
-    drafts: false,
-    order: 7,
-  },
-  "8": {
-    name: "8: Spam 🗑️",
-    color: "#6B7280",
-    enabled: true,
-    description: "Unwanted/unsolicited",
-    rules: "Cold sales outreach, unsolicited marketing, promotional emails you didn't subscribe to, actual spam, first-contact selling",
-    drafts: false,
-    order: 8,
-  },
-};
+// Use shared categories from categories.ts as single source of truth
+// This ensures classification and labels match
+export const DEFAULT_CATEGORIES: Record<string, CategoryConfig> = SHARED_CATEGORIES;
 
 export const OTHER_CATEGORY: CategoryConfig = {
   name: "Other",
@@ -167,6 +96,20 @@ function buildCategoryContext(category: CategoryConfig): string {
     context += ` | Additional rules: ${category.rules}`;
   }
   return context;
+}
+
+// Helper to find category number by name pattern
+function findCategoryByPattern(categories: Record<string, CategoryConfig>, patterns: string[]): string | null {
+  for (const [num, config] of Object.entries(categories)) {
+    const name = getDisplayName(config.name).toLowerCase();
+    const desc = config.description.toLowerCase();
+    for (const pattern of patterns) {
+      if (name.includes(pattern) || desc.includes(pattern)) {
+        return num;
+      }
+    }
+  }
+  return null;
 }
 
 export async function classifyEmailCategory(
@@ -192,6 +135,15 @@ export async function classifyEmailCategory(
   // Check if "Other" category exists
   const hasOther = sortedCategories.some(([, config]) => isOtherCategory(config.name));
 
+  // Find category numbers dynamically
+  const marketingCat = findCategoryByPattern(categories, ["marketing", "spam", "promotional"]) || "8";
+  const actionCat = findCategoryByPattern(categories, ["action", "reply", "respond"]) || "1";
+  const fyiCat = findCategoryByPattern(categories, ["fyi", "info", "for info"]) || "2";
+  const notificationsCat = findCategoryByPattern(categories, ["notification", "automated"]) || "4";
+  const meetingsCat = findCategoryByPattern(categories, ["meeting", "calendar", "event"]) || "5";
+  const waitingCat = findCategoryByPattern(categories, ["waiting", "pending", "await"]) || "6";
+  const completedCat = findCategoryByPattern(categories, ["completed", "done", "resolved", "actioned"]) || "7";
+
   const prompt = `Classify this email into exactly ONE category. Respond with ONLY the category number.
 
 Categories:
@@ -199,50 +151,52 @@ ${categoryList}
 
 === CRITICAL CLASSIFICATION RULES (follow strictly) ===
 
-1. COLD OUTREACH = ALWAYS SPAM (category 8)
-   - First contact + selling/pitching something = Spam
-   - Unknown sender + promotional content = Spam
-   - "Reaching out because..." + product pitch = Spam
+★ MARKETING/SPAM DETECTION (category ${marketingCat}) - MOST IMPORTANT!
+   - Has "Unsubscribe" link + broadcast format = Marketing (${marketingCat})
+   - Product announcements, feature updates = Marketing (${marketingCat})
+   - Valentine's Day, Black Friday, any promotional content = Marketing (${marketingCat})
+   - Newsletters from companies (Apple, Google, etc.) = Marketing (${marketingCat})
+   - Cold outreach, sales pitches = Marketing (${marketingCat})
+   - KEY: If it looks like a mass-sent promotional email → Marketing (${marketingCat})
 
-2. RECEIPTS ARE SACRED (category 4)
-   - Payment confirmation = ALWAYS Receipts (never FYI)
-   - Invoice/billing = ALWAYS Receipts
-   - Order/shipping confirmation = ALWAYS Receipts
-   - Account statement = ALWAYS Receipts
+★ ACTION REQUIRED = Direct ask to YOU (category ${actionCat})
+   - Direct question requiring YOUR answer = Action Required
+   - Request for YOUR input/approval = Action Required
+   - Personal email asking something specific = Action Required
+   - NOT: automated notifications, newsletters, bulk emails
 
-3. CALENDAR HAS PRIORITY (category 3)
-   - Meeting invite with date/time = ALWAYS Calendar
-   - Event notification = ALWAYS Calendar
-   - RSVP request = ALWAYS Calendar
-
-4. NEWSLETTERS vs SPAM
-   - Has "Unsubscribe" + broadcast format + no personal ask:
-     * From a service you likely USE = Newsletters (7)
-     * From unknown/unsolicited source = Spam (8)
-   - Product updates from services you use = Newsletters
-   - Cold marketing from unknown sender = Spam
-
-5. REPLY NEEDED = Direct ask to YOU (category 1)
-   - Direct question requiring YOUR answer = Reply Needed
-   - Request for YOUR input/approval = Reply Needed
-   - Personal email asking something specific = Reply Needed
-   - NOT: automated notifications, bulk emails, FYI forwards
-
-6. CC'd vs PRIMARY (category 5)
-   - You're in CC but not TO = Mentions
-   - @mentioned in a doc/thread = Mentions
-   - Group thread where you're not primary = Mentions
-
-7. FYI = Worth reading, no action (category 2)
-   - Status updates = FYI
-   - "Just letting you know" = FYI
+★ FYI = Worth reading, no action (category ${fyiCat})
+   - Status updates from real people = FYI
+   - "Just letting you know" from colleagues = FYI
    - "Thanks!" or acknowledgment = FYI
-   - Informational forwards = FYI
+   - NOT: mass-sent newsletters (those are Marketing!)
 
-8. WAITING = Ball in their court (category 6)
-   - You asked a question, they haven't answered = Waiting
+★ NOTIFICATIONS (category ${notificationsCat})
+   - Payment confirmations, receipts = Notifications
+   - Order/shipping confirmations = Notifications
+   - System alerts, security notifications = Notifications
+   - Automated transactional emails = Notifications
+
+★ MEETINGS/CALENDAR (category ${meetingsCat})
+   - Meeting invite with date/time = Meetings
+   - Event notification = Meetings
+   - RSVP request = Meetings
+
+★ WAITING (category ${waitingCat})
+   - Ball in someone else's court
    - Submitted application = Waiting
    - Pending approval from others = Waiting
+
+★ COMPLETED (category ${completedCat}) - Use sparingly!
+   - ONLY for emails that are clearly resolved/finished
+   - Thank you that closes a conversation = Completed
+   - "Done!" confirmation = Completed
+   - NOT: newsletters, marketing, random emails (those are NOT "completed")
+
+⚠️ COMMON MISTAKES TO AVOID:
+- Marketing emails are NOT "Completed" - they go to Marketing (${marketingCat})
+- Newsletters are NOT "FYI" - they go to Marketing (${marketingCat})
+- Broadcast emails with "Unsubscribe" are NOT personal = Marketing (${marketingCat})
 
 ${hasOther ? '- Use "Other" (99) if email doesn\'t clearly fit any category' : ''}
 
@@ -422,6 +376,16 @@ function buildTieredPrompt(
     isOtherCategory(config.name)
   );
 
+  // Find category numbers dynamically
+  const marketingCat = findCategoryByPattern(categories, ["marketing", "spam", "promotional"]) || "8";
+  const actionCat = findCategoryByPattern(categories, ["action", "reply", "respond"]) || "1";
+  const fyiCat = findCategoryByPattern(categories, ["fyi", "info", "for info"]) || "2";
+  const notificationsCat = findCategoryByPattern(categories, ["notification", "automated"]) || "4";
+  const meetingsCat = findCategoryByPattern(categories, ["meeting", "calendar", "event"]) || "5";
+  const waitingCat = findCategoryByPattern(categories, ["waiting", "pending", "await"]) || "6";
+  const completedCat = findCategoryByPattern(categories, ["completed", "done", "resolved", "actioned"]) || "7";
+  const teamCat = findCategoryByPattern(categories, ["team", "mention", "cc"]) || "3";
+
   // Build context sections
   let contextSection = "";
 
@@ -447,62 +411,72 @@ REASONING: [one sentence explanation]
 
 === CRITICAL CLASSIFICATION RULES (non-negotiable) ===
 
-★ COLD OUTREACH = ALWAYS SPAM (8)
-  - First contact + selling/pitching = Spam
-  - Unknown sender + promotional = Spam
+★ MARKETING/SPAM = Mass-sent promotional emails (${marketingCat})
+  - Has "Unsubscribe" link + broadcast format = Marketing (${marketingCat})
+  - Product announcements, newsletters from companies = Marketing (${marketingCat})
+  - Valentine's Day, holiday promos = Marketing (${marketingCat})
+  - Cold outreach, sales pitches = Marketing (${marketingCat})
+  - CRITICAL: Newsletters ARE marketing! Don't put in FYI or Completed!
 
-★ RECEIPTS ARE SACRED (4) - Never misclassify as FYI!
-  - Payment/invoice/order confirmation = ALWAYS Receipts
-  - Shipping notification = ALWAYS Receipts
-  - Account statement = ALWAYS Receipts
+★ NOTIFICATIONS = Transactional/automated (${notificationsCat})
+  - Payment/invoice/order confirmation = Notifications (${notificationsCat})
+  - Shipping notification = Notifications (${notificationsCat})
+  - Account statement = Notifications (${notificationsCat})
 
-★ CALENDAR HAS PRIORITY (3)
-  - Meeting invite with date/time = ALWAYS Calendar
-  - Event notification/RSVP = ALWAYS Calendar
+★ MEETINGS/CALENDAR (${meetingsCat})
+  - Meeting invite with date/time = Meetings (${meetingsCat})
+  - Event notification/RSVP = Meetings (${meetingsCat})
 
-★ NEWSLETTERS vs SPAM (7 vs 8)
-  - "Unsubscribe" + broadcast + service you USE = Newsletters (7)
-  - "Unsubscribe" + broadcast + unknown source = Spam (8)
+★ ACTION REQUIRED = Direct ask to YOU (${actionCat})
+  - Direct question for YOUR answer = Action Required (${actionCat})
+  - Request for YOUR approval/input = Action Required (${actionCat})
+  - NOT: bulk emails, newsletters, automated messages
 
-★ REPLY NEEDED = Direct ask to YOU (1)
-  - Direct question for YOUR answer = Reply Needed
-  - Request for YOUR approval/input = Reply Needed
+★ TEAM UPDATES / MENTIONS (${teamCat})
+  - In CC but not TO = Team/Mentions (${teamCat})
+  - @mentioned but not primary = Team/Mentions (${teamCat})
 
-★ CC'd = MENTIONS (5)
-  - In CC but not TO = Mentions
-  - @mentioned but not primary = Mentions
+★ FYI = Personal informational emails (${fyiCat})
+  - Status updates from REAL PEOPLE = FYI (${fyiCat})
+  - NOT: newsletters, marketing emails, bulk sends
+
+★ COMPLETED = Truly resolved conversations ONLY (${completedCat})
+  - Thank you that CLOSES a conversation = Completed (${completedCat})
+  - "Done!" confirmation = Completed (${completedCat})
+  - NOT: newsletters, marketing, random emails
+
+⚠️ COMMON MISCLASSIFICATIONS TO AVOID:
+- Marketing emails → NOT FYI, NOT Completed → Marketing (${marketingCat})
+- Company newsletters → NOT FYI → Marketing (${marketingCat})
+- Product updates from companies → NOT FYI → Marketing (${marketingCat})
 
 === ANALYSIS TIERS (check in order) ===
 
 TIER 0 - THREAD CONTEXT (highest priority):
 Is this part of an existing conversation thread?
-- If YES and it's a reply thread: NEVER classify as Spam
+- If YES and it's a reply thread: NEVER classify as Marketing/Spam
 - Analyze based on conversation state
 
-TIER 1 - STRUCTURAL SIGNALS:
-- Receipt/invoice/payment keywords → Receipts (4)
-- Calendar invite attachment or meeting request → Calendar (3)
-- @mention or direct question to you → Reply Needed (1)
-- CC'd not primary recipient → Mentions (5)
+TIER 1 - BULK EMAIL DETECTION (check early!):
+- Has "Unsubscribe" + no personal greeting → Marketing (${marketingCat})
+- Broadcast format, sent to many people → Marketing (${marketingCat})
+- From a company, not a person → Marketing (${marketingCat})
 
-TIER 2 - CONVERSATION STATE:
-- Waiting on someone else → Waiting (6)
-- Just a "thanks" or acknowledgment → FYI (2)
+TIER 2 - STRUCTURAL SIGNALS:
+- Receipt/invoice/payment keywords → Notifications (${notificationsCat})
+- Calendar invite attachment or meeting request → Meetings (${meetingsCat})
+- @mention or direct question to you → Action Required (${actionCat})
+- CC'd not primary recipient → Team/Mentions (${teamCat})
 
-TIER 3 - CONTENT ANALYSIS:
-- Requires your reply/action → Reply Needed (1)
-- FYI/informational/status update → FYI (2)
+TIER 3 - CONVERSATION STATE:
+- Waiting on someone else → Waiting (${waitingCat})
+- Just a "thanks" that closes loop → Completed (${completedCat})
 
-TIER 4 - SUBSCRIPTION CONTENT:
-- Regular digest/newsletter from known service → Newsletters (7)
-- Product updates from service you use → Newsletters (7)
+TIER 4 - CONTENT ANALYSIS:
+- Requires your reply/action → Action Required (${actionCat})
+- Personal FYI/status update → FYI (${fyiCat})
 
-TIER 5 - CATCH-ALL:
-- Spam ONLY if ALL of these are true:
-  1. NOT a reply thread
-  2. First contact OR bulk sender
-  3. Has promotional content from unknown/unwanted source
-${hasOther ? '- Use "Other" (99) if email doesn\'t clearly fit any category' : ""}
+${hasOther ? `- Use "Other" (99) if email doesn't clearly fit any category` : ""}
 
 Categories:
 ${categoryList}
@@ -510,15 +484,14 @@ ${contextSection}
 
 UNCERTAINTY HANDLING:
 If confidence < 70% between two categories, prefer:
-- Spam vs Newsletters → Known service = Newsletters, Unknown = Spam
-- Spam vs FYI → Known contact = FYI, Unknown = Spam
-- Reply Needed vs FYI → If any direct question = Reply Needed
-- Receipts vs FYI → If transaction/payment = ALWAYS Receipts
-- Calendar vs FYI → If date/time to attend = ALWAYS Calendar
-- Waiting vs FYI → If open loop remains = Waiting
+- Marketing vs FYI → Has "Unsubscribe"? Marketing (${marketingCat})
+- Action vs FYI → If any direct question = Action Required (${actionCat})
+- Notifications vs FYI → If transaction/payment = Notifications (${notificationsCat})
+- Meetings vs FYI → If date/time to attend = Meetings (${meetingsCat})
+- Waiting vs FYI → If open loop remains = Waiting (${waitingCat})
 
 Default hierarchy when truly uncertain:
-Reply Needed (1) > Calendar (3) > Receipts (4) > Waiting (6) > Mentions (5) > FYI (2) > Newsletters (7) > Spam (8) > Other (99)
+Action Required (${actionCat}) > Meetings (${meetingsCat}) > Notifications (${notificationsCat}) > Waiting (${waitingCat}) > Team (${teamCat}) > FYI (${fyiCat}) > Marketing (${marketingCat}) > Completed (${completedCat})
 (Better to surface something that might need action than bury it)
 
 Email:
