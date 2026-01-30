@@ -268,15 +268,16 @@ export default function AdminPage() {
   const adminEmail = authEmail || "";
 
   useEffect(() => {
-    checkAdminAndFetchData();
-  }, []);
-
-  async function checkAdminAndFetchData() {
+    // Wait for auth to complete before checking admin status
+    if (authLoading) return;
     if (!adminEmail) {
       router.push("/");
       return;
     }
+    checkAdminAndFetchData();
+  }, [authLoading, adminEmail]);
 
+  async function checkAdminAndFetchData() {
     try {
       const res = await fetch(`/api/admin/users?userEmail=${adminEmail}`);
       const data = await res.json();
@@ -517,7 +518,7 @@ export default function AdminPage() {
     }
   }
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-[var(--bg-primary)]">
         <Sidebar />
