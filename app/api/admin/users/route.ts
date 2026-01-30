@@ -17,6 +17,15 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient();
 
+    // Get current admin's role
+    const { data: currentAdmin } = await supabase
+      .from("users")
+      .select("role")
+      .eq("email", userEmail)
+      .single();
+
+    const currentUserRole = currentAdmin?.role || "admin";
+
     // Fetch all users (only safe columns - no tokens!)
     const { data: users, error: usersError } = await supabase
       .from("users")
@@ -68,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       isAdmin: true,
-      currentUserRole: userRole,
+      currentUserRole,
       users: usersWithEmailCounts,
     });
   } catch (error) {
