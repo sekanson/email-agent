@@ -42,15 +42,19 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async session({ session, token }) {
-      // Add user email to session for easy access
-      if (session.user && token.email) {
-        session.user.email = token.email;
+      // Add user info to session for easy access
+      if (session.user) {
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.image = token.picture as string;
       }
       return session;
     },
     async jwt({ token, user }) {
       if (user) {
         token.email = user.email;
+        token.name = user.name;
+        token.picture = user.image;
       }
       return token;
     },
