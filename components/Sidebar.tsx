@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Logo from "./Logo";
 import SupportChat from "./SupportChat";
+import { useAuth } from "@/lib/useAuth";
 
 // Clean nav - just the core items
 const navItems = [
@@ -56,6 +57,9 @@ export default function Sidebar() {
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // Use the auth hook to get session data
+  const { userEmail: authEmail, userName: authName, userPicture: authPicture, isAuthenticated } = useAuth();
+
   const [user, setUser] = useState<User | null>(() => {
     if (typeof window === "undefined") return null;
     const userEmail = localStorage.getItem("userEmail");
@@ -77,6 +81,19 @@ export default function Sidebar() {
     if (typeof window === "undefined") return "user";
     return (localStorage.getItem("userRole") as Role) || "user";
   });
+
+  // Update user state when auth session changes
+  useEffect(() => {
+    if (authEmail && isAuthenticated) {
+      setUser(prev => ({
+        ...prev,
+        email: authEmail,
+        name: authName || authEmail.split("@")[0],
+        picture: authPicture || undefined,
+        subscriptionStatus: prev?.subscriptionStatus,
+      }));
+    }
+  }, [authEmail, authName, authPicture, isAuthenticated]);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -106,11 +123,12 @@ export default function Sidebar() {
     }
   }, []);
 
+  // Fetch settings when we have a user email (either from auth or localStorage)
   useEffect(() => {
-    const userEmail = localStorage.getItem("userEmail");
+    const emailToUse = authEmail || localStorage.getItem("userEmail");
 
-    if (userEmail) {
-      fetch(`/api/settings?userEmail=${userEmail}`)
+    if (emailToUse) {
+      fetch(`/api/settings?userEmail=${emailToUse}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.user) {
@@ -133,7 +151,7 @@ export default function Sidebar() {
         })
         .catch(() => {});
     }
-  }, []);
+  }, [authEmail]);
 
   const getInitials = (name: string) => {
     return name
