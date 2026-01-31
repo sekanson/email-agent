@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
         drafts_created_count, emails_processed_count,
         onboarding_completed, notification_preferences,
         gmail_connected, gmail_connected_at, calendar_connected, calendar_connected_at,
-        labels_created
+        labels_created, is_admin, role
       `)
       .eq("email", userEmail)
       .single();
