@@ -75,7 +75,7 @@ export default function OnboardingModal({
   function handleSwipeNext() {
     // Define which steps can be freely navigated to via swipe
     if (currentStep === "welcome") setCurrentStep("labels");
-    else if (currentStep === "labels" && labelsCreated) setCurrentStep("agent");
+    else if (currentStep === "labels") setCurrentStep("agent");
     else if (currentStep === "agent") setCurrentStep("style");
     else if (currentStep === "style") setCurrentStep("declutter");
     else if (currentStep === "declutter") setCurrentStep("done");
@@ -268,14 +268,14 @@ export default function OnboardingModal({
               </p>
               <div className="mt-6 grid grid-cols-2 gap-2 text-left text-sm sm:gap-2">
                 {[
-                  { name: "Respond", color: "bg-red-400" },
-                  { name: "Update", color: "bg-amber-400" },
-                  { name: "Comment", color: "bg-blue-400" },
-                  { name: "Notification", color: "bg-cyan-400" },
-                  { name: "Calendar", color: "bg-purple-400" },
-                  { name: "Pending", color: "bg-orange-400" },
-                  { name: "Complete", color: "bg-emerald-400" },
-                  { name: "Marketing", color: "bg-zinc-400" },
+                  { name: "Action Required", color: "bg-red-400" },
+                  { name: "FYI Only", color: "bg-amber-400" },
+                  { name: "Team Updates", color: "bg-cyan-400" },
+                  { name: "Notifications", color: "bg-emerald-400" },
+                  { name: "Meetings & Events", color: "bg-purple-400" },
+                  { name: "Waiting for Reply", color: "bg-blue-400" },
+                  { name: "Completed", color: "bg-teal-400" },
+                  { name: "Marketing & Spam", color: "bg-pink-400" },
                 ].map((cat) => (
                   <div
                     key={cat.name}
@@ -287,30 +287,38 @@ export default function OnboardingModal({
                 ))}
               </div>
               <p className="mt-4 text-sm text-[var(--text-muted)]">
-                These will be created as labels in your Gmail.
+                These are smart defaults — you can customize them anytime in Settings.
               </p>
-              <button
-                onClick={handleSetupLabels}
-                disabled={labelsLoading || labelsCreated}
-                className="mt-6 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-4 text-base font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:min-h-0 sm:py-3"
-              >
-                {labelsLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    Creating Labels...
-                  </>
-                ) : labelsCreated ? (
-                  <>
-                    <Check className="h-5 w-5" />
-                    Labels Created!
-                  </>
-                ) : (
-                  <>
-                    <Tag className="h-5 w-5" />
-                    Setup Labels
-                  </>
-                )}
-              </button>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={() => setCurrentStep("agent")}
+                  className="min-h-[52px] flex-1 rounded-xl border border-[var(--border)] py-4 text-base font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-elevated)] sm:min-h-0 sm:py-3"
+                >
+                  Skip for later
+                </button>
+                <button
+                  onClick={handleSetupLabels}
+                  disabled={labelsLoading || labelsCreated}
+                  className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl bg-[var(--accent)] py-4 text-base font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:min-h-0 sm:py-3"
+                >
+                  {labelsLoading ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Creating Labels...
+                    </>
+                  ) : labelsCreated ? (
+                    <>
+                      <Check className="h-5 w-5" />
+                      Labels Created!
+                    </>
+                  ) : (
+                    <>
+                      <Tag className="h-5 w-5" />
+                      Setup Labels
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           )}
 
