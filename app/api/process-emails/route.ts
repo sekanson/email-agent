@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getEmails, replaceCategoryLabel, createDraft, getThreadMessages, formatThreadForAI } from "@/lib/gmail";
+import { getEmails, replaceCategoryLabelOnThread, createDraft, getThreadMessages, formatThreadForAI } from "@/lib/gmail";
 import {
   classifyEmailWithContext,
   generateDraftResponse,
@@ -145,15 +145,16 @@ export async function POST(request: NextRequest) {
             // Get all category label IDs for removing old labels
             const allCategoryLabelIds = Object.values(user.gmail_label_ids || {}).filter(Boolean) as string[];
 
-            // Replace label - removes any existing category label and applies new one
-            await replaceCategoryLabel(
+            // Replace label on ENTIRE THREAD - removes any existing category labels from all messages
+            // and applies the new one to all messages, so the thread has ONE consistent label
+            await replaceCategoryLabelOnThread(
               accessToken,
               user.refresh_token,
-              email.id,
+              email.threadId,  // Use threadId, not messageId
               labelId,
               allCategoryLabelIds
             );
-            console.log(`[${userEmail}] ✓ Label ${labelId} applied to email ${email.id} (old labels removed)`);
+            console.log(`[${userEmail}] ✓ Label ${labelId} applied to thread ${email.threadId} (all messages updated)`);
           } catch (labelError: any) {
             console.error(`[${userEmail}] ✗ Failed to apply label:`, labelError.message || labelError);
           }

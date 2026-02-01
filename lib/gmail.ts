@@ -427,6 +427,7 @@ export async function applyLabel(
  * Replace category label - removes all existing category labels and applies the new one.
  * This ensures only ONE category label is ever on an email, and it gets updated
  * as the conversation evolves.
+ * @deprecated Use replaceCategoryLabelOnThread for thread-level labeling
  */
 export async function replaceCategoryLabel(
   accessToken: string,
@@ -471,6 +472,64 @@ export async function replaceCategoryLabel(
       id: messageId,
       requestBody,
     });
+  }
+}
+
+/**
+ * Replace category label on ENTIRE THREAD - removes all existing category labels 
+ * from ALL messages in the thread and applies the new one to ALL messages.
+ * This ensures the thread has ONE consistent category label that updates
+ * based on the latest email in the conversation.
+ */
+export async function replaceCategoryLabelOnThread(
+  accessToken: string,
+  refreshToken: string,
+  threadId: string,
+  newLabelId: string,
+  allCategoryLabelIds: string[]
+): Promise<void> {
+  const auth = getOAuth2Client(accessToken, refreshToken);
+  const gmail = google.gmail({ version: "v1", auth });
+
+  // Get all messages in the thread
+  const thread = await gmail.users.threads.get({
+    userId: "me",
+    id: threadId,
+    format: "minimal",
+  });
+
+  const messages = thread.data.messages || [];
+  
+  // Process each message in the thread
+  for (const message of messages) {
+    const messageId = message.id!;
+    const currentLabelIds = message.labelIds || [];
+
+    // Find which category labels are currently on this message
+    const labelsToRemove = currentLabelIds.filter(
+      (id) => allCategoryLabelIds.includes(id) && id !== newLabelId
+    );
+
+    // Build the modification request
+    const requestBody: { addLabelIds?: string[]; removeLabelIds?: string[] } = {};
+
+    if (labelsToRemove.length > 0) {
+      requestBody.removeLabelIds = labelsToRemove;
+    }
+
+    // Only add if not already present
+    if (!currentLabelIds.includes(newLabelId)) {
+      requestBody.addLabelIds = [newLabelId];
+    }
+
+    // Only make the API call if there's something to change
+    if (requestBody.addLabelIds || requestBody.removeLabelIds) {
+      await gmail.users.messages.modify({
+        userId: "me",
+        id: messageId,
+        requestBody,
+      });
+    }
   }
 }
 
