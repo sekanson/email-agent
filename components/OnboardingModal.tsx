@@ -89,8 +89,11 @@ export default function OnboardingModal({
     else if (currentStep === "done") setCurrentStep("declutter");
   }
 
+  const [labelsError, setLabelsError] = useState<string | null>(null);
+
   async function handleSetupLabels() {
     setLabelsLoading(true);
+    setLabelsError(null);
     try {
       const res = await fetch("/api/setup-labels", {
         method: "POST",
@@ -98,14 +101,20 @@ export default function OnboardingModal({
         body: JSON.stringify({ userEmail }),
       });
 
+      const data = await res.json();
+
       if (res.ok) {
         setLabelsCreated(true);
         setTimeout(() => setCurrentStep("agent"), 500);
       } else {
-        console.error("Failed to create labels");
+        // Show user-friendly error
+        const errorMsg = data.error || "Failed to create labels";
+        console.error("Failed to create labels:", errorMsg);
+        setLabelsError(errorMsg);
       }
     } catch (error) {
       console.error("Error creating labels:", error);
+      setLabelsError("Network error. Please try again.");
     } finally {
       setLabelsLoading(false);
     }
@@ -319,6 +328,11 @@ export default function OnboardingModal({
                   )}
                 </button>
               </div>
+              {labelsError && (
+                <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-400">
+                  {labelsError}
+                </div>
+              )}
             </div>
           )}
 

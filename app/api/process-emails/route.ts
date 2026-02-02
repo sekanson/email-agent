@@ -138,7 +138,18 @@ export async function POST(request: NextRequest) {
         // gmail_label_ids is now keyed by category NAME, not number
         const labelId = categoryName ? user.gmail_label_ids?.[categoryName] : null;
 
-        console.log(`[${userEmail}] Email ${email.id}: category=${category}, categoryName=${categoryName}, labelId=${labelId}`);
+        // Enhanced logging for label application
+        const labelingInfo = {
+          emailId: email.id,
+          subject: email.subject.slice(0, 50),
+          category,
+          categoryName,
+          labelId,
+          availableLabels: Object.keys(user.gmail_label_ids || {}),
+          confidence: result.confidence,
+          reasoning: result.reasoning,
+        };
+        console.log(`[${userEmail}] Classification:`, JSON.stringify(labelingInfo));
 
         if (labelId) {
           try {
@@ -154,12 +165,26 @@ export async function POST(request: NextRequest) {
               labelId,
               allCategoryLabelIds
             );
-            console.log(`[${userEmail}] ✓ Label ${labelId} applied to thread ${email.threadId} (all messages updated)`);
+            console.log(`[${userEmail}] ✓ Label "${categoryName}" (${labelId}) applied to thread ${email.threadId}`);
           } catch (labelError: any) {
-            console.error(`[${userEmail}] ✗ Failed to apply label:`, labelError.message || labelError);
+            console.error(`[${userEmail}] ✗ Failed to apply label to thread ${email.threadId}:`, labelError.message || labelError);
+            // Log more details for debugging
+            console.error(`[${userEmail}] Label error details:`, {
+              labelId,
+              threadId: email.threadId,
+              error: labelError.response?.data || labelError.message,
+            });
           }
         } else {
-          console.warn(`[${userEmail}] ⚠ No labelId for category "${categoryName}" - gmail_label_ids keys:`, Object.keys(user.gmail_label_ids || {}));
+          // This is a problem - email classified but not labeled!
+          console.error(`[${userEmail}] ⚠ EMAIL NOT LABELED - No labelId found!`, {
+            emailId: email.id,
+            subject: email.subject,
+            category,
+            categoryName,
+            gmailLabelIds: user.gmail_label_ids,
+            labelsCreated: user.labels_created,
+          });
         }
 
         // Step 4: Generate draft for "To Respond" emails (category 1)

@@ -149,56 +149,66 @@ export async function classifyEmailCategory(
 Categories:
 ${categoryList}
 
-=== CRITICAL CLASSIFICATION RULES (follow strictly) ===
+=== STEP 1: CHECK FOR MARKETING/NEWSLETTERS FIRST (category ${marketingCat}) ===
 
-★ MARKETING/SPAM DETECTION (category ${marketingCat}) - MOST IMPORTANT!
-   - Has "Unsubscribe" link + broadcast format = Marketing (${marketingCat})
-   - Product announcements, feature updates = Marketing (${marketingCat})
-   - Valentine's Day, Black Friday, any promotional content = Marketing (${marketingCat})
-   - Newsletters from companies (Apple, Google, etc.) = Marketing (${marketingCat})
-   - Cold outreach, sales pitches = Marketing (${marketingCat})
-   - KEY: If it looks like a mass-sent promotional email → Marketing (${marketingCat})
+Before anything else, check these MARKETING signals. If ANY match → Marketing (${marketingCat}):
 
-★ ACTION REQUIRED = Direct ask to YOU (category ${actionCat})
-   - Direct question requiring YOUR answer = Action Required
-   - Request for YOUR input/approval = Action Required
-   - Personal email asking something specific = Action Required
-   - NOT: automated notifications, newsletters, bulk emails
+INSTANT MARKETING (any ONE of these = Marketing):
+✗ Contains "Unsubscribe" or "unsubscribe" anywhere
+✗ Contains "View in browser" or "View online"
+✗ Contains "Email preferences" or "Manage preferences"
+✗ From a noreply@ or no-reply@ address
+✗ From newsletter@, news@, marketing@, promotions@, updates@
+✗ Sender is a company/brand (not a person's name)
+✗ Subject contains: "Newsletter", "Weekly", "Monthly", "Digest", "Update from"
+✗ Contains: "©", "All rights reserved", "Privacy Policy" links
+✗ HTML-heavy email with images, buttons, multiple columns
+✗ Promotional language: "% off", "sale", "limited time", "exclusive", "deal"
+✗ Product announcements, feature updates, "What's new"
+✗ Holiday promos: Valentine's, Black Friday, Christmas, etc.
 
-★ FYI = Worth reading, no action (category ${fyiCat})
-   - Status updates from real people = FYI
-   - "Just letting you know" from colleagues = FYI
-   - "Thanks!" or acknowledgment = FYI
-   - NOT: mass-sent newsletters (those are Marketing!)
+If ANY of the above match → STOP and return ${marketingCat}
 
-★ NOTIFICATIONS (category ${notificationsCat})
-   - Payment confirmations, receipts = Notifications
-   - Order/shipping confirmations = Notifications
-   - System alerts, security notifications = Notifications
-   - Automated transactional emails = Notifications
+=== STEP 2: IF NOT MARKETING, CLASSIFY ===
 
-★ MEETINGS/CALENDAR (category ${meetingsCat})
-   - Meeting invite with date/time = Meetings
-   - Event notification = Meetings
-   - RSVP request = Meetings
+★ ACTION REQUIRED (${actionCat}) - Direct personal ask to YOU
+   - Direct question to YOU (not rhetorical/broadcast)
+   - Request for YOUR specific input/approval/decision
+   - From a real person (colleague, client, friend)
+   - Addressed personally ("Hi [name]", not "Dear valued customer")
 
-★ WAITING (category ${waitingCat})
-   - Ball in someone else's court
-   - Submitted application = Waiting
-   - Pending approval from others = Waiting
+★ FYI (${fyiCat}) - Personal informational (NOT broadcasts)
+   - 1:1 status update from a colleague or real person
+   - "Just letting you know" from someone you work with
+   - "Thanks!" reply in a personal conversation
+   - MUST be from a real person, not a company
 
-★ COMPLETED (category ${completedCat}) - Use sparingly!
-   - ONLY for emails that are clearly resolved/finished
-   - Thank you that closes a conversation = Completed
-   - "Done!" confirmation = Completed
-   - NOT: newsletters, marketing, random emails (those are NOT "completed")
+★ NOTIFICATIONS (${notificationsCat}) - Automated transactional
+   - Payment/order confirmations, receipts
+   - Shipping notifications
+   - Security alerts, password resets
+   - GitHub/Jira/system notifications
 
-⚠️ COMMON MISTAKES TO AVOID:
-- Marketing emails are NOT "Completed" - they go to Marketing (${marketingCat})
-- Newsletters are NOT "FYI" - they go to Marketing (${marketingCat})
-- Broadcast emails with "Unsubscribe" are NOT personal = Marketing (${marketingCat})
+★ MEETINGS (${meetingsCat}) - Calendar-related
+   - Meeting invites with date/time
+   - Calendar event updates
+   - RSVP requests
 
-${hasOther ? '- Use "Other" (99) if email doesn\'t clearly fit any category' : ''}
+★ WAITING (${waitingCat}) - Awaiting someone else
+   - You submitted something, waiting for response
+   - Pending approval from others
+
+★ COMPLETED (${completedCat}) - ONLY for truly closed conversations
+   - Final "Thank you" that ends a thread
+   - "Done!" confirmation from a person
+   - NEVER use for random emails or newsletters!
+
+⚠️ CRITICAL: When in doubt between FYI and Marketing:
+- If it has "Unsubscribe" → Marketing (${marketingCat})
+- If sender is a company → Marketing (${marketingCat})
+- If it's a broadcast → Marketing (${marketingCat})
+
+${hasOther ? 'Use "Other" (99) only if truly unclassifiable.' : ''}
 
 Email:
 From: ${from}
@@ -206,6 +216,7 @@ Subject: ${subject}
 Body: ${body.slice(0, 2000)}
 
 Category number (1-${maxCategory}${hasOther ? ' or 99' : ''}):`;
+
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
@@ -409,90 +420,72 @@ CATEGORY: [number]
 CONFIDENCE: [0.0-1.0]
 REASONING: [one sentence explanation]
 
-=== CRITICAL CLASSIFICATION RULES (non-negotiable) ===
+=== TIER 0: THREAD CHECK ===
+${threadSignals.isThread ? `This is a REPLY thread. Never classify as Marketing unless it's clearly a marketing reply.` : "Not a thread."}
 
-★ MARKETING/SPAM = Mass-sent promotional emails (${marketingCat})
-  - Has "Unsubscribe" link + broadcast format = Marketing (${marketingCat})
-  - Product announcements, newsletters from companies = Marketing (${marketingCat})
-  - Valentine's Day, holiday promos = Marketing (${marketingCat})
-  - Cold outreach, sales pitches = Marketing (${marketingCat})
-  - CRITICAL: Newsletters ARE marketing! Don't put in FYI or Completed!
+=== TIER 1: INSTANT MARKETING CHECK (${marketingCat}) - MANDATORY FIRST ===
 
-★ NOTIFICATIONS = Transactional/automated (${notificationsCat})
-  - Payment/invoice/order confirmation = Notifications (${notificationsCat})
-  - Shipping notification = Notifications (${notificationsCat})
-  - Account statement = Notifications (${notificationsCat})
+Check these signals FIRST. If ANY match → Marketing (${marketingCat}):
 
-★ MEETINGS/CALENDAR (${meetingsCat})
-  - Meeting invite with date/time = Meetings (${meetingsCat})
-  - Event notification/RSVP = Meetings (${meetingsCat})
+MARKETING SIGNALS (any ONE = Marketing):
+✗ Contains "Unsubscribe" or "unsubscribe" link
+✗ Contains "View in browser" or "View online"
+✗ Contains "Email preferences" or "Manage preferences"
+✗ From noreply@, no-reply@, newsletter@, news@, marketing@
+✗ Sender is a company/brand name (not a person's name)
+✗ Subject has: "Newsletter", "Weekly", "Monthly", "Digest"
+✗ Contains ©, "All rights reserved", privacy policy links
+✗ Promotional: "% off", "sale", "deal", "limited time"
+✗ Product announcements, "What's new", feature updates
+✗ Holiday promos: Valentine's, Black Friday, etc.
 
-★ ACTION REQUIRED = Direct ask to YOU (${actionCat})
-  - Direct question for YOUR answer = Action Required (${actionCat})
-  - Request for YOUR approval/input = Action Required (${actionCat})
-  - NOT: bulk emails, newsletters, automated messages
+If ANY match and NOT a reply thread → return ${marketingCat} immediately.
 
-★ TEAM UPDATES / MENTIONS (${teamCat})
-  - In CC but not TO = Team/Mentions (${teamCat})
-  - @mentioned but not primary = Team/Mentions (${teamCat})
+=== TIER 2: TRANSACTIONAL CHECK ===
 
-★ FYI = Personal informational emails (${fyiCat})
-  - Status updates from REAL PEOPLE = FYI (${fyiCat})
-  - NOT: newsletters, marketing emails, bulk sends
+★ NOTIFICATIONS (${notificationsCat}) - Automated transactional
+  - Payment/order/shipping confirmations
+  - Security alerts, password resets
+  - GitHub/Jira/system notifications
 
-★ COMPLETED = Truly resolved conversations ONLY (${completedCat})
-  - Thank you that CLOSES a conversation = Completed (${completedCat})
-  - "Done!" confirmation = Completed (${completedCat})
-  - NOT: newsletters, marketing, random emails
+★ MEETINGS (${meetingsCat}) - Calendar
+  - Meeting invites with date/time
+  - Calendar updates, RSVPs
 
-⚠️ COMMON MISCLASSIFICATIONS TO AVOID:
-- Marketing emails → NOT FYI, NOT Completed → Marketing (${marketingCat})
-- Company newsletters → NOT FYI → Marketing (${marketingCat})
-- Product updates from companies → NOT FYI → Marketing (${marketingCat})
+=== TIER 3: PERSONAL EMAILS ===
 
-=== ANALYSIS TIERS (check in order) ===
+★ ACTION REQUIRED (${actionCat}) - Direct ask to YOU
+  - Direct question for YOUR answer (not broadcast)
+  - Request for YOUR specific approval/input
+  - From a real person, addressed to you personally
 
-TIER 0 - THREAD CONTEXT (highest priority):
-Is this part of an existing conversation thread?
-- If YES and it's a reply thread: NEVER classify as Marketing/Spam
-- Analyze based on conversation state
+★ TEAM UPDATES (${teamCat}) - CC'd/mentioned
+  - You're CC'd, not primary recipient
+  - @mentioned but not main addressee
 
-TIER 1 - BULK EMAIL DETECTION (check early!):
-- Has "Unsubscribe" + no personal greeting → Marketing (${marketingCat})
-- Broadcast format, sent to many people → Marketing (${marketingCat})
-- From a company, not a person → Marketing (${marketingCat})
+★ FYI (${fyiCat}) - Personal informational ONLY
+  - 1:1 status update from a colleague
+  - "Just letting you know" from someone you work with
+  - MUST be from a real person, NOT a company
 
-TIER 2 - STRUCTURAL SIGNALS:
-- Receipt/invoice/payment keywords → Notifications (${notificationsCat})
-- Calendar invite attachment or meeting request → Meetings (${meetingsCat})
-- @mention or direct question to you → Action Required (${actionCat})
-- CC'd not primary recipient → Team/Mentions (${teamCat})
+★ WAITING (${waitingCat}) - Ball in someone else's court
+  - You submitted something, awaiting response
 
-TIER 3 - CONVERSATION STATE:
-- Waiting on someone else → Waiting (${waitingCat})
-- Just a "thanks" that closes loop → Completed (${completedCat})
+★ COMPLETED (${completedCat}) - TRULY closed conversations only
+  - Final "Thank you" ending a thread
+  - "Done!" from a person closing a task
+  - NEVER for random emails or newsletters!
 
-TIER 4 - CONTENT ANALYSIS:
-- Requires your reply/action → Action Required (${actionCat})
-- Personal FYI/status update → FYI (${fyiCat})
-
-${hasOther ? `- Use "Other" (99) if email doesn't clearly fit any category` : ""}
+${hasOther ? `Use "Other" (99) only if truly unclassifiable.` : ""}
 
 Categories:
 ${categoryList}
 ${contextSection}
 
-UNCERTAINTY HANDLING:
-If confidence < 70% between two categories, prefer:
-- Marketing vs FYI → Has "Unsubscribe"? Marketing (${marketingCat})
-- Action vs FYI → If any direct question = Action Required (${actionCat})
-- Notifications vs FYI → If transaction/payment = Notifications (${notificationsCat})
-- Meetings vs FYI → If date/time to attend = Meetings (${meetingsCat})
-- Waiting vs FYI → If open loop remains = Waiting (${waitingCat})
-
-Default hierarchy when truly uncertain:
-Action Required (${actionCat}) > Meetings (${meetingsCat}) > Notifications (${notificationsCat}) > Waiting (${waitingCat}) > Team (${teamCat}) > FYI (${fyiCat}) > Marketing (${marketingCat}) > Completed (${completedCat})
-(Better to surface something that might need action than bury it)
+⚠️ CLASSIFICATION RULES:
+- When in doubt: Marketing (${marketingCat}) beats FYI (${fyiCat}) if it has "Unsubscribe"
+- Completed (${completedCat}) is ONLY for closed conversations, never random emails
+- Company emails = Marketing (${marketingCat}), not FYI
 
 Email:
 From: ${email.from}

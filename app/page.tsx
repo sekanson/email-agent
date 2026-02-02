@@ -20,13 +20,13 @@ export default function LandingPage() {
           />
           <div className="flex items-center gap-4">
             <Link
-              href="/api/auth/login"
+              href="/login"
               className="text-sm text-zinc-400 transition-colors hover:text-white"
             >
               Log in
             </Link>
             <Link
-              href="/api/auth/login"
+              href="/login"
               className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition-all hover:bg-zinc-200"
             >
               Start Free Trial
@@ -62,7 +62,7 @@ export default function LandingPage() {
             
             <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
               <Link
-                href="/api/auth/login"
+                href="/login"
                 className="group flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-medium text-black transition-all hover:bg-zinc-200"
               >
                 Start Free Trial
@@ -259,7 +259,7 @@ export default function LandingPage() {
                 </li>
               </ul>
               <Link
-                href="/api/auth/login"
+                href="/login"
                 className="mt-8 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-medium text-white transition-all hover:bg-orange-600"
               >
                 Declutter My Inbox
@@ -441,7 +441,7 @@ export default function LandingPage() {
             Join thousands of professionals who save hours every week with Zeno.
           </p>
           <Link
-            href="/api/auth/login"
+            href="/login"
             className="inline-flex items-center gap-2 rounded-xl bg-white px-8 py-4 text-lg font-medium text-black transition-all hover:bg-zinc-200"
           >
             Get Started Free

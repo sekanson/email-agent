@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase";
 
 /**
  * NextAuth configuration
- * This handles user authentication and session management
- * Separate from Gmail OAuth which handles email permissions
+ * Requests FULL Gmail scopes during sign-in for single-click onboarding
+ * No separate "connect Gmail" step needed
  */
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,39 +15,78 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          prompt: "select_account", // Always show account picker
+          prompt: "consent", // Always show consent to ensure we get refresh token
+          access_type: "offline", // Get refresh token
+          scope: [
+            "openid",
+            "email",
+            "profile",
+            // Gmail scopes - full access for email processing
+            "https://www.googleapis.com/auth/gmail.readonly",
+            "https://www.googleapis.com/auth/gmail.send",
+            "https://www.googleapis.com/auth/gmail.modify",
+            "https://www.googleapis.com/auth/gmail.labels",
+            "https://www.googleapis.com/auth/gmail.settings.basic",
+            // Calendar scopes
+            "https://www.googleapis.com/auth/calendar.readonly",
+            "https://www.googleapis.com/auth/calendar.events",
+          ].join(" "),
         },
       },
     }),
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (!user.email) return false;
+      if (!user.email || !account) return false;
 
-      // Check if user exists in our database
       const supabase = createClient();
+
+      // Upsert user with Gmail tokens from OAuth
+      const userData: Record<string, unknown> = {
+        email: user.email,
+        name: user.name,
+        picture: user.image,
+        // Store OAuth tokens for Gmail API access
+        access_token: account.access_token,
+        refresh_token: account.refresh_token,
+        token_expiry: account.expires_at ? account.expires_at * 1000 : null,
+        // Mark integrations as connected
+        gmail_connected: true,
+        gmail_connected_at: new Date().toISOString(),
+        calendar_connected: true,
+        calendar_connected_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // Check if user exists
       const { data: existingUser } = await supabase
         .from("users")
-        .select("email")
+        .select("email, created_at")
         .eq("email", user.email)
         .single();
 
-      // Allow sign in if user exists, or create a basic record
       if (!existingUser) {
-        // Create user record (they'll need to connect Gmail separately for full features)
-        await supabase.from("users").insert({
-          email: user.email,
-          name: user.name,
-          picture: user.image,
-          gmail_connected: false,
-          created_at: new Date().toISOString(),
-        });
+        // New user
+        userData.subscription_status = "trial";
+        userData.subscription_tier = "free";
+        userData.drafts_created_count = 0;
+        userData.created_at = new Date().toISOString();
       }
 
+      // Upsert (insert or update)
+      const { error } = await supabase.from("users").upsert(userData, {
+        onConflict: "email",
+      });
+
+      if (error) {
+        console.error("[NextAuth] Error storing user:", error);
+        return false;
+      }
+
+      console.log("[NextAuth] User signed in with Gmail access:", user.email);
       return true;
     },
     async session({ session, token }) {
-      // Add user info to session for easy access
       if (session.user) {
         session.user.email = token.email as string;
         session.user.name = token.name as string;
@@ -55,11 +94,15 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.email = user.email;
         token.name = user.name;
         token.picture = user.image;
+      }
+      // Store access token in JWT for potential client-side use
+      if (account) {
+        token.accessToken = account.access_token;
       }
       return token;
     },
