@@ -13,6 +13,30 @@ interface SessionState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isVerified: boolean; // True once we've confirmed with the server
+}
+
+// Initialize from localStorage to prevent flash of "not signed in"
+function getInitialState(): SessionState {
+  if (typeof window === 'undefined') {
+    return { user: null, isLoading: true, isAuthenticated: false, isVerified: false };
+  }
+  
+  const email = localStorage.getItem("userEmail");
+  const name = localStorage.getItem("userName");
+  const picture = localStorage.getItem("userPicture");
+  
+  if (email) {
+    // Optimistically show as authenticated based on localStorage
+    return {
+      user: { email, name: name || "", picture: picture || "" },
+      isLoading: true, // Still loading until server confirms
+      isAuthenticated: true, // Optimistic
+      isVerified: false,
+    };
+  }
+  
+  return { user: null, isLoading: true, isAuthenticated: false, isVerified: false };
 }
 
 /**
@@ -21,11 +45,7 @@ interface SessionState {
  */
 export function useAuth() {
   const router = useRouter();
-  const [state, setState] = useState<SessionState>({
-    user: null,
-    isLoading: true,
-    isAuthenticated: false,
-  });
+  const [state, setState] = useState<SessionState>(getInitialState);
 
   // Check session on mount and periodically
   const checkSession = useCallback(async () => {
@@ -38,6 +58,7 @@ export function useAuth() {
           user: data.user,
           isLoading: false,
           isAuthenticated: true,
+          isVerified: true,
         });
 
         // Sync with localStorage for backwards compatibility
@@ -45,19 +66,27 @@ export function useAuth() {
         localStorage.setItem("userName", data.user.name || "");
         localStorage.setItem("userPicture", data.user.picture || "");
       } else {
+        // Clear localStorage if server says not authenticated
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userName");
+        localStorage.removeItem("userPicture");
+        
         setState({
           user: null,
           isLoading: false,
           isAuthenticated: false,
+          isVerified: true,
         });
       }
     } catch (error) {
       console.error("Session check failed:", error);
-      setState({
-        user: null,
+      // On error, don't immediately show "not signed in" - keep optimistic state
+      // but mark as verified so we don't keep retrying
+      setState(prev => ({
+        ...prev,
         isLoading: false,
-        isAuthenticated: false,
-      });
+        isVerified: true,
+      }));
     }
   }, []);
 
@@ -82,6 +111,7 @@ export function useAuth() {
       user: null,
       isLoading: false,
       isAuthenticated: false,
+      isVerified: true,
     });
 
     // Redirect to home
@@ -98,6 +128,7 @@ export function useAuth() {
     userPicture: state.user?.picture || null,
     isLoading: state.isLoading,
     isAuthenticated: state.isAuthenticated,
+    isVerified: state.isVerified,
     session: state.user ? { user: state.user } : null,
     signIn: handleSignIn,
     signOut: handleSignOut,
@@ -107,16 +138,25 @@ export function useAuth() {
 
 /**
  * Redirect to sign in if not authenticated
+ * Only redirects after server verification to prevent flash
  */
 export function useRequireAuth() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, userEmail } = useAuth();
+  const auth = useAuth();
+  const { isAuthenticated, isLoading, userEmail, isVerified } = auth;
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // Only redirect after server has verified the session
+    if (isVerified && !isAuthenticated) {
       router.push("/login");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isVerified, isAuthenticated, router]);
 
-  return { userEmail, isLoading: isLoading || !isAuthenticated };
+  // Show loading until verified AND authenticated
+  // This prevents the flash of "not signed in" during verification
+  return { 
+    userEmail, 
+    isLoading: isLoading || !isVerified,
+    isVerified,
+  };
 }
