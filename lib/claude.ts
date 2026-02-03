@@ -276,17 +276,17 @@ interface StyleConfig {
 const STYLE_CONFIGS: Record<ResponseStyle, StyleConfig> = {
   concise: {
     temperature: 0.3,
-    lengthInstruction: "Keep your response to 2-4 sentences MAXIMUM. Be direct and to the point. No filler, no unnecessary pleasantries.",
-    maxTokens: 200,
+    lengthInstruction: "Keep your response to 2-4 sentences MAXIMUM. Be direct and to the point. No filler, but STILL use proper email formatting with greeting, spacing, and sign-off.",
+    maxTokens: 250,
   },
   balanced: {
     temperature: 0.5,
-    lengthInstruction: "Write a response of 4-6 sentences. Cover the key points naturally without over-explaining.",
-    maxTokens: 400,
+    lengthInstruction: "Write a response of 4-6 sentences. Cover the key points naturally. Use proper paragraph breaks and professional email formatting.",
+    maxTokens: 450,
   },
   detailed: {
     temperature: 0.7,
-    lengthInstruction: "Provide a thorough response of 6+ sentences as needed. Fully address all aspects of the email with appropriate detail.",
+    lengthInstruction: "Provide a thorough response of 6+ sentences as needed. Fully address all aspects with well-organized paragraphs and clear structure.",
     maxTokens: 1000,
   },
 };
@@ -347,13 +347,22 @@ Instructions:
 - Write a helpful, professional response FROM the user's perspective
 - You are REPLYING to ${senderName}, not writing as them
 - Match the tone of the original email${styleInstruction}${threadInstruction}
-- Only write the email body text
+
+PROFESSIONAL EMAIL FORMATTING (ALWAYS apply unless writing style explicitly overrides):
+- Start with a greeting line (e.g., "Hi ${senderName}," or "Hey ${senderName},")
+- Add a blank line after the greeting
+- Use proper paragraph breaks - separate distinct thoughts with blank lines
+- Keep paragraphs short and scannable (2-4 sentences max per paragraph)
+- If listing items, use a blank line before the list
+- End with a closing thought or next step before sign-off
+- Add a blank line before sign-off (e.g., "Best," or "Thanks,")
+- NEVER write a wall of text - proper spacing is essential for readability
+
 - Do NOT include a subject line
-- Do NOT include a greeting like "Dear..." (start with the content)
-- Do NOT include a sign-off or signature (that will be added separately)
+- Do NOT include the signature itself (that will be added separately after sign-off)
 - If you need information from the user to complete the response, add a placeholder like [PLEASE ADD: specific info needed]
 
-Write ONLY the email body text (remember: you're the USER replying TO ${senderName}):`;
+Write ONLY the email body text with proper formatting (remember: you're the USER replying TO ${senderName}):`;
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
