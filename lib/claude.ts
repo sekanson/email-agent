@@ -167,6 +167,19 @@ INSTANT MARKETING (any ONE of these = Marketing):
 ✗ Product announcements, feature updates, "What's new"
 ✗ Holiday promos: Valentine's, Black Friday, Christmas, etc.
 
+COLD OUTREACH / SALES SPAM (any ONE of these = Marketing):
+✗ Unknown sender pitching a product or service you never asked about
+✗ "We built", "I wanted to reach out", "I'm reaching out", "thought you might be interested"
+✗ "Let me know if you'd be interested", "Would you be open to", "quick question" (but it's a sales pitch)
+✗ "Schedule a demo", "book a call", "15 minutes of your time"
+✗ Sender from a company you've NEVER interacted with before
+✗ Generic personalization (just your first name, no real context about you)
+✗ Clickable CTA buttons like "Yes I'm interested" / "Not interested" / "Schedule demo"
+✗ Pitching B2B tools, software, services, or "solutions"
+✗ Sender email from unusual domains (.help, .io, .ai from unknown companies)
+✗ "Your team", "your company" but they don't actually know your company
+✗ Claims to solve a problem you never mentioned having
+
 If ANY of the above match → STOP and return ${marketingCat}
 
 === STEP 2: IF NOT MARKETING, CLASSIFY ===
@@ -445,6 +458,17 @@ MARKETING SIGNALS (any ONE = Marketing):
 ✗ Promotional: "% off", "sale", "deal", "limited time"
 ✗ Product announcements, "What's new", feature updates
 ✗ Holiday promos: Valentine's, Black Friday, etc.
+
+COLD OUTREACH / SALES SPAM (any ONE = Marketing):
+✗ Unknown sender pitching a product/service you never asked about
+✗ "We built", "I wanted to reach out", "thought you might be interested"
+✗ "Let me know if you'd be interested", "Would you be open to"
+✗ "Schedule a demo", "book a call", "15 minutes of your time"
+✗ First-time sender from a company you've NEVER interacted with
+✗ Generic personalization (just first name, no real context)
+✗ CTA buttons like "Yes I'm interested" / "Schedule demo"
+✗ Pitching B2B tools, software, services, "solutions"
+✗ Claims to solve problems you never mentioned having
 
 If ANY match and NOT a reply thread → return ${marketingCat} immediately.
 
