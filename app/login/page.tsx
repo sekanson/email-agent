@@ -31,13 +31,13 @@ export default function LoginPage() {
       {/* LEFT SIDE - Visual/Branding (hidden on mobile) */}
       <div className="relative hidden overflow-hidden bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-400 lg:flex lg:w-1/2">
         {/* Zeno logo centered at top */}
-        <div className="absolute left-1/2 top-8 z-10 -translate-x-1/2">
+        <div className="absolute left-1/2 top-16 z-10 -translate-x-1/2">
           <Image
             src="/logo.svg"
             alt="Zeno"
-            width={120}
-            height={70}
-            className="h-7 w-auto object-contain"
+            width={240}
+            height={140}
+            className="h-14 w-auto object-contain"
           />
         </div>
 
