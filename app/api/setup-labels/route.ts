@@ -204,8 +204,23 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error("Error setting up labels:", error);
+    
+    // Make error messages user-friendly
+    let userMessage = "Something went wrong. Please try again.";
+    const errMsg = error.message?.toLowerCase() || "";
+    
+    if (errMsg.includes("refresh token") || errMsg.includes("access") || errMsg.includes("token")) {
+      userMessage = "Your Gmail connection expired. Please sign out and sign in again.";
+    } else if (errMsg.includes("rate limit") || errMsg.includes("quota")) {
+      userMessage = "Too many requests. Please wait a moment and try again.";
+    } else if (errMsg.includes("permission") || errMsg.includes("scope")) {
+      userMessage = "Gmail permissions needed. Please sign out and sign in again.";
+    } else if (errMsg.includes("network") || errMsg.includes("fetch")) {
+      userMessage = "Network error. Please check your connection and try again.";
+    }
+    
     return NextResponse.json(
-      { error: `Failed to setup labels: ${error.message}` },
+      { error: userMessage },
       { status: 500 }
     );
   }
