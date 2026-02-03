@@ -189,10 +189,13 @@ If ANY of the above match → STOP and return ${marketingCat}
    - Security alerts, password resets
    - GitHub/Jira/system notifications
 
-★ MEETINGS (${meetingsCat}) - Calendar-related
+★ MEETINGS (${meetingsCat}) - Calendar/Events/Appointments
    - Meeting invites with date/time
-   - Calendar event updates
-   - RSVP requests
+   - Calendar event updates, RSVPs
+   - ANY mention of "Google Calendar" or "On your calendar"
+   - Appointment reminders (haircut, doctor, restaurant, etc.)
+   - Booking confirmations with scheduled times
+   - Words like: "appointment", "scheduled", "booking", "reservation"
 
 ★ WAITING (${waitingCat}) - Awaiting someone else
    - You submitted something, waiting for response
@@ -203,10 +206,14 @@ If ANY of the above match → STOP and return ${marketingCat}
    - "Done!" confirmation from a person
    - NEVER use for random emails or newsletters!
 
-⚠️ CRITICAL: When in doubt between FYI and Marketing:
-- If it has "Unsubscribe" → Marketing (${marketingCat})
-- If sender is a company → Marketing (${marketingCat})
-- If it's a broadcast → Marketing (${marketingCat})
+⚠️ CRITICAL RULES:
+- MANDATORY: Every email MUST be labeled. Never skip classification.
+- Calendar keywords ("Google Calendar", "appointment", "scheduled") → Meetings (${meetingsCat})
+- When in doubt between FYI and Marketing:
+  - If it has "Unsubscribe" → Marketing (${marketingCat})
+  - If sender is a company → Marketing (${marketingCat})
+  - If it's a broadcast → Marketing (${marketingCat})
+- If truly uncertain, default to Notifications (${notificationsCat})
 
 ${hasOther ? 'Use "Other" (99) only if truly unclassifiable.' : ''}
 
@@ -441,16 +448,22 @@ MARKETING SIGNALS (any ONE = Marketing):
 
 If ANY match and NOT a reply thread → return ${marketingCat} immediately.
 
-=== TIER 2: TRANSACTIONAL CHECK ===
+=== TIER 2: CALENDAR & TRANSACTIONAL CHECK ===
 
-★ NOTIFICATIONS (${notificationsCat}) - Automated transactional
-  - Payment/order/shipping confirmations
+★ MEETINGS & EVENTS (${meetingsCat}) - Calendar/Appointments - CHECK FIRST
+  - Any mention of "Google Calendar", "On your calendar", "calendar event"
+  - Appointment reminders with specific date/time
+  - Meeting invites, RSVPs, calendar updates
+  - Booking confirmations (haircuts, doctor, restaurant, etc.)
+  - Event tickets, reservations with scheduled times
+  - Contains words like: "appointment", "scheduled", "booking", "reservation", "upcoming"
+  - Reminder emails about future events
+  - If it mentions a specific future date/time for something you need to attend → MEETINGS (${meetingsCat})
+
+★ NOTIFICATIONS (${notificationsCat}) - Automated transactional (non-calendar)
+  - Payment/order/shipping confirmations (no scheduled appointment)
   - Security alerts, password resets
   - GitHub/Jira/system notifications
-
-★ MEETINGS (${meetingsCat}) - Calendar
-  - Meeting invites with date/time
-  - Calendar updates, RSVPs
 
 === TIER 3: PERSONAL EMAILS ===
 
@@ -483,9 +496,12 @@ ${categoryList}
 ${contextSection}
 
 ⚠️ CLASSIFICATION RULES:
+- MANDATORY: Every email MUST receive a category. Never leave an email unlabeled.
+- Calendar keywords ("Google Calendar", "appointment", "scheduled", "booking") → MEETINGS (${meetingsCat})
 - When in doubt: Marketing (${marketingCat}) beats FYI (${fyiCat}) if it has "Unsubscribe"
 - Completed (${completedCat}) is ONLY for closed conversations, never random emails
 - Company emails = Marketing (${marketingCat}), not FYI
+- If you cannot determine a category, default to Notifications (${notificationsCat}) rather than leaving unlabeled
 
 Email:
 From: ${email.from}
