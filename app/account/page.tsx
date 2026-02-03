@@ -21,7 +21,8 @@ import {
   Clock,
   RefreshCw,
 } from "lucide-react";
-import { useRequireAuth } from "@/lib/useAuth";
+import { useRequireAuth, useAuth } from "@/lib/useAuth";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 
 interface UserData {
   email: string;
@@ -81,6 +82,26 @@ function SettingsPageContent() {
 
   const { userEmail: authEmail, isLoading: authLoading } = useRequireAuth();
   const userEmail = authEmail || "";
+
+  // Google Identity Services for popup auth
+  const { 
+    connectGmail, 
+    connectCalendar, 
+    isLoading: isGoogleAuthLoading 
+  } = useGoogleAuth({
+    onGmailSuccess: async () => {
+      // Refresh user data to show connected status
+      await fetchUserData();
+    },
+    onCalendarSuccess: async () => {
+      // Refresh user data to show connected status
+      await fetchUserData();
+    },
+    onError: (err) => {
+      console.error("Google auth error:", err);
+      alert(err.message || "Failed to connect. Please try again.");
+    },
+  });
 
   useEffect(() => {
     if (userEmail) {
@@ -718,12 +739,17 @@ function SettingsPageContent() {
                           </div>
                         </div>
                         {user?.gmail_connected !== true && (
-                          <a
-                            href="/api/integrations/gmail"
-                            className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] sm:min-h-0"
+                          <button
+                            onClick={connectGmail}
+                            disabled={isGoogleAuthLoading}
+                            className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:min-h-0"
                           >
-                            Connect
-                          </a>
+                            {isGoogleAuthLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Connect"
+                            )}
+                          </button>
                         )}
                       </div>
 
@@ -879,12 +905,17 @@ function SettingsPageContent() {
                           </div>
                         </div>
                         {user?.calendar_connected !== true && (
-                          <a
-                            href="/api/integrations/calendar"
-                            className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] sm:min-h-0"
+                          <button
+                            onClick={connectCalendar}
+                            disabled={isGoogleAuthLoading}
+                            className="min-h-[44px] rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:opacity-50 sm:min-h-0"
                           >
-                            Connect
-                          </a>
+                            {isGoogleAuthLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              "Connect"
+                            )}
+                          </button>
                         )}
                       </div>
 
