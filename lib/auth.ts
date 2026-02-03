@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase";
 
 /**
@@ -123,8 +124,25 @@ export const authOptions: NextAuthOptions = {
  * Returns null if not authenticated
  */
 export async function getAuthenticatedUser(): Promise<string | null> {
+  // First, check our new cookie-based session (GIS flow)
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('zeno_session');
+    
+    if (sessionCookie) {
+      const sessionData = JSON.parse(Buffer.from(sessionCookie.value, 'base64').toString());
+      if (sessionData.email && sessionData.exp > Date.now()) {
+        console.log("[getAuthenticatedUser] Cookie session:", sessionData.email);
+        return sessionData.email;
+      }
+    }
+  } catch (error) {
+    console.log("[getAuthenticatedUser] Cookie check failed:", error);
+  }
+
+  // Fall back to NextAuth session (legacy flow)
   const session = await getServerSession(authOptions);
-  console.log("[getAuthenticatedUser] Session:", session);
+  console.log("[getAuthenticatedUser] NextAuth session:", session?.user?.email);
   return session?.user?.email || null;
 }
 
