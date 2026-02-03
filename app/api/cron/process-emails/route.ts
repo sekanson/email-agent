@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!users || users.length === 0) {
+      console.log("[CRON] No users found with labels_created=true and valid refresh_token");
       return NextResponse.json({
         success: true,
         message: "No users to process",
@@ -65,6 +66,14 @@ export async function GET(request: NextRequest) {
         totalEmailsProcessed: 0,
       });
     }
+
+    // Enhanced logging: show which users will be processed
+    console.log(`[CRON] Found ${users.length} eligible users:`, users.map(u => ({
+      email: u.email,
+      labels_created: u.labels_created,
+      has_refresh_token: !!u.refresh_token,
+      gmail_label_ids: u.gmail_label_ids ? Object.keys(u.gmail_label_ids) : [],
+    })));
 
     const results: {
       userEmail: string;
@@ -171,19 +180,29 @@ export async function GET(request: NextRequest) {
             // Get sender context for enhanced classification
             const senderContext = await getSenderContext(user.email, email.fromEmail);
 
+            console.log(`[${user.email}] Classifying email ${email.id}: "${email.subject}" from ${email.fromEmail}`);
+            const classifyStartTime = Date.now();
+
             // Classify the email
-            const result: ClassificationResult = await classifyEmailWithContext(
-              {
-                from: email.from,
-                fromEmail: email.fromEmail,
-                subject: email.subject,
-                body: email.body || email.bodyPreview,
-                references: email.references,
-                inReplyTo: email.inReplyTo,
-              },
-              senderContext,
-              categories
-            );
+            let result: ClassificationResult;
+            try {
+              result = await classifyEmailWithContext(
+                {
+                  from: email.from,
+                  fromEmail: email.fromEmail,
+                  subject: email.subject,
+                  body: email.body || email.bodyPreview,
+                  references: email.references,
+                  inReplyTo: email.inReplyTo,
+                },
+                senderContext,
+                categories
+              );
+              console.log(`[${user.email}] ✓ Claude classified in ${Date.now() - classifyStartTime}ms: category=${result.category}, confidence=${result.confidence}`);
+            } catch (claudeError) {
+              console.error(`[${user.email}] ✗ Claude API error:`, claudeError);
+              throw claudeError;
+            }
 
             const category = result.category;
 
@@ -358,9 +377,13 @@ export async function GET(request: NextRequest) {
     );
     const usersWithErrors = results.filter((r) => r.error).length;
 
-    console.log(
-      `Cron completed: ${results.length} users, ${totalEmailsProcessed} emails, ${totalDraftsCreated} drafts`
-    );
+    console.log(`[CRON] ========== SUMMARY ==========`);
+    console.log(`[CRON] Users processed: ${results.length}`);
+    console.log(`[CRON] Total emails classified: ${totalEmailsProcessed}`);
+    console.log(`[CRON] Total drafts created: ${totalDraftsCreated}`);
+    console.log(`[CRON] Users with errors: ${usersWithErrors}`);
+    console.log(`[CRON] Details:`, JSON.stringify(results, null, 2));
+    console.log(`[CRON] ==============================`);
 
     return NextResponse.json({
       success: true,
