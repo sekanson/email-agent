@@ -327,13 +327,9 @@ export default function Dashboard() {
 
   function handleOnboardingSkip() {
     setShowOnboarding(false);
-    fetch("/api/settings", {
+    fetch("/api/user/onboarding-complete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userEmail,
-        onboarding_completed: true,
-      }),
     }).catch(console.error);
   }
 

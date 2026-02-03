@@ -160,13 +160,10 @@ export default function OnboardingModal({
 
   async function handleFinish(redirectTo: string = "/dashboard") {
     try {
-      await fetch("/api/settings", {
+      // Mark onboarding complete in users table
+      await fetch("/api/user/onboarding-complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userEmail,
-          onboarding_completed: true,
-        }),
       });
     } catch (error) {
       console.error("Error saving onboarding status:", error);
