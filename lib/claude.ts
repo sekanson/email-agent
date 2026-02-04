@@ -645,30 +645,43 @@ export async function classifyEmailWithContext(
     categories
   );
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 200, // Increased to allow reasoning
-    temperature: 0,
-    messages: [{ role: "user", content: prompt }],
-  });
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 200, // Increased to allow reasoning
+      temperature: 0,
+      messages: [{ role: "user", content: prompt }],
+    });
 
-  const content = response.content[0];
-  if (content.type !== "text") {
+    const content = response.content[0];
+    if (content.type !== "text") {
+      return {
+        category: 2,
+        confidence: 0.5,
+        reasoning: "Parse error - non-text response",
+        isThread: threadSignals.isThread,
+        senderKnown: senderContext.hasHistory,
+      };
+    }
+
+    return parseStructuredResponse(
+      content.text,
+      threadSignals,
+      senderContext,
+      categories
+    );
+  } catch (apiError) {
+    // FALLBACK: If API call fails entirely, return a safe default
+    console.error("Claude API call failed in classifyEmailWithContext:", apiError);
+    const fallbackCategory = categories["2"] ? 2 : parseInt(Object.keys(categories)[0] || "1");
     return {
-      category: 2,
-      confidence: 0.5,
-      reasoning: "Parse error - non-text response",
+      category: fallbackCategory,
+      confidence: 0.1,
+      reasoning: `API error - fallback to category ${fallbackCategory}`,
       isThread: threadSignals.isThread,
       senderKnown: senderContext.hasHistory,
     };
   }
-
-  return parseStructuredResponse(
-    content.text,
-    threadSignals,
-    senderContext,
-    categories
-  );
 }
 
 /**

@@ -201,7 +201,17 @@ export async function GET(request: NextRequest) {
               console.log(`[${user.email}] ✓ Claude classified in ${Date.now() - classifyStartTime}ms: category=${result.category}, confidence=${result.confidence}`);
             } catch (claudeError) {
               console.error(`[${user.email}] ✗ Claude API error:`, claudeError);
-              throw claudeError;
+              // FALLBACK: Always assign a label even if AI fails
+              // Default to FYI (2) or first available category as safe fallback
+              const fallbackCategory = categories["2"] ? 2 : parseInt(Object.keys(categories)[0] || "1");
+              result = {
+                category: fallbackCategory,
+                confidence: 0.1,
+                reasoning: `AI classification failed - auto-assigned to category ${fallbackCategory} as fallback`,
+                isThread: false,
+                senderKnown: senderContext.hasHistory,
+              };
+              console.log(`[${user.email}] ⚠ Using fallback category ${fallbackCategory} due to API error`);
             }
 
             const category = result.category;
