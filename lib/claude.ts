@@ -573,11 +573,14 @@ function parseStructuredResponse(
     finalCategory = 2;
   }
 
-  // SAFETY OVERRIDE: If thread detected but classified as Spam (8), override
-  // This is the critical protection against misclassifying reply threads
-  // Note: Spam (8) should NEVER be assigned to reply threads
+  // SAFETY OVERRIDE: If STRONG thread signal detected but classified as Spam (8), override
+  // Only apply for genuine reply threads - require strong signals like subject prefix + headers
+  // This prevents real marketing emails from being misclassified just because they have ">" chars
   const spamCategoryNum = Object.entries(categories).find(([, config]) => isSpamCategory(config.name))?.[0];
-  if (threadSignals.isThread && spamCategoryNum && finalCategory === parseInt(spamCategoryNum)) {
+  const hasStrongThreadSignal = threadSignals.signals.includes("subject_prefix") && 
+    (threadSignals.signals.includes("references_header") || threadSignals.signals.includes("in_reply_to_header"));
+  
+  if (hasStrongThreadSignal && spamCategoryNum && finalCategory === parseInt(spamCategoryNum)) {
     // Determine better category based on thread state
     const threadState = analyzeThreadState("", ""); // We don't have body here, use default
     let overrideCategory = 2; // Default to FYI
