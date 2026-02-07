@@ -131,12 +131,14 @@ export async function POST(request: NextRequest) {
 
         const category = result.category;
 
-        // Step 3: Apply the label
+        // Step 3: Apply the label (if labeling is enabled for this category)
         // Look up the category name from the category number
         const categoryConfig = categories[category.toString()];
         const categoryName = categoryConfig?.name;
+        // Check if labeling is enabled for this category (default: true if not specified)
+        const labelingEnabled = categoryConfig?.labelEnabled !== false;
         // gmail_label_ids is now keyed by category NAME, not number
-        const labelId = categoryName ? user.gmail_label_ids?.[categoryName] : null;
+        const labelId = (categoryName && labelingEnabled) ? user.gmail_label_ids?.[categoryName] : null;
 
         // Enhanced logging for label application
         const labelingInfo = {
@@ -175,6 +177,9 @@ export async function POST(request: NextRequest) {
               error: labelError.response?.data || labelError.message,
             });
           }
+        } else if (!labelingEnabled) {
+          // Labeling is intentionally disabled for this category
+          console.log(`[${userEmail}] ℹ Label skipped for category ${category} "${categoryName}" (labeling disabled by user)`);
         } else {
           // This is a problem - email classified but not labeled!
           console.error(`[${userEmail}] ⚠ EMAIL NOT LABELED - No labelId found!`, {

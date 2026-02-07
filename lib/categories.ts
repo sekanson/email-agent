@@ -11,6 +11,7 @@ export interface CategoryConfig {
   description: string;
   rules?: string;
   drafts?: boolean;
+  labelEnabled?: boolean;  // Whether to apply Gmail label for this category (default: true)
   order: number;
 }
 
@@ -37,6 +38,7 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     description: "Requires your reply or action",
     rules: "",
     drafts: true,
+    labelEnabled: true,
     order: 1,
   },
   "2": {
@@ -46,6 +48,7 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     description: "Worth knowing, no response required",
     rules: "",
     drafts: false,
+    labelEnabled: true,
     order: 2,
   },
   "3": {
@@ -55,6 +58,7 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     description: "Mentions from docs, threads & chats",
     rules: "",
     drafts: false,
+    labelEnabled: true,
     order: 3,
   },
   "4": {
@@ -64,6 +68,7 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     description: "Automated notifications & confirmations",
     rules: "",
     drafts: false,
+    labelEnabled: true,
     order: 4,
   },
   "5": {
@@ -73,6 +78,7 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     description: "Meetings, invites & calendar events",
     rules: "",
     drafts: false,
+    labelEnabled: true,
     order: 5,
   },
   "6": {
@@ -82,6 +88,7 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     description: "Waiting on someone else's response",
     rules: "",
     drafts: false,
+    labelEnabled: true,
     order: 6,
   },
   "7": {
@@ -91,6 +98,7 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     description: "Resolved or finished conversations",
     rules: "",
     drafts: false,
+    labelEnabled: true,
     order: 7,
   },
   "8": {
@@ -100,6 +108,7 @@ export const DEFAULT_CATEGORIES_V1: Record<string, CategoryConfig> = {
     description: "Newsletters, sales & promotional",
     rules: "",
     drafts: false,
+    labelEnabled: true,
     order: 8,
   },
 };
@@ -114,6 +123,7 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     description: "Urgent emails requiring immediate response",
     rules: "Direct questions, time-sensitive requests, decisions needed",
     drafts: true,
+    labelEnabled: true,
     order: 1,
   },
   "2": {
@@ -123,6 +133,7 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     description: "Informational emails, no action needed",
     rules: "Status updates, announcements, newsletters you read",
     drafts: false,
+    labelEnabled: true,
     order: 2,
   },
   "3": {
@@ -132,6 +143,7 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     description: "Team communications and collaboration",
     rules: "Project updates, team mentions, Slack/doc notifications",
     drafts: false,
+    labelEnabled: true,
     order: 3,
   },
   "4": {
@@ -141,6 +153,7 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     description: "Automated notifications and confirmations",
     rules: "Service notifications, automated confirmations, system updates",
     drafts: false,
+    labelEnabled: true,
     order: 4,
   },
   "5": {
@@ -150,6 +163,7 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     description: "Calendar invites and meeting-related emails",
     rules: "Meeting invites, calendar updates, event confirmations",
     drafts: false,
+    labelEnabled: true,
     order: 5,
   },
   "6": {
@@ -159,6 +173,7 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     description: "Emails where you're waiting for someone else",
     rules: "Pending responses, delegated tasks, follow-up reminders",
     drafts: false,
+    labelEnabled: true,
     order: 6,
   },
   "7": {
@@ -168,6 +183,7 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     description: "Resolved emails and finished conversations",
     rules: "Task completions, resolved issues, archived conversations",
     drafts: false,
+    labelEnabled: true,
     order: 7,
   },
   "8": {
@@ -177,6 +193,7 @@ export const DEFAULT_CATEGORIES_V2: Record<string, CategoryConfig> = {
     description: "Promotional emails and unwanted messages",
     rules: "Marketing emails, sales pitches, promotional content",
     drafts: false,
+    labelEnabled: true,
     order: 8,
   },
 };

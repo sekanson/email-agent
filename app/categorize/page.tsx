@@ -625,6 +625,10 @@ export default function SettingsPage() {
                       ? "You have all 8 default categories. Delete any to add the \"Other\" catch-all."
                       : "\"Other\" catches emails that don't fit your remaining categories."}
                   </p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
+                    <Tag className="inline h-3 w-3 mr-1" />
+                    Toggle the checkbox to enable/disable Gmail labels for each category.
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {!isAtDefaults && (
@@ -721,6 +725,19 @@ export default function SettingsPage() {
                             />
                           </div>
                           <div className="flex items-center gap-1 sm:gap-2">
+                            {/* Label toggle checkbox */}
+                            <label
+                              className="flex items-center gap-1.5 cursor-pointer group"
+                              title={config.labelEnabled !== false ? "Gmail label enabled" : "Gmail label disabled"}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={config.labelEnabled !== false}
+                                onChange={(e) => updateCategory(num, "labelEnabled", e.target.checked)}
+                                className="h-4 w-4 rounded border-[var(--border)] bg-[var(--bg-elevated)] text-[var(--accent)] focus:ring-[var(--accent)] focus:ring-offset-0 cursor-pointer"
+                              />
+                              <Tag className={`h-3.5 w-3.5 ${config.labelEnabled !== false ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`} />
+                            </label>
                             {config.drafts && (
                               <span className="hidden rounded-full bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--accent)] sm:inline-block">
                                 Drafts
@@ -752,6 +769,11 @@ export default function SettingsPage() {
 
                         {/* Mobile badges row */}
                         <div className="mt-2 flex flex-wrap gap-2 sm:hidden">
+                          {config.labelEnabled === false && (
+                            <span className="rounded-full bg-zinc-500/10 px-2.5 py-0.5 text-xs font-medium text-zinc-400">
+                              No Label
+                            </span>
+                          )}
                           {config.drafts && (
                             <span className="rounded-full bg-[var(--accent)]/10 px-2.5 py-0.5 text-xs font-medium text-[var(--accent)]">
                               Drafts
