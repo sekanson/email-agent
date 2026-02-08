@@ -77,6 +77,7 @@ const OTHER_CATEGORY: CategoryConfig = {
   description: "Catch-all for uncategorized emails",
   rules: "",
   drafts: false,
+  labelEnabled: true,
   order: 99,
 };
 
@@ -111,6 +112,7 @@ function processCategories(categories: Record<string, CategoryConfig>): Record<s
       ...config,
       name: getPrefixedName(displayName, order),
       required: isRespondCategory(config.name) ? true : config.required,
+      labelEnabled: config.labelEnabled !== false,  // Default to true if not explicitly false
       order,
     };
   });
@@ -122,6 +124,7 @@ function processCategories(categories: Record<string, CategoryConfig>): Record<s
       ...otherConfig,
       name: getPrefixedName("Other", nextNum),
       required: true,
+      labelEnabled: otherConfig.labelEnabled !== false,  // Default to true
       order: nextNum,
     };
   }
