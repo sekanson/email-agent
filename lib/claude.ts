@@ -26,6 +26,7 @@ export interface CategoryConfig {
   description: string;
   rules?: string;
   drafts?: boolean;
+  labelEnabled?: boolean;  // Whether to apply Gmail label for this category (default: true)
   order: number;
 }
 
