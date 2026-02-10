@@ -150,22 +150,43 @@ export async function classifyEmailCategory(
 Categories:
 ${categoryList}
 
-=== STEP 1: CHECK FOR MARKETING/NEWSLETTERS FIRST (category ${marketingCat}) ===
+=== STEP 0: CRITICAL OVERRIDES (CHECK FIRST) ===
 
-Before anything else, check these MARKETING signals. If ANY match → Marketing (${marketingCat}):
+These OVERRIDE marketing signals - if ANY match, DO NOT classify as Marketing/Spam:
+
+★ INTERNAL DOMAIN: From @xix3d.com → NEVER Marketing. Use ${actionCat}, ${fyiCat}, or ${notificationsCat}
+
+★ ACTION KEYWORDS IN SUBJECT (override marketing signals):
+  - "[Action Required]", "[Action Advised]", "[Action Needed]"
+  - "security alert", "security issue", "security update"
+  - "paused", "suspended", "will be paused", "going to be paused"
+  - "payment failed", "payment due", "overdue"
+  → These are Notifications (${notificationsCat}) or Action (${actionCat}), NOT Marketing
+
+★ TRANSACTIONAL SERVICE PROVIDERS:
+  - PayPal, Stripe, Wise, Interac, QuickBooks → Notifications (${notificationsCat})
+  - Apple Developer, Google Cloud, AWS, Supabase, Vercel, Upwork → Notifications (${notificationsCat})
+  - Billing summary, invoice, payment received → Notifications (${notificationsCat})
+
+★ PLATFORM NOTIFICATIONS: Fantasy sports (Fantrax), developer consoles → Notifications (${notificationsCat})
+
+★ SUBSTACK: @substack.com → Marketing (${marketingCat}), NOT Spam
+
+=== STEP 1: CHECK FOR MARKETING/NEWSLETTERS (category ${marketingCat}) ===
+
+If NONE of Step 0 overrides matched, check these. If ANY match → Marketing (${marketingCat}):
 
 INSTANT MARKETING (any ONE of these = Marketing):
-✗ Contains "Unsubscribe" or "unsubscribe" anywhere
+✗ Contains "Unsubscribe" anywhere (unless Step 0 override applies)
 ✗ Contains "View in browser" or "View online"
 ✗ Contains "Email preferences" or "Manage preferences"
-✗ From a noreply@ or no-reply@ address
+✗ From noreply@ that's NOT a transactional service (see Step 0)
 ✗ From newsletter@, news@, marketing@, promotions@, updates@
-✗ Sender is a company/brand (not a person's name)
-✗ Subject contains: "Newsletter", "Weekly", "Monthly", "Digest", "Update from"
+✗ Sender is a company/brand (not a person's name) - excluding service providers
+✗ Subject contains: "Newsletter", "Weekly", "Monthly", "Digest" - excluding billing
 ✗ Contains: "©", "All rights reserved", "Privacy Policy" links
-✗ HTML-heavy email with images, buttons, multiple columns
 ✗ Promotional language: "% off", "sale", "limited time", "exclusive", "deal"
-✗ Product announcements, feature updates, "What's new"
+✗ Product announcements, feature updates, "What's new" (not security updates)
 ✗ Holiday promos: Valentine's, Black Friday, Christmas, etc.
 
 COLD OUTREACH / SALES SPAM (any ONE of these = Marketing):
@@ -181,7 +202,7 @@ COLD OUTREACH / SALES SPAM (any ONE of these = Marketing):
 ✗ "Your team", "your company" but they don't actually know your company
 ✗ Claims to solve a problem you never mentioned having
 
-If ANY of the above match → STOP and return ${marketingCat}
+If ANY match AND no Step 0 override → STOP and return ${marketingCat}
 
 === STEP 2: IF NOT MARKETING, CLASSIFY ===
 
@@ -453,20 +474,52 @@ REASONING: [one sentence explanation]
 === TIER 0: THREAD CHECK ===
 ${threadSignals.isThread ? `This is a REPLY thread. Never classify as Marketing unless it's clearly a marketing reply.` : "Not a thread."}
 
-=== TIER 1: INSTANT MARKETING CHECK (${marketingCat}) - MANDATORY FIRST ===
+=== TIER 0.5: CRITICAL OVERRIDES (CHECK BEFORE MARKETING) ===
 
-Check these signals FIRST. If ANY match → Marketing (${marketingCat}):
+These OVERRIDE marketing signals - if ANY match, DO NOT classify as Marketing/Spam:
+
+★ INTERNAL DOMAIN (NEVER Marketing/Spam):
+  - From @xix3d.com → NEVER Marketing. Use Action (${actionCat}), FYI (${fyiCat}), or Team (${teamCat})
+
+★ ACTION REQUIRED KEYWORDS (override marketing signals):
+  - Subject contains: "[Action Required]", "[Action Advised]", "[Action Needed]"
+  - Subject contains: "security alert", "security issue", "security update"
+  - Subject contains: "paused", "suspended", "will be paused", "going to be paused"
+  - Subject contains: "payment failed", "payment due", "overdue"
+  - Content about account suspension, service interruption, or required action
+  → These are Notifications (${notificationsCat}) or Action Required (${actionCat}), NOT Marketing
+
+★ TRANSACTIONAL SERVICE PROVIDERS (override noreply@ rule):
+  - From: PayPal, Stripe, Wise, Interac → Notifications (${notificationsCat})
+  - From: Apple Developer, Google Cloud, AWS, Supabase, Vercel → Notifications (${notificationsCat})
+  - From: Upwork (billing, payment, invoice) → Notifications (${notificationsCat})
+  - From: QuickBooks, Xero, FreshBooks → Notifications (${notificationsCat})
+  - Content: billing summary, invoice, payment received, payment confirmation → Notifications (${notificationsCat})
+
+★ PLATFORM NOTIFICATIONS (not marketing):
+  - Fantasy sports: Fantrax, ESPN Fantasy, Yahoo Fantasy → Notifications (${notificationsCat})
+  - Developer consoles: Apple, Google, Microsoft → Notifications (${notificationsCat})
+  - Service status updates about YOUR projects/accounts → Notifications (${notificationsCat})
+
+★ SUBSTACK HANDLING:
+  - From @substack.com → Marketing (${marketingCat}), NOT Spam
+  - Newsletters you subscribed to = Marketing, cold outreach = Spam
+
+=== TIER 1: INSTANT MARKETING CHECK (${marketingCat}) - AFTER OVERRIDES ===
+
+If NONE of the Tier 0.5 overrides matched, check these signals. If ANY match → Marketing (${marketingCat}):
 
 MARKETING SIGNALS (any ONE = Marketing):
-✗ Contains "Unsubscribe" or "unsubscribe" link
+✗ Contains "Unsubscribe" or "unsubscribe" link (unless Tier 0.5 override)
 ✗ Contains "View in browser" or "View online"
 ✗ Contains "Email preferences" or "Manage preferences"
-✗ From noreply@, no-reply@, newsletter@, news@, marketing@
-✗ Sender is a company/brand name (not a person's name)
-✗ Subject has: "Newsletter", "Weekly", "Monthly", "Digest"
+✗ From noreply@ that's NOT a transactional service (see Tier 0.5)
+✗ From newsletter@, news@, marketing@, promotions@
+✗ Sender is a company/brand name (not a person's name) - excluding service providers
+✗ Subject has: "Newsletter", "Weekly", "Monthly", "Digest" - excluding billing summaries
 ✗ Contains ©, "All rights reserved", privacy policy links
 ✗ Promotional: "% off", "sale", "deal", "limited time"
-✗ Product announcements, "What's new", feature updates
+✗ Product announcements, "What's new", feature updates (not security/service updates)
 ✗ Holiday promos: Valentine's, Black Friday, etc.
 
 COLD OUTREACH / SALES SPAM (any ONE = Marketing):
@@ -480,7 +533,7 @@ COLD OUTREACH / SALES SPAM (any ONE = Marketing):
 ✗ Pitching B2B tools, software, services, "solutions"
 ✗ Claims to solve problems you never mentioned having
 
-If ANY match and NOT a reply thread → return ${marketingCat} immediately.
+If ANY match and NOT a reply thread and NO Tier 0.5 override → return ${marketingCat} immediately.
 
 === TIER 2: CALENDAR & TRANSACTIONAL CHECK ===
 
