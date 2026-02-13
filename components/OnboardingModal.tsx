@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, TouchEvent } from "react";
+import { useState, useCallback, TouchEvent } from "react";
+import { useGoogleAuth } from "@/hooks/useGoogleAuth";
 import {
   Sparkles,
   Tag,
@@ -90,6 +91,42 @@ export default function OnboardingModal({
   }
 
   const [labelsError, setLabelsError] = useState<string | null>(null);
+  const [pendingLabelsAfterAuth, setPendingLabelsAfterAuth] = useState(false);
+
+  const { connectGmail, isGISReady } = useGoogleAuth({
+    onGmailSuccess: async () => {
+      // Gmail connected successfully, now create labels
+      setPendingLabelsAfterAuth(false);
+      await doSetupLabels();
+    },
+    onError: (err) => {
+      setPendingLabelsAfterAuth(false);
+      setLabelsLoading(false);
+      setLabelsError("Gmail authorization failed. Please try again.");
+      console.error("Gmail auth error:", err);
+    },
+  });
+
+  async function doSetupLabels() {
+    const res = await fetch("/api/setup-labels", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userEmail }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      setLabelsCreated(true);
+      setLabelsLoading(false);
+      setTimeout(() => setCurrentStep("agent"), 500);
+    } else {
+      setLabelsLoading(false);
+      const errorMsg = data.error || "Failed to create labels";
+      console.error("Failed to create labels:", errorMsg);
+      setLabelsError(errorMsg);
+    }
+  }
 
   async function handleSetupLabels() {
     setLabelsLoading(true);
@@ -105,17 +142,33 @@ export default function OnboardingModal({
 
       if (res.ok) {
         setLabelsCreated(true);
+        setLabelsLoading(false);
         setTimeout(() => setCurrentStep("agent"), 500);
       } else {
-        // Show user-friendly error
         const errorMsg = data.error || "Failed to create labels";
-        console.error("Failed to create labels:", errorMsg);
-        setLabelsError(errorMsg);
+        // Check if it's a Gmail auth error - trigger OAuth flow
+        const isAuthError = errorMsg.toLowerCase().includes("gmail connection") ||
+          errorMsg.toLowerCase().includes("token") ||
+          errorMsg.toLowerCase().includes("expired") ||
+          errorMsg.toLowerCase().includes("authenticate") ||
+          errorMsg.toLowerCase().includes("unauthorized") ||
+          res.status === 401;
+
+        if (isAuthError && isGISReady) {
+          console.log("Gmail not connected, triggering OAuth...");
+          setPendingLabelsAfterAuth(true);
+          setLabelsError(null);
+          connectGmail();
+          // Loading stays true - will be resolved by onGmailSuccess or onError
+        } else {
+          console.error("Failed to create labels:", errorMsg);
+          setLabelsError(errorMsg);
+          setLabelsLoading(false);
+        }
       }
     } catch (error) {
       console.error("Error creating labels:", error);
       setLabelsError("Network error. Please try again.");
-    } finally {
       setLabelsLoading(false);
     }
   }

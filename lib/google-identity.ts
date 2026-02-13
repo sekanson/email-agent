@@ -65,6 +65,8 @@ export function createGISClient(
     client_id: config.clientId,
     scope: scopes.join(' '),
     ux_mode: 'popup',
+    include_granted_scopes: true,
+    select_account: false,
     callback: (response: { code?: string; error?: string; scope?: string }) => {
       if (response.error) {
         config.onError?.(new Error(response.error));
@@ -121,6 +123,8 @@ declare global {
             client_id: string;
             scope: string;
             ux_mode: 'popup' | 'redirect';
+            include_granted_scopes?: boolean;
+            select_account?: boolean;
             callback: (response: { code?: string; error?: string; scope?: string }) => void;
           }) => {
             requestCode: () => void;
