@@ -571,23 +571,26 @@ export async function createDraft(
   let contentType: string;
 
   if (isHtml) {
-    // Wrap in HTML structure for proper rendering
-    // Convert plain text portions to HTML (newlines to <br>)
-    const htmlBody = body
-      .split(/(<[^>]+>)/g) // Split preserving HTML tags
-      .map(part => {
-        // If it's an HTML tag, keep as-is
-        if (part.startsWith('<')) return part;
-        // Otherwise convert newlines to <br>
-        return part.replace(/\n/g, '<br>');
-      })
-      .join('');
+    // Body contains HTML (e.g. signature). Convert the plain-text draft portion
+    // into proper HTML paragraphs so Gmail's editor handles it natively.
+    // Split body into plain-text part and HTML part (signature)
+    const htmlTagIndex = body.search(/<[a-z]/i);
+    const plainPart = htmlTagIndex > 0 ? body.slice(0, htmlTagIndex) : "";
+    const htmlPart = htmlTagIndex > 0 ? body.slice(htmlTagIndex) : body;
+
+    // Convert plain text paragraphs to <p> tags (double newlines = new paragraph)
+    const htmlParagraphs = plainPart
+      .split(/\n\n+/)
+      .filter(p => p.trim())
+      .map(p => `<p style="margin:0 0 12px 0;">${p.replace(/\n/g, '<br>')}</p>`)
+      .join('\n');
 
     formattedBody = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: Arial, sans-serif; font-size: 14px;">
-${htmlBody}
+${htmlParagraphs}
+${htmlPart}
 </body>
 </html>`;
     contentType = "text/html; charset=utf-8";
@@ -624,7 +627,7 @@ ${htmlBody}
     formattedBody
   );
 
-  const message = headers.join("\n");
+  const message = headers.join("\r\n");
 
   const encodedMessage = Buffer.from(message)
     .toString("base64")
