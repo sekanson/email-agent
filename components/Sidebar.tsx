@@ -60,27 +60,24 @@ export default function Sidebar() {
   // Use the auth hook to get session data
   const { userEmail: authEmail, userName: authName, userPicture: authPicture, isAuthenticated } = useAuth();
 
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === "undefined") return null;
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<Role>("user");
+
+  // Hydrate from localStorage on client mount
+  useEffect(() => {
     const userEmail = localStorage.getItem("userEmail");
-    if (!userEmail) return null;
-    return {
-      email: userEmail,
-      name: localStorage.getItem("userName") || userEmail.split("@")[0],
-      picture: localStorage.getItem("userPicture") || undefined,
-      subscriptionStatus: localStorage.getItem("subscriptionStatus") || undefined,
-    };
-  });
-
-  const [isAdmin, setIsAdmin] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("isAdmin") === "true";
-  });
-
-  const [userRole, setUserRole] = useState<Role>(() => {
-    if (typeof window === "undefined") return "user";
-    return (localStorage.getItem("userRole") as Role) || "user";
-  });
+    if (userEmail) {
+      setUser({
+        email: userEmail,
+        name: localStorage.getItem("userName") || userEmail.split("@")[0],
+        picture: localStorage.getItem("userPicture") || undefined,
+        subscriptionStatus: localStorage.getItem("subscriptionStatus") || undefined,
+      });
+    }
+    setIsAdmin(localStorage.getItem("isAdmin") === "true");
+    setUserRole((localStorage.getItem("userRole") as Role) || "user");
+  }, []);
 
   // Update user state when auth session changes
   useEffect(() => {
@@ -97,10 +94,12 @@ export default function Sidebar() {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">(() => {
-    if (typeof window === "undefined") return "dark";
-    return (localStorage.getItem("theme") as "dark" | "light") || "dark";
-  });
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  // Hydrate theme from localStorage on client mount
+  useEffect(() => {
+    setTheme((localStorage.getItem("theme") as "dark" | "light") || "dark");
+  }, []);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
 
