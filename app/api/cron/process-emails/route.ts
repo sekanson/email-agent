@@ -199,7 +199,8 @@ export async function GET(request: NextRequest) {
                 },
                 senderContext,
                 categories,
-                user.email
+                user.email,
+                user.name || ""
               );
               console.log(`[${user.email}] ✓ Claude classified in ${Date.now() - classifyStartTime}ms: category=${result.category}, confidence=${result.confidence}`);
             } catch (claudeError) {
@@ -278,7 +279,9 @@ export async function GET(request: NextRequest) {
                   temperature,
                   signature,
                   writingStyle,
-                  threadContext  // Pass thread context to AI
+                  threadContext,  // Pass thread context to AI
+                  user.email,    // User email for identity
+                  user.name || ""  // User name for identity
                 );
 
                 // Build CC list for reply-all

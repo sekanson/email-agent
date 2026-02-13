@@ -129,7 +129,8 @@ export async function POST(request: NextRequest) {
           },
           senderContext,
           categories,
-          userEmail
+          userEmail,
+          user.name || ""
         );
 
         const category = result.category;
@@ -246,7 +247,8 @@ export async function POST(request: NextRequest) {
                 signature,
                 writingStyle,
                 threadContext,  // Pass thread context to AI
-                userEmail  // Pass user email so AI knows who is replying
+                userEmail,  // Pass user email so AI knows who is replying
+                user.name || ""  // Pass user name for identity
               );
 
               console.log(`Draft body generated, creating Gmail draft...`);

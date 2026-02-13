@@ -328,7 +328,8 @@ export async function generateDraftResponse(
   signature: string = "",
   writingStyle: string = "",
   threadContext: string = "",  // Full conversation history for context
-  userEmail: string = ""  // The user's email (who is replying)
+  userEmail: string = "",  // The user's email (who is replying)
+  userName: string = ""   // The user's display name
 ): Promise<string> {
   // Determine response style from temperature
   const style = getStyleFromTemp(temperature);
@@ -350,8 +351,9 @@ export async function generateDraftResponse(
   // Extract sender name for context
   const senderName = from.split('<')[0].trim() || from.split('@')[0];
 
-  // Use the user's email to identify them in the prompt
-  const userIdentity = userEmail ? `\n- The USER's email is: ${userEmail}` : "";
+  // Use the user's name and email to identify them in the prompt
+  const userNameStr = userName || userEmail?.split('@')[0] || "the user";
+  const userIdentity = userEmail ? `\n- The USER is ${userName ? `${userName} (${userEmail})` : userEmail}` : "";
 
   const prompt = `You are drafting an email reply on behalf of a user.
 
@@ -360,7 +362,7 @@ IMPORTANT CONTEXT:
 - You are writing a reply FROM the user TO ${senderName}
 - Write as if YOU are the user replying to this message
 - Do NOT write from ${senderName}'s perspective - they sent the email, you're replying to them
-- If this is a multi-party thread, remember YOU are the user (${userEmail || "the recipient"}), not any other participant
+- If this is a multi-party thread, remember YOU are ${userNameStr} (${userEmail || "the recipient"}), not any other participant
 ${threadSection}
 EMAIL RECEIVED:
 From: ${from}
@@ -425,7 +427,8 @@ function buildTieredPrompt(
   senderContext: SenderContext,
   threadSignals: ThreadSignals,
   categories: Record<string, CategoryConfig>,
-  userEmail?: string
+  userEmail?: string,
+  userName?: string
 ): string {
   const sortedCategories = Object.entries(categories)
     .filter(([, config]) => config.enabled)
@@ -476,9 +479,10 @@ THREAD CONTEXT (Tier 0 - Check First):
     const isInTo = email.to?.toLowerCase().includes(userEmail.toLowerCase());
     const isInCc = email.cc?.toLowerCase().includes(userEmail.toLowerCase());
     const recipientRole = isInTo ? "direct recipient (To:)" : isInCc ? "CC'd (not primary recipient)" : "recipient";
+    const userDisplay = userName ? `${userName} (${userEmail})` : userEmail;
     contextSection += `
 USER CONTEXT:
-- The user's email is: ${userEmail}
+- The user is: ${userDisplay}
 - The user is the ${recipientRole} of this email
 ${isInCc ? "- Since the user is CC'd, this is likely FYI/informational unless they are specifically asked to act" : ""}
 `;
@@ -701,7 +705,8 @@ export async function classifyEmailWithContext(
   },
   senderContext: SenderContext,
   categories: Record<string, CategoryConfig> = DEFAULT_CATEGORIES,
-  userEmail?: string
+  userEmail?: string,
+  userName?: string
 ): Promise<ClassificationResult> {
   // TIER 0: Thread Detection (pre-check)
   const threadSignals = detectThreadSignals(
@@ -723,7 +728,8 @@ export async function classifyEmailWithContext(
     senderContext,
     threadSignals,
     categories,
-    userEmail
+    userEmail,
+    userName
   );
 
   try {

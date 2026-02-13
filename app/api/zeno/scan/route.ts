@@ -113,7 +113,8 @@ export async function POST(request: NextRequest) {
             },
             senderContext,
             categories,
-            userEmail
+            userEmail,
+            user.name || ""
           );
 
           // Update sender history
