@@ -13,6 +13,7 @@ import {
   Sun,
   Shield,
   BarChart3,
+  ScrollText,
   Sparkles,
   ChevronUp,
   MessageSquare,
@@ -381,6 +382,16 @@ export default function Sidebar() {
                     Analytics
                   </Link>
 
+                  {/* Changelog */}
+                  <Link
+                    href="/changelog"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
+                  >
+                    <ScrollText className="h-4 w-4 text-[var(--text-muted)]" />
+                    Changelog
+                  </Link>
+
                   {/* Talk to Support */}
                   <button
                     onClick={() => { setMenuOpen(false); setChatOpen(true); }}
@@ -570,6 +581,15 @@ export default function Sidebar() {
                 >
                   <BarChart3 className="h-5 w-5 text-[var(--text-muted)]" />
                   Analytics
+                </Link>
+
+                <Link
+                  href="/changelog"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-2.5 text-[var(--text-primary)] transition-colors hover:bg-[var(--bg-elevated)]"
+                >
+                  <ScrollText className="h-5 w-5 text-[var(--text-muted)]" />
+                  Changelog
                 </Link>
 
                 <button
