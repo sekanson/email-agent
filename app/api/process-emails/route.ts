@@ -224,6 +224,7 @@ export async function POST(request: NextRequest) {
 
               // Fetch full thread context for better responses
               let threadContext = "";
+              let skipDraftUserWasLastSender = false;
               try {
                 const threadMessages = await getThreadMessages(
                   accessToken,
@@ -235,9 +236,22 @@ export async function POST(request: NextRequest) {
                 if (threadContext) {
                   console.log(`Loaded ${threadMessages.length} messages from thread for context`);
                 }
+
+                // Skip draft if user was the last sender in the thread (waiting on a reply)
+                if (threadMessages.length > 0) {
+                  const lastMessage = threadMessages[threadMessages.length - 1];
+                  if (lastMessage.isFromUser) {
+                    console.log(`Skipping draft for "${email.subject}" - user was last sender (awaiting reply)`);
+                    skipDraftUserWasLastSender = true;
+                  }
+                }
               } catch (threadError) {
                 console.log(`Could not load thread context: ${threadError}`);
               }
+
+              if (skipDraftUserWasLastSender) {
+                // Don't generate a draft - user is waiting on a reply from the other party
+              } else {
 
               const draftBody = await generateDraftResponse(
                 email.from,
@@ -304,6 +318,7 @@ export async function POST(request: NextRequest) {
               // Update local user object to reflect the new count
               user.drafts_created_count = (user.drafts_created_count || 0) + 1;
 
+              } // end else (not skipDraftUserWasLastSender)
             } catch (draftError: any) {
               console.error(`Failed to create draft for email ${email.id}:`, draftError);
               console.error(`Draft error details:`, draftError.message || draftError);
