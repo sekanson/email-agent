@@ -121,7 +121,7 @@ export function mergeUserSettingsWithDefaults(userSettings?: Partial<UserSetting
 
   // Override: if user had their own categories, use those exactly (no zombie defaults)
   if (userHasCategories) {
-    merged.categories = userSettings.categories as Record<string, CategoryConfig>;
+    (merged as any).categories = userSettings.categories as Record<string, CategoryConfig>;
   }
   
   // Ensure schemaVersions is properly initialized
