@@ -564,21 +564,41 @@ export async function createDraft(
   const auth = getOAuth2Client(accessToken, refreshToken);
   const gmail = google.gmail({ version: "v1", auth });
 
-  // Always use plain text for drafts so Gmail's compose editor handles formatting
-  // natively. HTML drafts cause line-break issues when edited and sent.
-  // Strip any HTML tags from the body (e.g. signature) to get clean plain text.
-  let formattedBody = body.replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\n{3,}/g, '\n\n'); // Collapse excessive newlines
-  const contentType = "text/plain; charset=utf-8";
+  // Check if body contains HTML (signature or formatting)
+  const isHtml = /<[^>]+>/.test(body);
+
+  let formattedBody: string;
+  let contentType: string;
+
+  if (isHtml) {
+    // Body contains HTML (e.g. signature). Convert the plain-text draft portion
+    // into Gmail-native <div> elements so the compose editor handles it cleanly.
+    // Gmail internally represents each line as a <div>, so we match that structure.
+    const htmlTagIndex = body.search(/<[a-z]/i);
+    const plainPart = htmlTagIndex > 0 ? body.slice(0, htmlTagIndex) : "";
+    const htmlPart = htmlTagIndex > 0 ? body.slice(htmlTagIndex) : body;
+
+    // Convert each line to a <div> (Gmail's native format)
+    // Empty lines become <div><br></div> (Gmail's blank line)
+    const htmlLines = plainPart
+      .split('\n')
+      .map(line => line.trim() === '' ? '<div><br></div>' : `<div>${line}</div>`)
+      .join('\n');
+
+    formattedBody = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body>
+${htmlLines}
+<div><br></div>
+${htmlPart}
+</body>
+</html>`;
+    contentType = "text/html; charset=utf-8";
+  } else {
+    formattedBody = body;
+    contentType = "text/plain; charset=utf-8";
+  }
 
   // Build message headers
   const headers = [
