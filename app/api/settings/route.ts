@@ -112,8 +112,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Strip DB metadata fields that shouldn't be included in upsert
-    const { id, created_at, updated_at, user_email, email, ...cleanSettings } = updatedSettings as any;
+    // Only include known DB columns in the upsert (strip metadata + frontend-only fields)
+    const KNOWN_DB_COLUMNS = [
+      'temperature', 'signature', 'drafts_enabled', 'use_writing_style', 'writing_style',
+      'categories', 'auto_poll_enabled', 'auto_poll_interval',
+      'zeno_digest_enabled', 'zeno_digest_types', 'zeno_morning_time', 'zeno_eod_time',
+      'vip_senders', 'focus_mode_enabled', 'focus_mode_until', 'timezone', 'zeno_confirmations',
+      'focus_mode_filter_id', 'focus_mode_label_id', 'focus_mode_started_at', 'focus_mode_ended_at',
+      'labels_enabled', 'schemaVersions', 'upgradePromptsShown',
+    ];
+    const cleanSettings: Record<string, any> = {};
+    for (const col of KNOWN_DB_COLUMNS) {
+      if (col in updatedSettings) {
+        cleanSettings[col] = (updatedSettings as any)[col];
+      }
+    }
 
     // Try with user_email first, then email as fallback
     const tryUpsert = async (emailColumn: string) => {
