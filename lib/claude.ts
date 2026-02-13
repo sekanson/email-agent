@@ -350,13 +350,17 @@ export async function generateDraftResponse(
   // Extract sender name for context
   const senderName = from.split('<')[0].trim() || from.split('@')[0];
 
+  // Use the user's email to identify them in the prompt
+  const userIdentity = userEmail ? `\n- The USER's email is: ${userEmail}` : "";
+
   const prompt = `You are drafting an email reply on behalf of a user.
 
 IMPORTANT CONTEXT:
-- The USER received this email and needs to respond
+- The USER received this email and needs to respond${userIdentity}
 - You are writing a reply FROM the user TO ${senderName}
 - Write as if YOU are the user replying to this message
 - Do NOT write from ${senderName}'s perspective - they sent the email, you're replying to them
+- If this is a multi-party thread, remember YOU are the user (${userEmail || "the recipient"}), not any other participant
 ${threadSection}
 EMAIL RECEIVED:
 From: ${from}
@@ -417,10 +421,11 @@ Write ONLY the email body text with proper formatting (remember: you're the USER
  * Build the tiered classification prompt with thread and sender context
  */
 function buildTieredPrompt(
-  email: { from: string; subject: string; body: string },
+  email: { from: string; subject: string; body: string; to?: string; cc?: string },
   senderContext: SenderContext,
   threadSignals: ThreadSignals,
-  categories: Record<string, CategoryConfig>
+  categories: Record<string, CategoryConfig>,
+  userEmail?: string
 ): string {
   const sortedCategories = Object.entries(categories)
     .filter(([, config]) => config.enabled)
@@ -465,6 +470,19 @@ THREAD CONTEXT (Tier 0 - Check First):
   }
 
   contextSection += "\n" + formatSenderContextForPrompt(senderContext);
+
+  // Add user identity context so the AI knows the user's perspective
+  if (userEmail) {
+    const isInTo = email.to?.toLowerCase().includes(userEmail.toLowerCase());
+    const isInCc = email.cc?.toLowerCase().includes(userEmail.toLowerCase());
+    const recipientRole = isInTo ? "direct recipient (To:)" : isInCc ? "CC'd (not primary recipient)" : "recipient";
+    contextSection += `
+USER CONTEXT:
+- The user's email is: ${userEmail}
+- The user is the ${recipientRole} of this email
+${isInCc ? "- Since the user is CC'd, this is likely FYI/informational unless they are specifically asked to act" : ""}
+`;
+  }
 
   return `Classify this email using TIERED analysis. Respond in this exact format:
 CATEGORY: [number]
@@ -678,9 +696,12 @@ export async function classifyEmailWithContext(
     body: string;
     references?: string;
     inReplyTo?: string;
+    to?: string;
+    cc?: string;
   },
   senderContext: SenderContext,
-  categories: Record<string, CategoryConfig> = DEFAULT_CATEGORIES
+  categories: Record<string, CategoryConfig> = DEFAULT_CATEGORIES,
+  userEmail?: string
 ): Promise<ClassificationResult> {
   // TIER 0: Thread Detection (pre-check)
   const threadSignals = detectThreadSignals(
@@ -696,10 +717,13 @@ export async function classifyEmailWithContext(
       from: email.from,
       subject: email.subject,
       body: email.body,
+      to: email.to,
+      cc: email.cc,
     },
     senderContext,
     threadSignals,
-    categories
+    categories,
+    userEmail
   );
 
   try {

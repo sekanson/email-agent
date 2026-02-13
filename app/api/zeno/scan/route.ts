@@ -108,9 +108,12 @@ export async function POST(request: NextRequest) {
               body: email.body || email.bodyPreview,
               references: email.references,
               inReplyTo: email.inReplyTo,
+              to: email.to,
+              cc: email.cc,
             },
             senderContext,
-            categories
+            categories,
+            userEmail
           );
 
           // Update sender history

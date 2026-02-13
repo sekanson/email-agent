@@ -194,9 +194,12 @@ export async function GET(request: NextRequest) {
                   body: email.body || email.bodyPreview,
                   references: email.references,
                   inReplyTo: email.inReplyTo,
+                  to: email.to,
+                  cc: email.cc,
                 },
                 senderContext,
-                categories
+                categories,
+                user.email
               );
               console.log(`[${user.email}] ✓ Claude classified in ${Date.now() - classifyStartTime}ms: category=${result.category}, confidence=${result.confidence}`);
             } catch (claudeError) {
