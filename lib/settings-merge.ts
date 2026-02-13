@@ -109,8 +109,20 @@ export function mergeUserSettingsWithDefaults(userSettings?: Partial<UserSetting
     categories: userCategories
   };
 
+  // Extract user categories before merge - if user has saved categories,
+  // use them as-is (don't fill in deleted keys from defaults).
+  // Only fall back to defaults when user has NO categories at all.
+  const userHasCategories = userSettings.categories && 
+    typeof userSettings.categories === 'object' && 
+    Object.keys(userSettings.categories).length > 0;
+
   // Deep merge, with user settings taking precedence
   const merged = deepMerge(defaultsWithUserCategories, userSettings);
+
+  // Override: if user had their own categories, use those exactly (no zombie defaults)
+  if (userHasCategories) {
+    merged.categories = userSettings.categories as Record<string, CategoryConfig>;
+  }
   
   // Ensure schemaVersions is properly initialized
   if (!merged.schemaVersions) {
