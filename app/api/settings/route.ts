@@ -112,11 +112,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Strip DB metadata fields that shouldn't be included in upsert
+    const { id, created_at, updated_at, user_email, email, ...cleanSettings } = updatedSettings as any;
+
     // Try with user_email first, then email as fallback
     const tryUpsert = async (emailColumn: string) => {
       const settingsToSave = {
         [emailColumn]: userEmail,
-        ...updatedSettings,
+        ...cleanSettings,
       };
 
       return await supabase
