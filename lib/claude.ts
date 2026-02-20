@@ -637,9 +637,19 @@ function parseStructuredResponse(
   text: string,
   threadSignals: ThreadSignals,
   senderContext: SenderContext,
-  categories: Record<string, CategoryConfig>
+  categories: Record<string, CategoryConfig>,
+  fromEmail:string
 ): ClassificationResult {
-  const categoryMatch = text.match(/CATEGORY:\s*(\d+)/i);
+  const transactionalSenders = ["@paypal.com", "@stripe.com", "@wise.com"];
+  if (transactionalSenders.some(sender => fromEmail.includes(sender))) {
+    return {
+      category: 4,
+      confidence: 0.95,
+      reasoning: "Force: Transactional sender",
+      isThread: threadSignals.isThread,
+      senderKnown: senderContext.hasHistory
+    };
+  }
   const confidenceMatch = text.match(/CONFIDENCE:\s*([\d.]+)/i);
   const reasoningMatch = text.match(/REASONING:\s*(.+?)(?:\n|$)/i);
 
@@ -693,13 +703,15 @@ function parseStructuredResponse(
   if (finalCategory === 2 && marketingSignals.some(signal => reasoningLower.includes(signal))) {
     // Find marketing category
     const marketingCat = findCategoryByPattern(categories, ["marketing", "spam", "promotional"]) || "8";
+    finalCategory = parseInt(marketingCat);
     return {
-      category: parseInt(marketingCat),
+      category: finalCategory,
       confidence: 0.9,
       reasoning: `Override: Reasoning contained marketing signals but was classified as FYI - corrected to Marketing`,
       isThread: threadSignals.isThread,
       senderKnown: senderContext.hasHistory,
     };
+  }
   }
 
   return {
@@ -783,7 +795,8 @@ export async function classifyEmailWithContext(
       content.text,
       threadSignals,
       senderContext,
-      categories
+      categories,
+      email.fromEmail // pass fromEmail to function
     );
   } catch (apiError) {
     // FALLBACK: If API call fails entirely, return a safe default
