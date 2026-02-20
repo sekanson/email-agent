@@ -642,6 +642,7 @@ function parseStructuredResponse(
   }
   const confidenceMatch = text.match(/CONFIDENCE:\s*([\d.]+)/i);
   const reasoningMatch = text.match(/REASONING:\s*(.+?)(?:\n|$)/i);
+  const categoryMatch = text.match(/CATEGORY:\s*(\d+)/i);
 
   const category = categoryMatch ? parseInt(categoryMatch[1]) : 2;
   const confidence = confidenceMatch ? parseFloat(confidenceMatch[1]) : 0.5;
@@ -666,6 +667,7 @@ function parseStructuredResponse(
     isThread: threadSignals.isThread,
     senderKnown: senderContext.hasHistory,
   };
+}
 
 /**
  * Enhanced email classification with thread detection and sender context
