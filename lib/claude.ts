@@ -659,34 +659,6 @@ function parseStructuredResponse(
     finalCategory = 2;
   }
 
-  // SAFETY OVERRIDE: If STRONG thread signal detected but classified as Spam (8), override
-  // Only apply for genuine reply threads - require strong signals like subject prefix + headers
-  // This prevents real marketing emails from being misclassified just because they have ">" chars
-  const spamCategoryNum = Object.entries(categories).find(([, config]) => isSpamCategory(config.name))?.[0];
-  const hasStrongThreadSignal = threadSignals.signals.includes("subject_prefix") && 
-    (threadSignals.signals.includes("references_header") || threadSignals.signals.includes("in_reply_to_header"));
-  
-  if (hasStrongThreadSignal && spamCategoryNum && finalCategory === parseInt(spamCategoryNum)) {
-    // Determine better category based on thread state
-    const threadState = analyzeThreadState("", ""); // We don't have body here, use default
-    let overrideCategory = 2; // Default to FYI
-
-    if (senderContext.mostCommonCategory && senderContext.mostCommonCategory !== parseInt(spamCategoryNum)) {
-      overrideCategory = senderContext.mostCommonCategory;
-    }
-
-    return {
-      category: overrideCategory,
-      confidence: 0.6,
-      reasoning: `Reply thread incorrectly flagged as spam - overridden to category ${overrideCategory}`,
-      isThread: true,
-      senderKnown: senderContext.hasHistory,
-    };
-  }
-
-  }
-
->>>>>>> parent of eea5965 (Fix: Override FYI to Marketing when reasoning mentions marketing signals)
   return {
     category: finalCategory,
     confidence: Math.min(Math.max(confidence, 0), 1),
@@ -694,7 +666,6 @@ function parseStructuredResponse(
     isThread: threadSignals.isThread,
     senderKnown: senderContext.hasHistory,
   };
-}
 
 /**
  * Enhanced email classification with thread detection and sender context
