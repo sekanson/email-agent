@@ -216,10 +216,7 @@ If ANY match AND no Step 0 override → STOP and return ${marketingCat}
    - 1:1 status update from a colleague or real person
    - "Just letting you know" from someone you work with
    - "Thanks!" reply in a personal conversation
-   - MUST be from a real person (human name), NOT a company/brand/service
-   - MUST NOT contain "Unsubscribe" or marketing footers
-   - If sender is a company → Marketing (${marketingCat}), NEVER FYI
-   - When in doubt between FYI and Marketing → choose Marketing (${marketingCat})
+   - MUST be from a real person, not a company
 
 ★ NOTIFICATIONS (${notificationsCat}) - Automated transactional
    - Payment/order confirmations, receipts
@@ -536,9 +533,6 @@ If NONE of the Tier 0.5 overrides matched, check these signals. If ANY match →
 
 MARKETING SIGNALS (any ONE = Marketing):
 ✗ Contains "Unsubscribe" or "unsubscribe" link (unless Tier 0.5 override)
-✗ Contains direct links to purchase pages (shop now, buy now, etc.)
-✗ Body contains explicit phrases like "limited time offer", "exclusive deal", "shop now", "free shipping", "subscribe today"
-✗ Email is sent by known marketing platforms or retailers (e.g. shopify, mailchimp, amazon) - use from email to check.
 ✗ Contains "View in browser" or "View online"
 ✗ Contains "Email preferences" or "Manage preferences"
 ✗ From noreply@ that's NOT a transactional service (see Tier 0.5)
@@ -592,13 +586,9 @@ If ANY match and NOT a reply thread and NO Tier 0.5 override → return ${market
   - @mentioned but not main addressee
 
 ★ FYI (${fyiCat}) - Personal informational ONLY
-  - 1:1 status update from a colleague or someone you know
+  - 1:1 status update from a colleague
   - "Just letting you know" from someone you work with
-  - MUST be from a real person (human name in From), NOT a company/brand
-  - MUST NOT contain "Unsubscribe", "View in browser", or marketing footers
-  - If sender is a company/brand/service → Marketing (${marketingCat}), NEVER FYI
-  - If email is a broadcast to many recipients → Marketing (${marketingCat}), NEVER FYI
-  - When in doubt between FYI and Marketing → choose Marketing (${marketingCat})
+  - MUST be from a real person, NOT a company
 
 ★ WAITING (${waitingCat}) - Ball in someone else's court
   - You submitted something, awaiting response
