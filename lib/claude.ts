@@ -684,26 +684,9 @@ function parseStructuredResponse(
     };
   }
 
-  // SAFETY OVERRIDE: Catch self-contradicting classifications
-  // If category is FYI (2) but reasoning mentions marketing/promo signals, override to Marketing (8)
-  const marketingSignals = ["marketing", "promotional", "promo", "% off", "sale", "flash sale", 
-                            "limited time offer", "exclusive deal", "shop now", "buy now"];
-  const reasoningLower = reasoning.toLowerCase();
-  
-  if (finalCategory === 2 && marketingSignals.some(signal => reasoningLower.includes(signal))) {
-    // Find marketing category
-    const marketingCat = findCategoryByPattern(categories, ["marketing", "spam", "promotional"]) || "8";
-    finalCategory = parseInt(marketingCat);
-    return {
-      category: finalCategory,
-      confidence: 0.9,
-      reasoning: `Override: Reasoning contained marketing signals but was classified as FYI - corrected to Marketing`,
-      isThread: threadSignals.isThread,
-      senderKnown: senderContext.hasHistory,
-    };
-  }
   }
 
+>>>>>>> parent of eea5965 (Fix: Override FYI to Marketing when reasoning mentions marketing signals)
   return {
     category: finalCategory,
     confidence: Math.min(Math.max(confidence, 0), 1),
