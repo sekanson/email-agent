@@ -101,7 +101,7 @@ export default function Sidebar() {
     setTheme((localStorage.getItem("theme") as "dark" | "light") || "dark");
   }, []);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(true);
 
   // Close menu when clicking outside
   useEffect(() => {
