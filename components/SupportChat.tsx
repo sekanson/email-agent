@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { X, Send, MessageSquare, Bot, User, Loader2, Sparkles, Lock } from "lucide-react";
+import { X, Send, MessageSquare, Bot, User, Loader2 } from "lucide-react";
 
 interface Message {
   id: string;
@@ -14,55 +14,6 @@ interface SupportChatProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const UnlockScreen = ({ onUnlock, error, setError }: { onUnlock: () => void; error: string; setError: (e: string) => void }) => {
-  const [password, setPassword] = useState("");
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password.toLowerCase() === "purple fox") {
-      onUnlock();
-    } else {
-      setError("Incorrect password. Try again.");
-      setPassword("");
-    }
-  };
-
-  return (
-    <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-indigo-900 to-black p-6 text-center">
-       <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 border border-white/20 mb-6">
-        <Lock className="w-8 h-8 text-white/80" />
-      </div>
-      <h2 className="text-2xl font-bold text-white mb-2">Unlock Mirmi</h2>
-      <p className="text-indigo-300 mb-6">Enter the secret password to activate.</p>
-      
-      <form onSubmit={handleSubmit} className="w-full max-w-xs">
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => {
-            setPassword(e.target.value)
-            if (error) setError('');
-          }}
-          placeholder="Secret password..."
-          className="w-full px-4 py-3 rounded-xl border border-indigo-500/50 bg-indigo-900/50 text-white placeholder-indigo-400/60 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-        />
-        {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
-        <button type="submit" className="w-full mt-4 bg-white text-black font-semibold py-3 rounded-xl transition hover:bg-indigo-200">
-          Activate
-        </button>
-      </form>
-    </div>
-  );
-};
-
-const ActivatingScreen = () => (
-  <div className="flex flex-col items-center justify-center h-full bg-gradient-to-br from-green-900 to-black p-6 text-center">
-    <Sparkles className="w-12 h-12 text-green-300 animate-pulse mb-4" />
-    <h2 className="text-2xl font-bold text-white">Mirmi Activated</h2>
-  </div>
-);
-
 
 export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
   const [messages, setMessages] = useState<Message[]>([
@@ -77,31 +28,18 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [isActivating, setIsActivating] = useState(false);
-  const [unlockError, setUnlockError] = useState('');
-
-  const handleUnlock = () => {
-    setUnlockError('');
-    setIsActivating(true);
-    setTimeout(() => {
-      setIsActivating(false);
-      setIsUnlocked(true);
-    }, 1500);
-  };
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Focus input when chat opens and is unlocked
+  // Focus input when chat opens
   useEffect(() => {
-    if (isOpen && isUnlocked) {
+    if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, isUnlocked]);
+  }, [isOpen]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,100 +109,90 @@ export default function SupportChat({ isOpen, onClose }: SupportChatProps) {
       {/* Chat Window */}
       <div className="fixed bottom-4 right-4 z-50 flex h-[500px] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)] shadow-2xl md:bottom-6 md:right-6">
         
-        {!isUnlocked ? (
-          isActivating ? (
-            <ActivatingScreen />
-          ) : (
-            <UnlockScreen onUnlock={handleUnlock} error={unlockError} setError={setUnlockError} />
-          )
-        ) : (
-          <>
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-[var(--border)] bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
-                  <MessageSquare className="h-4 w-4 text-white" />
-                </div>
-                <div>
-                  <p className="font-medium text-white">Mirmi</p>
-                  <p className="text-xs text-white/70">AI Assistant</p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[var(--border)] bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+              <MessageSquare className="h-4 w-4 text-white" />
+            </div>
+            <div>
+              <p className="font-medium text-white">Mirmi</p>
+              <p className="text-xs text-white/70">AI Assistant</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
+            >
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                  message.role === "user"
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "bg-emerald-500/20 text-emerald-400"
+                }`}
               >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : ""}`}
-                >
-                  <div
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                      message.role === "user"
-                        ? "bg-blue-500/20 text-blue-400"
-                        : "bg-emerald-500/20 text-emerald-400"
-                    }`}
-                  >
-                    {message.role === "user" ? (
-                      <User className="h-4 w-4" />
-                    ) : (
-                      <Bot className="h-4 w-4" />
-                    )}
-                  </div>
-                  <div
-                    className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                      message.role === "user"
-                        ? "bg-blue-600 text-white"
-                        : "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="flex gap-3">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
-                    <Bot className="h-4 w-4" />
-                  </div>
-                  <div className="rounded-2xl bg-[var(--bg-elevated)] px-4 py-2.5">
-                    <Loader2 className="h-4 w-4 animate-spin text-[var(--text-muted)]" />
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input */}
-            <form onSubmit={handleSubmit} className="border-t border-[var(--border)] p-3">
-              <div className="flex gap-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your question..."
-                  className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-blue-500/50"
-                  disabled={isLoading}
-                />
-                <button
-                  type="submit"
-                  disabled={!input.trim() || isLoading}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
+                {message.role === "user" ? (
+                  <User className="h-4 w-4" />
+                ) : (
+                  <Bot className="h-4 w-4" />
+                )}
               </div>
-            </form>
-          </>
-        )}
+              <div
+                className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
+                  message.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-[var(--bg-elevated)] text-[var(--text-primary)]"
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div className="flex gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400">
+                <Bot className="h-4 w-4" />
+              </div>
+              <div className="rounded-2xl bg-[var(--bg-elevated)] px-4 py-2.5">
+                <Loader2 className="h-4 w-4 animate-spin text-[var(--text-muted)]" />
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <form onSubmit={handleSubmit} className="border-t border-[var(--border)] p-3">
+          <div className="flex gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type your question..."
+              className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] outline-none transition-colors focus:border-blue-500/50"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white transition-all hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        </form>
       </div>
     </>
   );
