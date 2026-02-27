@@ -15,10 +15,10 @@ interface SupportChatProps {
   onClose: () => void;
 }
 
-const UnlockScreen = ({ onUnlock, error, setError }) => {
+const UnlockScreen = ({ onUnlock, error, setError }: { onUnlock: () => void; error: string; setError: (e: string) => void }) => {
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (password.toLowerCase() === "purple fox") {
       onUnlock();
